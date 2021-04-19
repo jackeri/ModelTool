@@ -1,5 +1,4 @@
-#ifndef MODELTOOL_APPLICATION_H
-#define MODELTOOL_APPLICATION_H
+#pragma once
 
 namespace mt {
 	class Application {
@@ -16,4 +15,3 @@ namespace mt {
 		void *window = nullptr;
 	};
 }
-#endif //MODELTOOL_APPLICATION_H

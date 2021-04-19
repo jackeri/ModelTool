@@ -8,6 +8,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "imgui.h"
+#include "UISystem.h"
 
 // FIXME: Remove when we have logger class..
 #include <iostream>
@@ -73,6 +74,12 @@ namespace mt {
 		std::cout << "Renderer: " << renderer << std::endl;
 		std::cout << "OpenGL version supported " << version << std::endl;
 
+		// Init the UI system
+		if (!UISystem::setup("#version 150")) {
+			// UI setup failed, cancel the whole ordeal.
+			return false;
+		}
+
 		return true;
 	}
 
@@ -90,6 +97,8 @@ namespace mt {
 			// Clea the screen for now
 			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
+
+			UISystem::draw();
 
 			glfwSwapBuffers(glfwWindow);
 			glfwPollEvents();
