@@ -7,6 +7,8 @@ project(ModelTool VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_TARGETS_FOLDER CMake)
 set(BUNDLED_TARGETS_FOLDER Bundled)
 
+option(test "Enable testing" ON)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ${CMAKE_TARGETS_FOLDER})
 
@@ -219,6 +221,24 @@ install(DIRECTORY "fonts" DESTINATION "./")
 install(DIRECTORY "shaders" DESTINATION "./")
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/fonts DESTINATION ${CMAKE_BINARY_DIR})
+
+if (test)
+
+	add_subdirectory(libs/googletest)
+
+	file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false
+		"tst/*.h"
+		"tst/*.cpp"
+	)
+
+	set(SOURCES ${TEST_SOURCES} ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+
+	add_executable(tst ${TEST_SOURCES})
+	add_dependencies(tst ModelTool)
+	target_link_libraries(tst PUBLIC ${MVLINK_LIBRARIES} gtest)
+
+	add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND tst)
+endif()
 
 # TODO: setup CPack
 

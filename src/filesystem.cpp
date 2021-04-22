@@ -1,5 +1,26 @@
-//
-// Created by Jere Sjöroos on 22.4.2021.
-//
-
 #include "filesystem.h"
+
+namespace mt {
+	namespace IO {
+
+		MTPath::MTPath(std::string &path)
+		{
+
+		}
+
+		MTPath::~MTPath()
+		{
+
+		}
+
+		bool MTPath::findFile(const int &name)
+		{
+			return false;
+		}
+
+		MTFile *MTPath::loadFile(const int &name)
+		{
+			return nullptr;
+		}
+	}
+}

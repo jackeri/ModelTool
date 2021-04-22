@@ -49,57 +49,59 @@ namespace mt {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// Enable the whole viewport docking
 		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+		// Setup the main menu bar.
+		if (ImGui::BeginMainMenuBar())
+		{
+
+			if (ImGui::BeginMenu("File"))
+			{
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Quit", "Cmd+Q", false, false))
+				{
+					// Emit quit message
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Options"))
+			{
+				// Disabling fullscreen would allow the window to be moved to the front of other windows,
+				// which we can't undo at the moment without finer window depth/z control.
+				if (ImGui::MenuItem("Fullscreen", nullptr, false))
+				{
+
+				}
+				if (ImGui::MenuItem("Padding", nullptr, false))
+				{
+
+				}
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Close", nullptr, false, false))
+				{
+
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Quit", nullptr, false, false))
+				{
+
+				}
+
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMainMenuBar();
+		}
 
 		if (true)
 		{
-			if (ImGui::BeginMainMenuBar())
-			{
-
-				if (ImGui::BeginMenu("File"))
-				{
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Quit", "Cmd+Q", false, false))
-					{
-						// Emit quit message
-					}
-
-					ImGui::EndMenu();
-				}
-
-				if (ImGui::BeginMenu("Options"))
-				{
-					// Disabling fullscreen would allow the window to be moved to the front of other windows,
-					// which we can't undo at the moment without finer window depth/z control.
-					if (ImGui::MenuItem("Fullscreen", nullptr, false))
-					{
-
-					}
-					if (ImGui::MenuItem("Padding", nullptr, false))
-					{
-
-					}
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Close", nullptr, false, false))
-					{
-
-					}
-
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Quit", nullptr, false, false))
-					{
-
-					}
-
-					ImGui::EndMenu();
-				}
-
-				ImGui::EndMainMenuBar();
-			}
-
 			ImGuiWindowFlags window_flags = 0; //ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 
 			// Create a window called "Hello, world!" and append into it.

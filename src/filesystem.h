@@ -1,5 +1,10 @@
 #pragma once
 
+#include "mt.h"
+
+#include <string>
+#include <vector>
+
 namespace mt {
 	namespace IO {
 
@@ -7,11 +12,11 @@ namespace mt {
 			byte *data = nullptr;
 			std::string name;
 			std::string ext;
-			size_t len;
+			size_t len = 0;
 
-			MTFile();
+			MTFile() = default;
 
-			~MTFile();
+			~MTFile() = default;
 		};
 
 		class FileSource {
@@ -25,20 +30,34 @@ namespace mt {
 
 		class MTPath : FileSource {
 		public:
-			MTPath(std::string &path);
+			explicit MTPath(std::string &path);
+
 			~MTPath() override;
 
+			bool findFile(const int &name) override;
 
+			MTFile *loadFile(const int &name) override;
 		};
 
-		class filesystem {
+		class MTPackage : FileSource {
 		public:
-			filesystem();
+			explicit MTPackage(std::string &path);
 
-			~filesystem();
+			~MTPackage() override;
+
+			bool findFile(const int &name) override;
+
+			MTFile *loadFile(const int &name) override;
+		};
+
+		class FileSystem {
+		public:
+			FileSystem();
+
+			~FileSystem();
 
 		private:
-			std::vector<>
+			std::vector<FileSource> sources;
 		};
 	}
 }
