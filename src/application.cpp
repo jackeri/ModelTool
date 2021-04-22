@@ -29,6 +29,9 @@ namespace mt {
 	{
 		if (this->window)
 		{
+			// Handle UI system shutdown
+			UISystem::shutdown();
+
 			glfwDestroyWindow((GLFWwindow *) window);
 			this->window = nullptr;
 		}
