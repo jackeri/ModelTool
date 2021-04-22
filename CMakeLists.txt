@@ -161,6 +161,9 @@ FILE(GLOB IMGUI_SRC
 	"libs/imgui/imstb_rectpack.h"
 	"libs/imgui/imstb_textedit.h"
 	"libs/imgui/imstb_truetype.h"
+	# Backends
+	"libs/imgui/backends/imgui_impl_glfw.cpp"
+	"libs/imgui/backends/imgui_impl_opengl3.cpp"
 )
 
 # Libs that come in the form of headers only (stb, tinydir etc)

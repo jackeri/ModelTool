@@ -59,14 +59,13 @@ namespace mt {
 		this->window = glfwWindow;
 
 		glfwMakeContextCurrent(glfwWindow);
+		glfwSwapInterval(1);
 
 		glewExperimental = GL_TRUE;
 		if (glewInit() != GLEW_OK)
 		{
 			return false;
 		}
-
-		glfwSwapInterval(1);
 
 		// Print the current GPU info
 		const GLubyte *renderer = glGetString(GL_RENDERER);
@@ -75,7 +74,7 @@ namespace mt {
 		std::cout << "OpenGL version supported " << version << std::endl;
 
 		// Init the UI system
-		if (!UISystem::setup("#version 150")) {
+		if (!UISystem::setup(glfwWindow, "#version 150")) {
 			// UI setup failed, cancel the whole ordeal.
 			return false;
 		}
@@ -88,6 +87,8 @@ namespace mt {
 		auto *glfwWindow = static_cast<GLFWwindow *>(this->window);
 		while (!glfwWindowShouldClose(glfwWindow))
 		{
+			glfwPollEvents();
+
 			// Close the window on escape for now (faster dev)
 			if (glfwGetKey(glfwWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			{
@@ -101,7 +102,6 @@ namespace mt {
 			UISystem::draw();
 
 			glfwSwapBuffers(glfwWindow);
-			glfwPollEvents();
 		}
 	}
 }
