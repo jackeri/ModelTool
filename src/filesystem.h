@@ -34,9 +34,11 @@ namespace mt {
 
 			~MTPath() override;
 
-			bool findFile(const int &name) override;
+			bool findFile(const std::string &name) override;
 
-			MTFile *loadFile(const int &name) override;
+			MTFile *loadFile(const std::string &name) override;
+		private:
+			std::string path;
 		};
 
 		class MTPackage : FileSource {
@@ -45,9 +47,9 @@ namespace mt {
 
 			~MTPackage() override;
 
-			bool findFile(const int &name) override;
+			bool findFile(const std::string &name) override;
 
-			MTFile *loadFile(const int &name) override;
+			MTFile *loadFile(const std::string &name) override;
 		};
 
 		class FileSystem {
