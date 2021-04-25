@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 #include "imgui.h"
 #include "UISystem.h"
+#include "filesystem.h"
 
 // FIXME: Remove when we have logger class..
 #include <iostream>
@@ -23,6 +24,7 @@ namespace mt {
 	Application::Application(const std::string &title)
 	{
 		this->title = title;
+		IO::FileSystem sys;
 	}
 
 	Application::~Application()

@@ -71,7 +71,7 @@ namespace mt::IO {
 
 	class FileSystem : public FileSource {
 	public:
-		FileSystem() = default;
+		FileSystem();
 
 		~FileSystem() override;
 

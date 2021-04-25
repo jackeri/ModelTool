@@ -123,6 +123,11 @@ namespace mt::IO {
 		return nullptr;
 	}
 
+	FileSystem::FileSystem() : FileSource()
+	{
+
+	}
+
 	FileSystem::~FileSystem()
 	{
 		clear();
