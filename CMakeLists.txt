@@ -12,8 +12,8 @@ option(test "Enable testing" ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ${CMAKE_TARGETS_FOLDER})
 
-# Activate C++ 14 and C99 (if needed)
-set (CMAKE_CXX_STANDARD 14)
+# Activate C++ 17 and C99 (if needed)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_C_STANDARD 99)
 
 IF(NOT CMAKE_BUILD_TYPE)
