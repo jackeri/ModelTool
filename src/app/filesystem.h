@@ -31,6 +31,8 @@ namespace mt::IO {
 
 		virtual MTFile *loadFile(const std::string &name) = 0;
 
+		[[nodiscard]] virtual std::string getSource() const = 0;
+
 		[[nodiscard]] std::string getIdentifier() const
 		{
 			return identifier;
@@ -42,7 +44,7 @@ namespace mt::IO {
 
 	class MTPath : public FileSource {
 	public:
-		explicit MTPath(const std::string &path);
+		explicit MTPath(std::string path);
 
 		~MTPath() override;
 
@@ -50,13 +52,18 @@ namespace mt::IO {
 
 		MTFile *loadFile(const std::string &name) override;
 
+		[[nodiscard]] std::string getSource() const override
+		{
+			return path;
+		}
+
 	private:
 		std::string path;
 	};
 
 	class MTPackage : public FileSource {
 	public:
-		explicit MTPackage(const std::string &path);
+		explicit MTPackage(std::string path);
 
 		~MTPackage() override;
 
@@ -64,8 +71,14 @@ namespace mt::IO {
 
 		MTFile *loadFile(const std::string &name) override;
 
+		[[nodiscard]] std::string getSource() const override
+		{
+			return path;
+		}
+
 	private:
-		unzFile zipFile;
+		std::string path;
+		unzFile zipFile = nullptr;
 		std::unordered_set<std::string> files;
 	};
 
@@ -89,6 +102,8 @@ namespace mt::IO {
 		bool findFile(const std::string &name) override;
 
 		MTFile *loadFile(const std::string &name) override;
+
+		std::string getSource() const override;
 
 	private:
 		std::vector<std::shared_ptr<FileSource>> sources;
