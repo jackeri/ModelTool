@@ -8,6 +8,8 @@ X& singleton()
 	return x;
 }
 
+const int MAX_PATH = 1024;
+
 typedef unsigned char byte;
 
 #endif //MODELTOOL_MT_H

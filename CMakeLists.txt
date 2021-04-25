@@ -235,6 +235,7 @@ if (test)
 
 	add_executable(tst ${TEST_SOURCES})
 	add_dependencies(tst ModelTool)
+	target_include_directories(tst PRIVATE "src/")
 	target_link_libraries(tst PUBLIC ${MVLINK_LIBRARIES} gtest)
 
 	add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND tst)

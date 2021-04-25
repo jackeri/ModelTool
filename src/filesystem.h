@@ -4,6 +4,9 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
+
+#include "unzip.h"
 
 namespace mt::IO {
 
@@ -20,14 +23,24 @@ namespace mt::IO {
 
 	class FileSource {
 	public:
+		FileSource();
+
 		virtual ~FileSource() = default;
 
 		virtual bool findFile(const std::string &name) = 0;
 
 		virtual MTFile *loadFile(const std::string &name) = 0;
+
+		[[nodiscard]] std::string getIdentifier() const
+		{
+			return identifier;
+		}
+
+	private:
+		std::string identifier;
 	};
 
-	class MTPath : FileSource {
+	class MTPath : public FileSource {
 	public:
 		explicit MTPath(std::string &path);
 
@@ -41,7 +54,7 @@ namespace mt::IO {
 		std::string path;
 	};
 
-	class MTPackage : FileSource {
+	class MTPackage : public FileSource {
 	public:
 		explicit MTPackage(std::string &path);
 
@@ -50,16 +63,35 @@ namespace mt::IO {
 		bool findFile(const std::string &name) override;
 
 		MTFile *loadFile(const std::string &name) override;
-	};
-
-	class FileSystem {
-	public:
-		FileSystem();
-
-		~FileSystem();
 
 	private:
-		std::vector<FileSource> sources;
+		unzFile zipFile;
+		std::unordered_set<std::string> files;
+	};
+
+	class FileSystem : public FileSource {
+	public:
+		FileSystem() = default;
+
+		~FileSystem() override;
+
+		bool addPath(const std::string &path);
+
+		bool hasSource(FileSource &source);
+
+		template<typename F>
+		void addSource(std::shared_ptr<F> &source);
+
+		void removeSource(FileSource &source);
+
+		void clear();
+
+		bool findFile(const std::string &name) override;
+
+		MTFile *loadFile(const std::string &name) override;
+
+	private:
+		std::vector<std::shared_ptr<FileSource>> sources;
 	};
 }
 
