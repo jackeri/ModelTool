@@ -11,7 +11,7 @@ namespace mt::IO {
 		this->identifier = tools::randomString(64);
 	}
 
-	MTPath::MTPath(std::string &path) : path(path)
+	MTPath::MTPath(const std::string &path) : path(path)
 	{
 		// We only use '/' internally so sanitize the paths
 		for (char &character : this->path)
@@ -28,7 +28,13 @@ namespace mt::IO {
 
 	bool MTPath::findFile(const std::string &name)
 	{
-		return FileExists(this->path + path);
+		std::string tmp = name;
+		while (tmp[0] == '/')
+		{
+			tmp = tmp.substr(1);
+		}
+
+		return FileExists(this->path + '/' + tmp);
 	}
 
 	MTFile *MTPath::loadFile(const std::string &name)
@@ -46,7 +52,7 @@ namespace mt::IO {
 		return file;
 	}
 
-	MTPackage::MTPackage(std::string &path)
+	MTPackage::MTPackage(const std::string &path)
 	{
 		zipFile = unzOpen(path.c_str());
 
@@ -135,25 +141,36 @@ namespace mt::IO {
 
 	bool FileSystem::addPath(const std::string &path)
 	{
-		for (const auto &entry : std::filesystem::directory_iterator(path))
-		{
-			auto name = entry.path().filename().string();
-			auto ext = entry.path().extension().string();
+		std::filesystem::path sysPath(path);
 
-			// Check if directory, ignore if not a PK3Dir
-			if (entry.is_directory() && tools::endsWith(name, ".PK3Dir"))
-			{
-				sources.push_back(std::make_shared<MTPath>(name));
-			}
-			else if (entry.is_regular_file() && ext == "pk3")
-			{
-				sources.push_back(std::make_shared<MTPackage>(name));
-			}
+		if (!exists(sysPath))
+		{
+			return false;
 		}
 
-		// FIXME: umm fix this
-		std::string tmp = path;
-		sources.push_back(std::make_shared<MTPath>(tmp));
+		if (is_directory(sysPath))
+		{
+			for (const auto &entry : std::filesystem::directory_iterator(path))
+			{
+				auto name = entry.path().filename().string();
+				auto ext = entry.path().extension().string();
+
+				// Check if directory, ignore if not a PK3Dir
+				if (entry.is_directory() && tools::endsWith(name, ".PK3Dir"))
+				{
+					sources.push_back(std::make_shared<MTPath>(name));
+				}
+				else if (entry.is_regular_file() && ext == "pk3")
+				{
+					sources.push_back(std::make_shared<MTPackage>(name));
+				}
+			}
+
+			sources.push_back(std::make_shared<MTPath>(absolute(sysPath).string()));
+		} else if (is_regular_file(sysPath) && sysPath.extension() == "pk3")
+		{
+			sources.push_back(std::make_shared<MTPackage>(absolute(sysPath).string()));
+		}
 
 		return true;
 	}

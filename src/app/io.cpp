@@ -2,13 +2,14 @@
 
 #include <vector>
 #include <fstream>
+#include <filesystem>
 
 
 namespace mt::IO {
 	bool FileExists(const std::string &path)
 	{
-		std::ifstream file(path);
-		return file.good();
+		std::filesystem::path file(path);
+		return exists(file);
 	}
 
 	bool FileSize(const std::string &path)

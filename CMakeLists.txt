@@ -75,7 +75,6 @@ find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
 FILE(GLOB MODEL_TOOL_SRC
-	"src/*.*"
 	"src/*/*.*"
 )
 
@@ -197,7 +196,7 @@ include_directories(libs/glm)
 
 set(MTLINK_LIBRARIES glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd)
 
-add_executable(ModelTool WIN32 MACOSX_BUNDLE ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 add_dependencies(ModelTool glew glfw)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
@@ -226,21 +225,32 @@ if (test)
 
 	enable_testing()
 
-	add_subdirectory(libs/googletest)
+	# Try to use the system gtest package is exists
+	find_package(GTest)
+
+	if(NOT GTest_FOUND)
+		add_subdirectory(libs/googletest)
+	endif()
 
 	file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false
 		"tst/*.h"
 		"tst/*.cpp"
 	)
 
-	set(SOURCES ${TEST_SOURCES} ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+	set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 
-	add_executable(tst ${TEST_SOURCES})
+	add_executable(tst ${ALL_SOURCES})
 	add_dependencies(tst ModelTool)
-	target_include_directories(tst PRIVATE "src/")
-	target_link_libraries(tst PUBLIC ${MTLINK_LIBRARIES} gtest)
+	target_include_directories(tst PRIVATE "src/app")
+	target_link_libraries(tst PUBLIC ${MTLINK_LIBRARIES})
 
-	add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND tst)
+	if(GTest_FOUND)
+		target_link_libraries(tst PUBLIC GTest::gtest GTest::gtest_main)
+	else()
+		target_link_libraries(tst PUBLIC gtest)
+	endif()
+
+	add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND tst WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 endif()
 
 # TODO: setup CPack

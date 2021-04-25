@@ -25,6 +25,7 @@ namespace mt {
 	{
 		this->title = title;
 		IO::FileSystem sys;
+		sys.addPath("data");
 	}
 
 	Application::~Application()

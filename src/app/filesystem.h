@@ -42,7 +42,7 @@ namespace mt::IO {
 
 	class MTPath : public FileSource {
 	public:
-		explicit MTPath(std::string &path);
+		explicit MTPath(const std::string &path);
 
 		~MTPath() override;
 
@@ -56,7 +56,7 @@ namespace mt::IO {
 
 	class MTPackage : public FileSource {
 	public:
-		explicit MTPackage(std::string &path);
+		explicit MTPackage(const std::string &path);
 
 		~MTPackage() override;
 
