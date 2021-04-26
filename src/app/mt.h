@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "GL/glew.h"
+
 namespace mt {
 
 	template<class X>
