@@ -7,10 +7,8 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include "imgui.h"
 #include "UISystem.h"
 #include "filesystem.h"
-#include "io.h"
 #include "GLShader.h"
 
 // FIXME: Remove when we have logger class..
