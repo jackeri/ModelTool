@@ -39,7 +39,7 @@ namespace mt::IO {
 
 		virtual bool findFile(const std::string &name) = 0;
 
-		virtual MTFile *loadFile(const std::string &name) = 0;
+		virtual std::shared_ptr<MTFile> loadFile(const std::string &name) = 0;
 
 		[[nodiscard]] virtual std::string getSource() const = 0;
 

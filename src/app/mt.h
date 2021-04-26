@@ -3,24 +3,35 @@
 
 #include <vector>
 
-template <class X>
-X& singleton()
-{
-	static X x;
-	return x;
-}
+namespace mt {
 
-const int MAX_PATH = 1024;
+	template<class X>
+	X &singleton()
+	{
+		static X x;
+		return x;
+	}
 
-// using byte = unsigned char;
-// using byte_buffer = std::shared_ptr<std::vector<unsigned char>>;
+	const int MAX_PATH = 1024;
 
-typedef unsigned char byte;
-typedef std::shared_ptr<std::vector<byte>> byte_buffer;
+	using byte = unsigned char;
 
-inline byte_buffer buffer(size_t size)
-{
-	return std::make_shared<std::vector<byte>>(size);
+	template<typename T>
+	using Ref = std::shared_ptr<T>;
+
+	template<typename T, typename... Args>
+	Ref<T> make_ref(Args... args)
+	{
+		return std::make_shared<T>(args...);
+	}
+
+	using byte_buffer = Ref<std::vector<byte>>;
+
+	inline byte_buffer buffer(size_t size)
+	{
+		return make_ref<std::vector<byte>>(size);
+	}
+
 }
 
 #endif //MODELTOOL_MT_H
