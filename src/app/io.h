@@ -8,5 +8,5 @@ namespace mt::IO {
 
 	bool FileSize(const std::string &path);
 
-	byte *FileRead(const std::string &path);
+	byte_buffer FileRead(const std::string &path);
 }

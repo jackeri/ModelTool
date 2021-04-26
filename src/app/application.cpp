@@ -10,6 +10,8 @@
 #include "imgui.h"
 #include "UISystem.h"
 #include "filesystem.h"
+#include "io.h"
+#include "GLShader.h"
 
 // FIXME: Remove when we have logger class..
 #include <iostream>
@@ -82,6 +84,22 @@ namespace mt {
 			// UI setup failed, cancel the whole ordeal.
 			return false;
 		}
+
+		GLShader shader;
+		IO::MTPath path("internal.pk3dir");
+		IO::MTFile *file = path.loadFile("shaders/generic.vs.glsl");
+		std::string vert = file->string();
+
+		shader.init(file->string(),
+					path.loadFile("shaders/generic.vs.glsl")->string());
+
+		// byte *buff = IO::FileRead("internal.pk3dir/shaders/generic.vs.glsl");
+		// std::string vert(reinterpret_cast<char *>(buff));
+		// delete buff;
+		// buff = IO::FileRead("internal.pk3dir/shaders/generic.fs.glsl");
+		// std::string frag(reinterpret_cast<char *>(buff));
+		// delete buff;
+		// shader.init(vert, frag);
 
 		return true;
 	}

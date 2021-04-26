@@ -18,19 +18,19 @@ namespace mt::IO {
 		return file.tellg();
 	}
 
-	byte *FileRead(const std::string &path)
+	byte_buffer FileRead(const std::string &path)
 	{
 		std::ifstream infile(path, std::ios::ate | std::ios_base::binary);
 
 		infile.seekg(0, infile.end);
-		size_t length = infile.tellg();
+		auto length = infile.tellg();
 		infile.seekg(0, infile.beg);
 
 		if (length > 0)
 		{
-			char *buffer = new char[length];
-			infile.read(buffer, length);
-			return reinterpret_cast<byte *>(buffer);
+			byte_buffer buffer = std::make_shared<std::vector<byte>>(length);
+			infile.read(reinterpret_cast<char *>(buffer->data()), length);
+			return buffer;
 		}
 
 		return nullptr;

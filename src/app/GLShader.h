@@ -8,7 +8,11 @@ namespace mt {
 	public:
 		GLShader();
 
+		~GLShader();
+
 		void init(const std::string &vertex_code, const std::string &fragment_code);
+
+		bool valid();
 
 		void use() const;
 
@@ -33,5 +37,6 @@ namespace mt {
 		unsigned int vertId{}, fragId{}, progId{};
 		std::string vertexCode;
 		std::string fragmentCode;
+		bool programValid{false};
 	};
 }

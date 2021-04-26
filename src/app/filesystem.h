@@ -11,7 +11,7 @@
 namespace mt::IO {
 
 	struct MTFile {
-		byte *data = nullptr;
+		byte_buffer data = nullptr;
 		std::string name;
 		std::string ext;
 		size_t len = 0;
@@ -19,6 +19,16 @@ namespace mt::IO {
 		MTFile() = default;
 
 		~MTFile() = default;
+
+		[[nodiscard]] std::string string() const
+		{
+			return reinterpret_cast<char *>(data->data());
+		}
+
+		explicit operator std::string() const
+		{
+			return string();
+		}
 	};
 
 	class FileSource {

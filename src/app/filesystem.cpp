@@ -40,7 +40,13 @@ namespace mt::IO {
 
 	MTFile *MTPath::loadFile(const std::string &name)
 	{
-		byte *data = FileRead(this->path + path);
+		std::string tmp = name;
+		while (tmp[0] == '/')
+		{
+			tmp = tmp.substr(1);
+		}
+
+		byte_buffer data = FileRead(this->path + '/' + tmp);
 		if (!data)
 		{
 			return nullptr;
@@ -48,7 +54,7 @@ namespace mt::IO {
 
 		auto *file = new MTFile;
 		file->data = data;
-		file->name = name;
+		file->name = tmp;
 
 		return file;
 	}
@@ -113,18 +119,16 @@ namespace mt::IO {
 
 		auto *output = new MTFile();
 
-		output->data = tools::SafeAllocate<byte>(file_info.uncompressed_size);
+		output->data = std::make_shared<std::vector<byte>>(file_info.uncompressed_size);
 		output->len = file_info.uncompressed_size;
 		output->name = name;
 
-		int result = unzReadCurrentFile(zipFile, output->data, file_info.uncompressed_size);
+		int result = unzReadCurrentFile(zipFile, output->data->data(), file_info.uncompressed_size);
 
 		if (result > 0)
 		{
 			return output;
 		}
-
-		tools::SafeFree(output->data);
 		delete output;
 
 		return nullptr;

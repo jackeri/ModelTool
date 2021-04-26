@@ -6,6 +6,15 @@
 
 mt::GLShader::GLShader() = default;
 
+mt::GLShader::~GLShader()
+{
+	if (progId)
+	{
+		glDeleteProgram(progId);
+		progId = 0;
+	}
+}
+
 void mt::GLShader::init(const std::string &vertex_code, const std::string &fragment_code)
 {
 	vertexCode = vertex_code;
@@ -25,6 +34,7 @@ void mt::GLShader::compile()
 	fragId = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragId, 1, &fragment, nullptr);
 	glCompileShader(fragId);
+
 	checkCompileErr();
 }
 
@@ -34,9 +44,20 @@ void mt::GLShader::link()
 	glAttachShader(progId, vertId);
 	glAttachShader(progId, fragId);
 	glLinkProgram(progId);
+
 	checkLinkingErr();
+
+	// We dont need the shaders anymore, as they are linked to the program directly
 	glDeleteShader(vertId);
 	glDeleteShader(fragId);
+
+	vertId = 0;
+	fragId = 0;
+}
+
+bool mt::GLShader::valid()
+{
+	return programValid;
 }
 
 void mt::GLShader::use() const
