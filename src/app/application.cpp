@@ -24,8 +24,6 @@ namespace mt {
 	Application::Application(const std::string &title)
 	{
 		this->title = title;
-		IO::FileSystem sys;
-		sys.addPath("data");
 	}
 
 	Application::~Application()
