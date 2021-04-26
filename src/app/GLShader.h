@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <GL/glew.h>
+
 namespace mt {
 	class GLShader {
 	public:
@@ -12,9 +14,13 @@ namespace mt {
 
 		void init(const std::string &vertex_code, const std::string &fragment_code);
 
-		bool valid();
+		bool valid() const;
 
 		void use() const;
+
+		GLint getUniformLocation(const std::string &name) const;
+
+		GLint getAttribLocation(const std::string &name) const;
 
 		template<typename T>
 		void setUniform(const std::string &name, T val);
@@ -34,7 +40,7 @@ namespace mt {
 
 		void link();
 
-		unsigned int vertId{}, fragId{}, progId{};
+		GLint vertId{}, fragId{}, progId{};
 		std::string vertexCode;
 		std::string fragmentCode;
 		bool programValid{false};

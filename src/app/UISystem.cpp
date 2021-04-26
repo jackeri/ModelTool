@@ -5,6 +5,8 @@
 
 #define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
 
+#include "backends/imgui_impl_opengl2.h"
+
 #include "backends/imgui_impl_opengl3.h"
 
 namespace mt {
@@ -32,7 +34,12 @@ namespace mt {
 
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init("#version 150");
+
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_Init();
+#elif defined(MT_OPENGL_3)
+		ImGui_ImplOpenGL3_Init(glslVersion);
+#endif
 
 		return true;
 	}
@@ -45,7 +52,12 @@ namespace mt {
 		static bool show_another_window = false;
 		static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_NewFrame();
+#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_NewFrame();
+#endif
+
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -155,7 +167,12 @@ namespace mt {
 		}
 
 		ImGui::Render();
+
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{

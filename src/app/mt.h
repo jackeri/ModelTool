@@ -1,5 +1,4 @@
-#ifndef MODELTOOL_MT_H
-#define MODELTOOL_MT_H
+#pragma once
 
 #include <vector>
 
@@ -33,5 +32,3 @@ namespace mt {
 	}
 
 }
-
-#endif //MODELTOOL_MT_H

@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include <iostream>
-#include <GL/glew.h>
 
 mt::GLShader::GLShader() = default;
 
@@ -55,7 +54,7 @@ void mt::GLShader::link()
 	fragId = 0;
 }
 
-bool mt::GLShader::valid()
+bool mt::GLShader::valid() const
 {
 	return programValid;
 }
@@ -65,40 +64,50 @@ void mt::GLShader::use() const
 	glUseProgram(progId);
 }
 
+GLint mt::GLShader::getUniformLocation(const std::string &name) const
+{
+	return glGetUniformLocation(progId, name.c_str());
+}
+
+GLint mt::GLShader::getAttribLocation(const std::string &name) const
+{
+	return glGetAttribLocation(progId, name.c_str());
+}
+
 template<>
 void mt::GLShader::setUniform<int>(const std::string &name, int val)
 {
-	glUniform1i(glGetUniformLocation(progId, name.c_str()), val);
+	glUniform1i(getUniformLocation(name), val);
 }
 
 template<>
 void mt::GLShader::setUniform<bool>(const std::string &name, bool val)
 {
-	glUniform1i(glGetUniformLocation(progId, name.c_str()), val);
+	glUniform1i(getUniformLocation(name), val);
 }
 
 template<>
 void mt::GLShader::setUniform<float>(const std::string &name, float val)
 {
-	glUniform1f(glGetUniformLocation(progId, name.c_str()), val);
+	glUniform1f(getUniformLocation(name), val);
 }
 
 template<>
 void mt::GLShader::setUniform<float>(const std::string &name, float val1, float val2)
 {
-	glUniform2f(glGetUniformLocation(progId, name.c_str()), val1, val2);
+	glUniform2f(getUniformLocation(name), val1, val2);
 }
 
 template<>
 void mt::GLShader::setUniform<float>(const std::string &name, float val1, float val2, float val3)
 {
-	glUniform3f(glGetUniformLocation(progId, name.c_str()), val1, val2, val3);
+	glUniform3f(getUniformLocation(name), val1, val2, val3);
 }
 
 template<>
 void mt::GLShader::setUniform<float *>(const std::string &name, float *val)
 {
-	glUniformMatrix4fv(glGetUniformLocation(progId, name.c_str()), 1, GL_FALSE, val);
+	glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, val);
 }
 
 void mt::GLShader::checkCompileErr() const

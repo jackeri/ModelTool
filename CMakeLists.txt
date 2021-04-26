@@ -8,6 +8,7 @@ set(CMAKE_TARGETS_FOLDER CMake)
 set(BUNDLED_TARGETS_FOLDER Bundled)
 
 option(test "Enable testing" ON)
+option(opengl3 "Enable opengl3 core backend" OFF)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ${CMAKE_TARGETS_FOLDER})
@@ -165,6 +166,7 @@ FILE(GLOB IMGUI_SRC
 	# Backends
 	"libs/imgui/backends/imgui_impl_glfw.cpp"
 	"libs/imgui/backends/imgui_impl_opengl3.cpp"
+	"libs/imgui/backends/imgui_impl_opengl2.cpp"
 )
 
 # Libs that come in the form of headers only (stb, tinydir etc)
@@ -183,8 +185,6 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(libs/glfw)
-
-add_definitions(-DGLEW_STATIC)
 
 include(libs/glew-2.1.0/CMakeLists.txt)
 
@@ -206,10 +206,17 @@ set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER
 set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_nfd PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
+target_compile_definitions(ModelTool PUBLIC GLEW_STATIC)
+
+if(opengl3)
+	add_definitions(-DMT_OPENGL_3)
+else()
+	add_definitions(-DMT_OPENGL_2)
+endif()
+
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ModelTool)
 
-set_target_properties(ModelTool
-	PROPERTIES COMPILE_DEFINITIONS ""
+set_target_properties(ModelTool PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ""
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG ""
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE ""

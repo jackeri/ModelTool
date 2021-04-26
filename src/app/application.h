@@ -1,5 +1,8 @@
 #pragma once
 
+#include "mt.h"
+#include "renderer.h"
+
 namespace mt {
 	class Application {
 
@@ -13,5 +16,6 @@ namespace mt {
 	private:
 		std::string title;
 		void *window = nullptr;
+		Ref<Renderer> renderer = nullptr;
 	};
 }
