@@ -39,7 +39,7 @@ namespace mt::IO {
 
 		virtual bool findFile(const std::string &name) = 0;
 
-		virtual std::shared_ptr<MTFile> loadFile(const std::string &name) = 0;
+		virtual Ref<MTFile> loadFile(const std::string &name) = 0;
 
 		[[nodiscard]] virtual std::string getSource() const = 0;
 
@@ -60,7 +60,7 @@ namespace mt::IO {
 
 		bool findFile(const std::string &name) override;
 
-		MTFile *loadFile(const std::string &name) override;
+		Ref<MTFile> loadFile(const std::string &name) override;
 
 		[[nodiscard]] std::string getSource() const override
 		{
@@ -79,7 +79,7 @@ namespace mt::IO {
 
 		bool findFile(const std::string &name) override;
 
-		MTFile *loadFile(const std::string &name) override;
+		Ref<MTFile> loadFile(const std::string &name) override;
 
 		[[nodiscard]] std::string getSource() const override
 		{
@@ -111,7 +111,7 @@ namespace mt::IO {
 
 		bool findFile(const std::string &name) override;
 
-		MTFile *loadFile(const std::string &name) override;
+		Ref<MTFile> loadFile(const std::string &name) override;
 
 		std::string getSource() const override;
 

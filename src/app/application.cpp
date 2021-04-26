@@ -87,19 +87,10 @@ namespace mt {
 
 		GLShader shader;
 		IO::MTPath path("internal.pk3dir");
-		IO::MTFile *file = path.loadFile("shaders/generic.vs.glsl");
-		std::string vert = file->string();
+		auto vert = path.loadFile("shaders/generic.vs.glsl");
+		auto frag = path.loadFile("shaders/generic.fs.glsl");
 
-		shader.init(file->string(),
-					path.loadFile("shaders/generic.vs.glsl")->string());
-
-		// byte *buff = IO::FileRead("internal.pk3dir/shaders/generic.vs.glsl");
-		// std::string vert(reinterpret_cast<char *>(buff));
-		// delete buff;
-		// buff = IO::FileRead("internal.pk3dir/shaders/generic.fs.glsl");
-		// std::string frag(reinterpret_cast<char *>(buff));
-		// delete buff;
-		// shader.init(vert, frag);
+		shader.init(vert->string(),frag->string());
 
 		return true;
 	}

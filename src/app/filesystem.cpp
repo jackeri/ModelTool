@@ -38,7 +38,7 @@ namespace mt::IO {
 		return FileExists(this->path + '/' + tmp);
 	}
 
-	MTFile *MTPath::loadFile(const std::string &name)
+	Ref<MTFile> MTPath::loadFile(const std::string &name)
 	{
 		std::string tmp = name;
 		while (tmp[0] == '/')
@@ -52,7 +52,7 @@ namespace mt::IO {
 			return nullptr;
 		}
 
-		auto *file = new MTFile;
+		auto file = make_ref<MTFile>();
 		file->data = data;
 		file->name = tmp;
 
@@ -92,7 +92,7 @@ namespace mt::IO {
 		return (files.find(name) != files.end());
 	}
 
-	MTFile *MTPackage::loadFile(const std::string &name)
+	Ref<MTFile> MTPackage::loadFile(const std::string &name)
 	{
 		if (!findFile(name))
 		{
@@ -117,9 +117,9 @@ namespace mt::IO {
 			return nullptr;
 		}
 
-		auto *output = new MTFile();
+		auto output = make_ref<MTFile>();
 
-		output->data = std::make_shared<std::vector<byte>>(file_info.uncompressed_size);
+		output->data = make_ref<std::vector<byte>>(file_info.uncompressed_size);
 		output->len = file_info.uncompressed_size;
 		output->name = name;
 
@@ -129,7 +129,6 @@ namespace mt::IO {
 		{
 			return output;
 		}
-		delete output;
 
 		return nullptr;
 	}
@@ -223,7 +222,7 @@ namespace mt::IO {
 		});
 	}
 
-	MTFile *FileSystem::loadFile(const std::string &name)
+	Ref<MTFile> FileSystem::loadFile(const std::string &name)
 	{
 		for (auto &source : sources)
 		{

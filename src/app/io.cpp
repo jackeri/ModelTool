@@ -1,3 +1,4 @@
+#include "mt.h"
 #include "io.h"
 
 #include <vector>
@@ -28,7 +29,7 @@ namespace mt::IO {
 
 		if (length > 0)
 		{
-			byte_buffer buffer = std::make_shared<std::vector<byte>>(length);
+			byte_buffer buffer = make_ref<std::vector<byte>>(length);
 			infile.read(reinterpret_cast<char *>(buffer->data()), length);
 			return buffer;
 		}
