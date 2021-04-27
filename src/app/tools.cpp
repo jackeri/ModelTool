@@ -24,3 +24,13 @@ bool mt::tools::startsWith(const std::string& str, const std::string& prefix)
 {
 	return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
+
+void mt::tools::printGLErrors()
+{
+	GLenum err;
+	while((err = glGetError()) != GL_NO_ERROR)
+	{
+		std::string error = reinterpret_cast<const char *>(gluErrorString(err));
+		std::cout << "ERROR: OpenGL => " << error << std::endl;
+	}
+}

@@ -24,4 +24,6 @@ namespace mt::tools {
 	bool endsWith(const std::string &str, const std::string &suffix);
 
 	bool startsWith(const std::string &str, const std::string &prefix);
+
+	void printGLErrors();
 }

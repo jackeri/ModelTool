@@ -1,11 +1,29 @@
 #include "GLWindow.h"
 #include "GLRenderer2.h"
-#include "UISystem.h"
+#include "ImGuiView.h"
 #include <utility>
 
 static void glfwAppErrorCallback(int error, const char *description)
 {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
+
+static void on_key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
+	pWindow->onKey(key, scancode, action, mods);
+}
+
+static void on_scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
+	pWindow->onScroll(yoffset);
+}
+
+static void on_window_size_callback(GLFWwindow *window, int width, int height)
+{
+	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
+	pWindow->onResize(width, height);
 }
 
 mt::GLWindow::GLWindow(std::string title) : title(std::move(title))
@@ -21,9 +39,13 @@ mt::GLWindow::~GLWindow()
 
 void mt::GLWindow::destroy()
 {
+	if (view)
+	{
+		view->shutdown();
+	}
+
 	if (window)
 	{
-		UISystem::shutdown();
 		glfwDestroyWindow(window);
 		window = nullptr;
 	}
@@ -62,12 +84,16 @@ bool mt::GLWindow::init()
 	glfwMakeContextCurrent(glfwWindow);
 	glfwSwapInterval(1);
 
+	glfwSetWindowUserPointer(glfwWindow, this);
+	glfwSetKeyCallback(glfwWindow, on_key_callback);
+	glfwSetScrollCallback(glfwWindow, on_scroll_callback);
+	glfwSetWindowSizeCallback(glfwWindow, on_window_size_callback);
+
 	glewExperimental = GL_TRUE;
 	if (glewInit() != GLEW_OK)
 	{
 		return false;
 	}
-
 
 #if defined(MT_OPENGL_2)
 	renderer = make_ref<GLRenderer2>();
@@ -81,8 +107,14 @@ bool mt::GLWindow::init()
 	std::cout << "Renderer: " << rendererStr << std::endl;
 	std::cout << "OpenGL version supported " << version << std::endl;
 
+	propertyPanel = make_ref<ModelPropertyPanel>();
+	scenePanel = make_ref<ScenePanel>();
+
+	view = make_ref<ImGuiView>();
+
 	// Init the UI system
-	if (!UISystem::setup(this, "#version 150")) {
+	if (!view->setup(this, "#version 150"))
+	{
 		// UI setup failed, cancel the whole ordeal.
 		return false;
 	}
@@ -112,14 +144,62 @@ void mt::GLWindow::loop()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		view->startFrame();
+
 		renderer->startFrame();
 
 		renderer->grid();
 
-		UISystem::draw();
+		view->draw();
+
+		propertyPanel->render();
+
+		scenePanel->render();
 
 		renderer->endFrame();
 
+		view->endFrame();
+
 		glfwSwapBuffers(glfwWindow);
 	}
+}
+
+void mt::GLWindow::onKey(int key, int scancode, int action, int mods)
+{
+
+}
+
+void mt::GLWindow::onScroll(double delta)
+{
+
+}
+
+void mt::GLWindow::onResize(int width, int height)
+{
+
+}
+
+void mt::GLWindow::handleInput()
+{
+	double x, y;
+	int mouseButton = 0;
+	glfwGetCursorPos(window, &x, &y);
+
+	// Left mouse button
+	if (glfwGetMouseButton(window, 0) == GLFW_PRESS)
+	{
+		mouseButton = 1;
+	}
+	// Right mouse button
+	else if (glfwGetMouseButton(window, 1) == GLFW_PRESS)
+	{
+		mouseButton = 2;
+	}
+	// Middle mouse button
+	else if (glfwGetMouseButton(window, 2) == GLFW_PRESS)
+	{
+		mouseButton = 3;
+	}
+
+
 }

@@ -17,6 +17,9 @@ namespace mt {
 
 		void unbind() const;
 
+		GLuint texture();
+
+
 	private:
 		GLuint fboId = 0;
 		GLuint texId = 0;

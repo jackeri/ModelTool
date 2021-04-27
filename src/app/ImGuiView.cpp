@@ -1,4 +1,6 @@
-#include "UISystem.h"
+#include "ImGuiView.h"
+
+#include "GLWindow.h"
 
 #include "imgui.h"
 // Dockspace internal api is needed
@@ -15,10 +17,7 @@
 
 namespace mt {
 
-	static Ref<ModelPropertyPanel> propertyPanel;
-	static Ref<ScenePanel> scenePanel;
-
-	bool UISystem::setup(GLWindow *window, const char *glslVersion)
+	bool ImGuiView::setup(GLWindow *window, const char *glslVersion)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -47,14 +46,10 @@ namespace mt {
 #elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_Init(glslVersion);
 #endif
-
-		propertyPanel = make_ref<ModelPropertyPanel>();
-		scenePanel = make_ref<ScenePanel>();
-
 		return true;
 	}
 
-	void UISystem::draw()
+	void ImGuiView::startFrame()
 	{
 #if defined(MT_OPENGL_2)
 		ImGui_ImplOpenGL2_NewFrame();
@@ -64,24 +59,46 @@ namespace mt {
 
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+	}
 
+	void ImGuiView::endFrame()
+	{
+		ImGui::Render();
+
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+#elif defined(MT_OPENGL_3)
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			GLFWwindow *backup_current_context = glfwGetCurrentContext();
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+			glfwMakeContextCurrent(backup_current_context);
+		}
+	}
+
+	void ImGuiView::draw()
+	{
 		// Enable the whole viewport docking
-		ImGuiID dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
 		// static bool wasRun = false;
 		// if (!wasRun)
 		// {
-		// 	ImGui::DockBuilderRemoveNode(dockspace_id);
+		// 	ImGui::DockBuilderRemoveNode(dockspaceId);
 		// 	wasRun = true;
 		// }
 
-		if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr)
+		if (ImGui::DockBuilderGetNode(dockspaceId) == nullptr)
 		{
-			ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-			ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-			ImGui::DockBuilderSetNodeSize(dockspace_id, { 500,500 });
+			ImGui::DockBuilderRemoveNode(dockspaceId); // Clear out existing layout
+			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
+			ImGui::DockBuilderSetNodeSize(dockspaceId, {500, 500 });
 
-			ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+			ImGuiID dock_main_id = dockspaceId; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
 			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
 			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr, &dock_main_id);
 			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
@@ -91,7 +108,7 @@ namespace mt {
 			ImGui::DockBuilderDockWindow("Mesh", dock_left_id);
 			ImGui::DockBuilderDockWindow("Extra", dock_left_id);
 			ImGui::DockBuilderDockWindow("Scene", dock_id_center);
-			ImGui::DockBuilderFinish(dockspace_id);
+			ImGui::DockBuilderFinish(dockspaceId);
 		}
 
 		// Setup the main menu bar.
@@ -141,29 +158,9 @@ namespace mt {
 
 			ImGui::EndMainMenuBar();
 		}
-
-		scenePanel->render();
-
-		propertyPanel->render();
-
-		ImGui::Render();
-
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-#elif defined(MT_OPENGL_3)
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			GLFWwindow *backup_current_context = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(backup_current_context);
-		}
 	}
 
-	void UISystem::shutdown()
+	void ImGuiView::shutdown()
 	{
 #if defined(MT_OPENGL_2)
 		ImGui_ImplOpenGL2_Shutdown();
