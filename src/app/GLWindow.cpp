@@ -1,5 +1,4 @@
 #include "GLWindow.h"
-#include "GLRenderer2.h"
 #include "ImGuiView.h"
 #include <utility>
 
@@ -96,12 +95,6 @@ bool mt::GLWindow::init()
 		return false;
 	}
 
-#if defined(MT_OPENGL_2)
-	renderer = make_ref<GLRenderer2>();
-#elif defined(MT_OPENGL_3)
-#error Renderer implementation for Opengl3 missing
-#endif
-
 	// Print the current GPU info
 	const GLubyte *rendererStr = glGetString(GL_RENDERER);
 	const GLubyte *version = glGetString(GL_VERSION);
@@ -147,17 +140,11 @@ void mt::GLWindow::loop()
 
 		view->startFrame();
 
-		renderer->startFrame();
-
-		renderer->grid();
-
 		view->draw();
 
 		propertyPanel->render();
 
 		scenePanel->render();
-
-		renderer->endFrame();
 
 		view->endFrame();
 
@@ -169,17 +156,17 @@ void mt::GLWindow::loop()
 
 void mt::GLWindow::onKey(int key, int scancode, int action, int mods)
 {
-
+	// FIXME: is this needed or not anymore
 }
 
 void mt::GLWindow::onScroll(double delta)
 {
-
+	// FIXME: is this needed or not anymore
 }
 
 void mt::GLWindow::onResize(int width, int height)
 {
-
+	// FIXME: is this needed or not anymore
 }
 
 void mt::GLWindow::handleInput()

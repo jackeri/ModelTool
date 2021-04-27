@@ -4,7 +4,6 @@
 
 mt::ModelPropertyPanel::ModelPropertyPanel()
 {
-
 }
 
 mt::ModelPropertyPanel::~ModelPropertyPanel()

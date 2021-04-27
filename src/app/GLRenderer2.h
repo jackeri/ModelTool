@@ -9,7 +9,9 @@ namespace mt {
 
 		GLRenderer2();
 
-		void startFrame() override;
+		void setView(int width, int height) override;
+
+		void startFrame(Camera &) override;
 
 		void grid() override;
 

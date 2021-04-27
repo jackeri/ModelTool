@@ -34,7 +34,6 @@ namespace mt {
 		std::string title;
 		GLFWwindow *window{};
 		Ref<ImGuiView> view;
-		Ref<Renderer> renderer = nullptr;
 		Ref<ModelPropertyPanel> propertyPanel = nullptr;
 		Ref<ScenePanel> scenePanel = nullptr;
 	};

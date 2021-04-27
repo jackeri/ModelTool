@@ -1,6 +1,8 @@
 #pragma once
 
 namespace mt {
+	class Camera;
+
 	class Renderer {
 	public:
 		Renderer() = default;
@@ -10,10 +12,9 @@ namespace mt {
 		virtual void setup()
 		{}
 
-		virtual void setView(int width, int height)
-		{}
+		virtual void setView(int width, int height) = 0;
 
-		virtual void startFrame() = 0;
+		virtual void startFrame(Camera &) = 0;
 
 		virtual void grid() = 0;
 

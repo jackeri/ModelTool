@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
 
 const mt::byte xAxis[] = {255, 0, 0};
 const mt::byte yAxis[] = {0, 255, 0};
@@ -50,6 +51,18 @@ mt::GLRenderer2::GLRenderer2()
 	glEnable(GL_POLYGON_SMOOTH);
 }
 
+void mt::GLRenderer2::setView(int width, int height)
+{
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	if (height > 0)
+	{
+		gluPerspective(90.f, (double)width / (double)height, 0.1f, 512);
+	}
+	glViewport(0, 0, width, height);
+	glMatrixMode(GL_MODELVIEW);
+}
+
 void mt::GLRenderer2::grid()
 {
 	glDisable(GL_BLEND);
@@ -59,13 +72,10 @@ void mt::GLRenderer2::grid()
 	const float GRID_LINE_LEN = ORIGIN_LINE_LEN * 2;
 
 	const glm::ivec3 origColor = {255, 0, 255};
-
 	const glm::vec3 v3X = {ORIGIN_LINE_LEN, 0, 0};
 	const glm::vec3 v3XNeg = {-ORIGIN_LINE_LEN, 0, 0};
-
 	const glm::vec3 v3Y = {0, ORIGIN_LINE_LEN, 0};
 	const glm::vec3 v3YNeg = {0, -ORIGIN_LINE_LEN, 0};
-
 	const glm::vec3 v3Z = {0, 0, ORIGIN_LINE_LEN};
 	const glm::vec3 v3ZNeg = {0, 0, -ORIGIN_LINE_LEN};
 
@@ -109,12 +119,14 @@ void mt::GLRenderer2::grid()
 	glPopAttrib();
 }
 
-void mt::GLRenderer2::startFrame()
+void mt::GLRenderer2::startFrame(Camera &cam)
 {
-	Camera cam;
+	// FIXME: move this to config
+	const ImColor clearColor = {114, 144, 154};
 
-	//glClearColor(BACKBROUND_COLOR);
-	//GL_Clear();
+	glClearColor(clearColor.Value.x, clearColor.Value.y, clearColor.Value.z, clearColor.Value.w);
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	glLoadIdentity();
 	glTranslatef(cam.xPos, cam.yPos, cam.zPos);
 	glScalef(cam.scaleFactor, cam.scaleFactor, cam.scaleFactor);
