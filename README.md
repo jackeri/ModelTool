@@ -3,10 +3,17 @@
 
 ## What is this for
 
-TODO: add an explanation for this thing
+This is a dead simple tool that can load (atleast in the future) and somwhat modify model data.
+
+The tool is mainly meant for the Wolfenstein: Enemy territory models and any new model formats that are included in
+the [ET:Legacy](https://www.etlegacy.com) project.
 
 ## Usage
-TODO: include images and howto manual
+
+The tool uses the same package loading system as the game itself. When the application starts it will ask the user
+for a folder path.
+
+TODO: include images
 
 ## Compile
 
@@ -22,8 +29,10 @@ Run CMake, the build should support Win, OSX and Linux.
 mkdir build
 cd build
 cmake ..
-cmake --build . -config Release
+cmake --build . --config Release
 ```
+
+To run tests just execute `ctest` in the build directory
 
 # License
 
