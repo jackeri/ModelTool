@@ -31,6 +31,17 @@ namespace mt {
 		return x;
 	}
 
+	template <class T>
+	inline void emptyVector(std::vector<T> &deleteMe)
+	{
+		if (deleteMe.empty())
+		{
+			return;
+		}
+
+		std::vector<T>().swap(deleteMe);
+	}
+
 	using byte = unsigned char;
 
 	template<typename T>
