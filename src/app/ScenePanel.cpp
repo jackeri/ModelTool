@@ -121,8 +121,6 @@ void mt::ScenePanel::render()
 	GLuint textureID = framebuffer.texture();
 	auto imVec = ImVec2{size.x, size.y};
 	ImGui::Image(reinterpret_cast<void *>(textureID), imVec, ImVec2{0, 1}, ImVec2{1, 0});
-	// ImGui::SetItemAllowOverlap();
-	// ImGui::InvisibleButton("canvas", imVec);
 	if (ImGui::IsItemHovered())
 	{
 		sceneHovered = true;
@@ -140,12 +138,14 @@ void mt::ScenePanel::render()
 	{
 		if (ImGui::GetIO().MouseWheel > 0)
 		{
-			camera.zPos += 0.25f;
+			camera.zPos += CAMERA_ZOOM_STEP;
 		}
 		else
 		{
-			camera.zPos -= 0.25f;
+			camera.zPos -= CAMERA_ZOOM_STEP;
 		}
+
+		camera.checkLimits(true);
 	}
 
 	ImGui::End();
@@ -153,11 +153,6 @@ void mt::ScenePanel::render()
 
 void mt::ScenePanel::onMouseMove(double x, double y, int button)
 {
-	// auto delta = ImGui::GetIO().MouseDelta;
-	// auto vec = ImGui::GetMouseDragDelta(0, 0);
-	// std::cout << "Mouse: " << ImGui::GetIO().WantCaptureMouse << " Keyboard: " << ImGui::GetIO().WantCaptureKeyboard
-	// << " X:" << delta.x << " Y:" << delta.y << " X:" << vec.x << " Y:" << vec.y << std::endl;
-
 	if (!captureMouse)
 	{
 		return;
@@ -170,7 +165,7 @@ void mt::ScenePanel::onMouseMove(double x, double y, int button)
 	}
 
 	auto delta = ImGui::GetIO().MouseDelta;
-	camera.rotAngleY += (float) (delta.x) * 0.5f;
-	camera.rotAngleX += (float) (delta.y) * 0.5f;
-	std::cout << "Updating camera!" << std::endl;
+	camera.rotAngleY += (float) (delta.x) * CAMERA_ROTATION_SCALE;
+	camera.rotAngleX += (float) (delta.y) * CAMERA_ROTATION_SCALE;
+	camera.checkLimits();
 }
