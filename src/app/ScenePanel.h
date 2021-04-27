@@ -3,6 +3,7 @@
 #include "mt.h"
 #include "Camera.h"
 #include "renderer.h"
+#include "Framebuffer.h"
 
 namespace mt {
 	class ScenePanel {
@@ -18,6 +19,7 @@ namespace mt {
 	private:
 		glm::vec2 size{};
 		Camera camera;
+		Ref<Framebuffer> fbo;
 		Ref<Renderer> renderer;
 		bool captureMouse = false;
 		bool sceneHovered = false;

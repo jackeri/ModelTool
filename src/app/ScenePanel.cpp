@@ -4,8 +4,6 @@
 #include "imgui.h"
 #include "GLRenderer2.h"
 
-mt::Framebuffer framebuffer;
-
 mt::ScenePanel::ScenePanel()
 {
 #if defined(MT_OPENGL_2)
@@ -13,6 +11,7 @@ mt::ScenePanel::ScenePanel()
 #elif defined(MT_OPENGL_3)
 #error Renderer implementation for Opengl3 missing
 #endif
+	fbo = make_ref<Framebuffer>();
 }
 
 mt::ScenePanel::~ScenePanel()
@@ -29,8 +28,8 @@ void mt::ScenePanel::render()
 	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 	size = {viewportPanelSize.x, viewportPanelSize.y};
 
-	framebuffer.create(size.x, size.y);
-	framebuffer.bind();
+	fbo->create(size.x, size.y);
+	fbo->bind();
 
 	renderer->startFrame(camera);
 
@@ -40,9 +39,9 @@ void mt::ScenePanel::render()
 
 	renderer->endFrame();
 
-	framebuffer.unbind();
+	fbo->unbind();
 
-	GLuint textureID = framebuffer.texture();
+	GLuint textureID = fbo->texture();
 	auto imVec = ImVec2{size.x, size.y};
 	ImGui::Image(reinterpret_cast<void *>(textureID), imVec, ImVec2{0, 1}, ImVec2{1, 0});
 	if (ImGui::IsItemHovered())
