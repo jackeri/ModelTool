@@ -5,9 +5,11 @@
 
 #define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
 
+#if defined(MT_OPENGL_2)
 #include "backends/imgui_impl_opengl2.h"
-
+#elif defined(MT_OPENGL_3)
 #include "backends/imgui_impl_opengl3.h"
+#endif
 
 namespace mt {
 
@@ -185,7 +187,11 @@ namespace mt {
 
 	void UISystem::shutdown()
 	{
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_Shutdown();
+#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_Shutdown();
+#endif
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
