@@ -1,21 +1,20 @@
 #pragma once
 
 #include "mt.h"
-#include "renderer.h"
+#include "GLWindow.h"
 
 namespace mt {
 	class Application {
-
 	public:
-		bool init();
-		void loop();
+		explicit Application(const std::string &title);
 
-		explicit Application(const std::string& title);
 		~Application();
 
+		bool init();
+
+		void loop();
+
 	private:
-		std::string title;
-		void *window = nullptr;
-		Ref<Renderer> renderer = nullptr;
+		Ref<GLWindow> window = nullptr;
 	};
 }

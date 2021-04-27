@@ -1,6 +1,8 @@
 #include "UISystem.h"
 
 #include "imgui.h"
+// Dockspace internal api is needed
+#include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 
 #define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
@@ -13,7 +15,10 @@
 
 namespace mt {
 
-	bool UISystem::setup(GLFWwindow *window, const char *glslVersion)
+	static Ref<ModelPropertyPanel> propertyPanel;
+	static Ref<ScenePanel> scenePanel;
+
+	bool UISystem::setup(GLWindow *window, const char *glslVersion)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -35,7 +40,7 @@ namespace mt {
 		}
 
 		// Setup Platform/Renderer backends
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplGlfw_InitForOpenGL(window->system(), true);
 
 #if defined(MT_OPENGL_2)
 		ImGui_ImplOpenGL2_Init();
@@ -43,17 +48,14 @@ namespace mt {
 		ImGui_ImplOpenGL3_Init(glslVersion);
 #endif
 
+		propertyPanel = make_ref<ModelPropertyPanel>();
+		scenePanel = make_ref<ScenePanel>();
+
 		return true;
 	}
 
 	void UISystem::draw()
 	{
-		static float f = 0.0f;
-		static int counter = 0;
-		static bool show_demo_window = true;
-		static bool show_another_window = false;
-		static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
 #if defined(MT_OPENGL_2)
 		ImGui_ImplOpenGL2_NewFrame();
 #elif defined(MT_OPENGL_3)
@@ -64,7 +66,33 @@ namespace mt {
 		ImGui::NewFrame();
 
 		// Enable the whole viewport docking
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		ImGuiID dockspace_id = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+		// static bool wasRun = false;
+		// if (!wasRun)
+		// {
+		// 	ImGui::DockBuilderRemoveNode(dockspace_id);
+		// 	wasRun = true;
+		// }
+
+		if (ImGui::DockBuilderGetNode(dockspace_id) == nullptr)
+		{
+			ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+			ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
+			ImGui::DockBuilderSetNodeSize(dockspace_id, { 500,500 });
+
+			ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr, &dock_main_id);
+			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
+
+			ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
+			ImGui::DockBuilderDockWindow("Properties", dock_left_id);
+			ImGui::DockBuilderDockWindow("Mesh", dock_left_id);
+			ImGui::DockBuilderDockWindow("Extra", dock_left_id);
+			ImGui::DockBuilderDockWindow("Scene", dock_id_center);
+			ImGui::DockBuilderFinish(dockspace_id);
+		}
 
 		// Setup the main menu bar.
 		if (ImGui::BeginMainMenuBar())
@@ -114,59 +142,9 @@ namespace mt {
 			ImGui::EndMainMenuBar();
 		}
 
-		if (true)
-		{
-			ImGuiWindowFlags window_flags = 0; //ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+		scenePanel->render();
 
-			// Create a window called "Hello, world!" and append into it.
-			ImGui::Begin("Hello, world!", nullptr, window_flags);
-
-			ImGui::Text(
-					"This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
-
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float *) &clear_color); // Edit 3 floats representing a color
-
-			if (ImGui::Button("Button"))
-			{                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			}
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-						ImGui::GetIO().Framerate);
-
-			if (ImGui::BeginMenuBar())
-			{
-				if (ImGui::BeginMenu("Options"))
-				{
-					// Disabling fullscreen would allow the window to be moved to the front of other windows,
-					// which we can't undo at the moment without finer window depth/z control.
-					if (ImGui::MenuItem("Fullscreen", NULL, false))
-					{
-
-					}
-					if (ImGui::MenuItem("Padding", NULL, false))
-					{
-
-					}
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Close", NULL, false, false))
-					{
-
-					}
-					ImGui::EndMenu();
-				}
-
-				ImGui::EndMenuBar();
-			}
-
-			ImGui::End();
-		}
+		propertyPanel->render();
 
 		ImGui::Render();
 

@@ -1,11 +1,15 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
+#include "mt.h"
+
+#include "ModelPropertyPanel.h"
+#include "ScenePanel.h"
+#include "GLWindow.h"
 
 namespace mt {
 	class UISystem {
 	public:
-		static bool setup(GLFWwindow *window, const char *);
+		static bool setup(GLWindow *, const char *);
 		static void draw();
 		static void shutdown();
 

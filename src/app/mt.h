@@ -1,10 +1,28 @@
 #pragma once
 
+#include <string>
+#include <algorithm>
 #include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <memory>
 
-#include "GL/glew.h"
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/transform.hpp>
 
 namespace mt {
+
+	const int MAX_PATH = 1024;
 
 	template<class X>
 	X &singleton()
@@ -12,8 +30,6 @@ namespace mt {
 		static X x;
 		return x;
 	}
-
-	const int MAX_PATH = 1024;
 
 	using byte = unsigned char;
 
