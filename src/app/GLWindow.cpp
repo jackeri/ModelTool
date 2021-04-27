@@ -42,6 +42,7 @@ void mt::GLWindow::destroy()
 	if (view)
 	{
 		view->shutdown();
+		view = nullptr;
 	}
 
 	if (window)
@@ -160,6 +161,8 @@ void mt::GLWindow::loop()
 
 		view->endFrame();
 
+		handleInput();
+
 		glfwSwapBuffers(glfwWindow);
 	}
 }
@@ -201,5 +204,5 @@ void mt::GLWindow::handleInput()
 		mouseButton = 3;
 	}
 
-
+	scenePanel->onMouseMove(x, y, mouseButton);
 }

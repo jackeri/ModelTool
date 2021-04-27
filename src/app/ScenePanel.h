@@ -17,5 +17,7 @@ namespace mt {
 	private:
 		glm::vec2 size{};
 		Camera camera;
+		bool captureMouse = false;
+		bool sceneHovered = false;
 	};
 }

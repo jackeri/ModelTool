@@ -14,10 +14,8 @@ mt::ScenePanel::~ScenePanel()
 
 }
 namespace mt {
-	static void gl1Test()
+	static void gl1Test(Camera &cam)
 	{
-		Camera cam;
-
 		glLoadIdentity();
 		// glTranslatef(0,0,1.f);
 
@@ -101,7 +99,9 @@ void mt::ScenePanel::render()
 	framebuffer.create(size.x, size.y);
 	framebuffer.bind();
 
-	glClearColor(1.f, 0, 0, 1.0f);
+	ImColor clearColor = {114, 144, 154};
+
+	glClearColor(clearColor.Value.x, clearColor.Value.y, clearColor.Value.z, clearColor.Value.w);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glMatrixMode(GL_PROJECTION);
@@ -114,17 +114,63 @@ void mt::ScenePanel::render()
 
 	glMatrixMode(GL_MODELVIEW);
 
-	gl1Test();
+	gl1Test(camera);
 
 	framebuffer.unbind();
 
 	GLuint textureID = framebuffer.texture();
-	ImGui::Image(reinterpret_cast<void *>(textureID), ImVec2{size.x, size.y}, ImVec2{0, 1}, ImVec2{1, 0});
+	auto imVec = ImVec2{size.x, size.y};
+	ImGui::Image(reinterpret_cast<void *>(textureID), imVec, ImVec2{0, 1}, ImVec2{1, 0});
+	// ImGui::SetItemAllowOverlap();
+	// ImGui::InvisibleButton("canvas", imVec);
+	if (ImGui::IsItemHovered())
+	{
+		sceneHovered = true;
+		if (ImGui::IsMouseClicked(0))
+		{
+			captureMouse = true;
+		}
+	}
+	else
+	{
+		sceneHovered = false;
+	}
+
+	if (sceneHovered && ImGui::GetIO().MouseWheel != 0)
+	{
+		if (ImGui::GetIO().MouseWheel > 0)
+		{
+			camera.zPos += 0.25f;
+		}
+		else
+		{
+			camera.zPos -= 0.25f;
+		}
+	}
 
 	ImGui::End();
 }
 
 void mt::ScenePanel::onMouseMove(double x, double y, int button)
 {
-	std::cout << "Mouse: " << ImGui::GetIO().WantCaptureMouse << " Keyboard: " << ImGui::GetIO().WantCaptureKeyboard << std::endl;
+	// auto delta = ImGui::GetIO().MouseDelta;
+	// auto vec = ImGui::GetMouseDragDelta(0, 0);
+	// std::cout << "Mouse: " << ImGui::GetIO().WantCaptureMouse << " Keyboard: " << ImGui::GetIO().WantCaptureKeyboard
+	// << " X:" << delta.x << " Y:" << delta.y << " X:" << vec.x << " Y:" << vec.y << std::endl;
+
+	if (!captureMouse)
+	{
+		return;
+	}
+
+	if (button != 1)
+	{
+		captureMouse = false;
+		return;
+	}
+
+	auto delta = ImGui::GetIO().MouseDelta;
+	camera.rotAngleY += (float) (delta.x) * 0.5f;
+	camera.rotAngleX += (float) (delta.y) * 0.5f;
+	std::cout << "Updating camera!" << std::endl;
 }
