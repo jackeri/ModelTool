@@ -68,17 +68,17 @@ namespace mt::model::Skeletal {
 
 		bool operator==(const SkeletalVertex &rhs) const
 		{
-			if (!VectorEqual(m_Pos, rhs.m_Pos))
+			if (pos != rhs.pos)
 			{
 				return false;
 			}
 
-			if (!Vector2Equal(m_Tex0, rhs.m_Tex0))
+			if (tex != rhs.tex)
 			{
 				return false;
 			}
 
-			if (/*m_StartWeight != rhs.m_StartWeight ||*/ m_WeightCount != rhs.m_WeightCount)
+			if (weightCount != rhs.weightCount)
 			{
 				return false;
 			}
@@ -97,13 +97,13 @@ namespace mt::model::Skeletal {
 	};
 
 	struct Weight {
-		int m_JointID;
-		float m_Bias;
-		vec3_t m_Pos;
+		int jointId{};
+		float bias{};
+		glm::vec3 pos{};
 
 		bool operator==(const Weight &rhs) const
 		{
-			return (m_JointID == rhs.m_JointID && m_Bias == rhs.m_Bias && VectorEqual(m_Pos, rhs.m_Pos));
+			return (jointId == rhs.jointId && bias == rhs.bias && VectorEqual(pos, rhs.pos));
 		}
 
 		bool operator!=(const Weight &rhs) const
