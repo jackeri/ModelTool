@@ -232,6 +232,7 @@ file(COPY ${CMAKE_CURRENT_LIST_DIR}/fonts DESTINATION ${CMAKE_BINARY_DIR})
 if (test)
 
 	enable_testing()
+	include(GoogleTest)
 
 	# Try to use the system gtest package is exists
 	find_package(GTest)
@@ -247,18 +248,19 @@ if (test)
 
 	set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 
-	add_executable(tst ${ALL_SOURCES})
-	add_dependencies(tst ModelTool)
-	target_include_directories(tst PRIVATE "src/app")
-	target_link_libraries(tst PUBLIC ${MTLINK_LIBRARIES})
+	add_executable(mt_test ${ALL_SOURCES})
+	add_dependencies(mt_test ModelTool)
+	target_include_directories(mt_test PRIVATE "src/app")
+	target_link_libraries(mt_test PUBLIC ${MTLINK_LIBRARIES})
 
 	if(GTest_FOUND)
-		target_link_libraries(tst PUBLIC GTest::gtest GTest::gtest_main)
+		target_link_libraries(mt_test PUBLIC GTest::gtest GTest::gtest_main)
 	else()
-		target_link_libraries(tst PUBLIC gtest)
+		target_link_libraries(mt_test PUBLIC gtest)
 	endif()
 
-	add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND tst WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+	# add_test(NAME ${CMAKE_PROJECT_NAME}_tst COMMAND mt_test WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
+	gtest_discover_tests(mt_test WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 endif()
 
 # TODO: setup CPack
