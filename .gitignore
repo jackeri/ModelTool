@@ -10,6 +10,7 @@ tmp/
 /imgui.ini
 /config.cfg
 *.pk3
+!data/pack.pk3
 
 .DS_Store
 
