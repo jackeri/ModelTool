@@ -1,0 +1,19 @@
+// This is a parser test script
+
+testBloc {
+    name value
+
+    // Inner line comment
+    innerBlock {
+        "escaped string with whitespace"
+    }
+
+    /*
+    Block comment
+    can span many lines
+    */
+
+    number 1
+    float 1.0
+    boolean true
+}
