@@ -16,4 +16,6 @@ testBloc {
     number 1
     float 1.0
     boolean true
+    vector (1.0 1.0 1.0)
+    value+=5
 }

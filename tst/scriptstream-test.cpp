@@ -25,15 +25,32 @@ TEST(ScriptStreamTest, test1)
 
 	ASSERT_EQ(script.token(), "number");
 	script.token();
-	ASSERT_EQ((int) script, 1);
+	ASSERT_EQ(script.operator int(), 1);
 
 	ASSERT_EQ(script.token(), "float");
 	script.token();
-	ASSERT_EQ((float) script, 1.0f);
+	ASSERT_EQ(script.operator float(), 1.0f);
 
 	ASSERT_EQ(script.token(), "boolean");
 	script.token();
-	ASSERT_TRUE((bool) script);
+	ASSERT_TRUE(script.operator bool());
+
+	ASSERT_EQ(script.token(), "vector");
+	ASSERT_EQ(script.token(), "(");
+	script.token();
+	ASSERT_EQ(script.operator float(), 1.0f);
+	script.token();
+	ASSERT_EQ(script.operator float(), 1.0f);
+	script.token();
+	ASSERT_EQ(script.operator float(), 1.0f);
+	ASSERT_EQ(script.token(), ")");
+
+	// multiPunctuations
+	ASSERT_EQ(script.token(), "value");
+	ASSERT_EQ(script.token(), "+=");
+	script.token();
+	ASSERT_EQ(script.operator int(), 5);
+
 	ASSERT_TRUE(script.isBlockEnd(true));
 
 	// Script should have no more tokens

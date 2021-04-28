@@ -1,5 +1,14 @@
 #include "ScriptStream.h"
 
+const std::set<char> singlePunctuations = {
+		'{', '}', '[', ']', '<', '>', '(', ')'
+};
+
+const std::set<std::string> multiPunctuations = {
+		"+=", "-=", "*=", "/=", "&=", "|=", "++", "--",
+		"&&", "||", "<=", ">=", "==", "!="
+};
+
 mt::ScriptStream::ScriptStream() = default;
 
 mt::ScriptStream::ScriptStream(const std::string &value)
@@ -201,7 +210,7 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 
 			continue;
 		}
-		// Block comment
+			// Block comment
 		else if (current() == '/' && next() == '*')
 		{
 			if (!currentToken.empty())
@@ -211,7 +220,7 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 
 			// If we do not allow line breaks and the block comment expands multiple lines
 			// then we need to return an empty token and exit after moving the offset
-			if(skipBlockComment() && !linebreaks)
+			if (skipBlockComment() && !linebreaks)
 			{
 				return;
 			}
@@ -245,12 +254,12 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 				{
 					currentToken.push_back('\"');
 				}
-				else if(current() == '\"')
+				else if (current() == '\"')
 				{
 					offset++;
 					return;
 				}
-				else if(current() == '\n')
+				else if (current() == '\n')
 				{
 					lines++;
 					offset++;
@@ -272,6 +281,28 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 			{
 				offset++;
 				continue;
+			}
+
+			return;
+		}
+
+		if (multiPunctuations.find({current(), next() }) != multiPunctuations.end())
+		{
+			if (currentToken.empty())
+			{
+				currentToken = {current(), next()};
+				offset += 2;
+			}
+
+			return;
+		}
+
+		if (singlePunctuations.find(current()) != singlePunctuations.end())
+		{
+			if (currentToken.empty())
+			{
+				currentToken = {current()};
+				offset++;
 			}
 
 			return;
