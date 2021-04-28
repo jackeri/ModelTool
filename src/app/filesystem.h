@@ -88,6 +88,8 @@ namespace mt::IO {
 
 		~MTPackage() override;
 
+		void loadPackage();
+
 		bool findFile(const std::string &name) override;
 
 		Ref<MTFile> loadFile(const std::string &name) override;

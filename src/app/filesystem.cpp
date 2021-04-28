@@ -61,6 +61,17 @@ namespace mt::IO {
 
 	MTPackage::MTPackage(std::string path) : path(std::move(path))
 	{
+		loadPackage();
+	}
+
+	MTPackage::~MTPackage()
+	{
+		unzClose(zipFile);
+		files = std::unordered_set<std::string>();
+	}
+
+	void MTPackage::loadPackage()
+	{
 		zipFile = unzOpen(path.c_str());
 
 		int err = unzGoToFirstFile(zipFile);
@@ -79,12 +90,6 @@ namespace mt::IO {
 
 			unzGoToFirstFile(zipFile);
 		}
-	}
-
-	MTPackage::~MTPackage()
-	{
-		unzClose(zipFile);
-		files = std::unordered_set<std::string>();
 	}
 
 	bool MTPackage::findFile(const std::string &name)
@@ -165,17 +170,18 @@ namespace mt::IO {
 					// Check if directory, ignore if not a PK3Dir
 					if (entry.is_directory() && tools::endsWith(name, ".pk3dir"))
 					{
-						sources.push_back(std::make_shared<MTPath>(name));
+						sources.push_back(std::make_shared<MTPath>(absolute(entry.path())));
 					}
 					else if (entry.is_regular_file() && ext == ".pk3")
 					{
-						sources.push_back(std::make_shared<MTPackage>(name));
+						sources.push_back(std::make_shared<MTPackage>(absolute(entry.path())));
 					}
 				}
 			}
 
 			sources.push_back(std::make_shared<MTPath>(absolute(sysPath).string()));
-		} else if (is_regular_file(sysPath) && sysPath.extension() == ".pk3")
+		}
+		else if (is_regular_file(sysPath) && sysPath.extension() == ".pk3")
 		{
 			sources.push_back(std::make_shared<MTPackage>(absolute(sysPath).string()));
 		}
@@ -217,7 +223,7 @@ namespace mt::IO {
 
 	bool FileSystem::findFile(const std::string &name)
 	{
-		return std::any_of(sources.begin(), sources.end(), [&] (auto &source) {
+		return std::any_of(sources.begin(), sources.end(), [&](auto &source) {
 			return source->findFile(name);
 		});
 	}
