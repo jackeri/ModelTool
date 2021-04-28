@@ -23,6 +23,11 @@ namespace mt::IO {
 	{
 		std::ifstream infile(path, std::ios::ate | std::ios_base::binary);
 
+		if (!infile.is_open())
+		{
+			return nullptr;
+		}
+
 		infile.seekg(0, infile.end);
 		auto length = infile.tellg();
 		infile.seekg(0, infile.beg);
@@ -30,10 +35,15 @@ namespace mt::IO {
 		if (length > 0)
 		{
 			byte_buffer buffer = make_ref<std::vector<byte>>(length);
+			// fill the memory with zeroes
+			std::fill(buffer->begin(), buffer->end(), 0);
+
 			infile.read(reinterpret_cast<char *>(buffer->data()), length);
+			infile.close();
 			return buffer;
 		}
 
+		infile.close();
 		return nullptr;
 	}
 }

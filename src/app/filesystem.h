@@ -18,7 +18,12 @@ namespace mt::IO {
 
 		[[nodiscard]] const char* c_str() const
 		{
-			return reinterpret_cast<char *>(data->data());
+			if(data)
+			{
+				return reinterpret_cast<char *>(data->data());
+			}
+
+			return "";
 		}
 
 		[[nodiscard]] std::string string() const
