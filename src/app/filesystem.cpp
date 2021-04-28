@@ -125,6 +125,8 @@ namespace mt::IO {
 		auto output = make_ref<MTFile>();
 
 		output->data = make_ref<std::vector<byte>>(file_info.uncompressed_size);
+		std::fill(output->data->begin(), output->data->end(), 0);
+
 		output->len = file_info.uncompressed_size;
 		output->name = name;
 
