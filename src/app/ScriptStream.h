@@ -37,6 +37,8 @@ namespace mt {
 
 		std::string peekNext();
 
+		bool hasNext();
+
 		bool operator == (const std::string &other) const;
 
 		explicit operator float();

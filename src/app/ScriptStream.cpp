@@ -127,6 +127,11 @@ std::string mt::ScriptStream::peekNext()
 	return next;
 }
 
+bool mt::ScriptStream::hasNext()
+{
+	return !peekNext().empty();
+}
+
 bool mt::ScriptStream::operator==(const std::string &other) const
 {
 	return currentToken == other;
