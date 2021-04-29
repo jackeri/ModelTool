@@ -178,6 +178,7 @@ FILE(GLOB LIB_HEADERS
 )
 
 include_directories("libs/imgui")
+include_directories("libs/imgui-filebrowser")
 include_directories("libs/stb")
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)

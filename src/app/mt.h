@@ -56,11 +56,20 @@ namespace mt {
 		return std::make_shared<T>(args...);
 	}
 
+	template<typename T>
+	using RefList = std::shared_ptr<std::vector<T>>;
+
+	template<typename T, typename... Args>
+	RefList<T> make_ref_list(Args... args)
+	{
+		return std::make_shared<std::vector<T>>(args...);
+	}
+
 	using byte_buffer = Ref<std::vector<byte>>;
 
 	inline byte_buffer buffer(size_t size)
 	{
-		return make_ref<std::vector<byte>>(size);
+		return make_ref_list<byte>(size);
 	}
 
 }

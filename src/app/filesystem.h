@@ -16,9 +16,9 @@ namespace mt::IO {
 
 		~MTFile() = default;
 
-		[[nodiscard]] const char* c_str() const
+		[[nodiscard]] const char *c_str() const
 		{
-			if(data)
+			if (data)
 			{
 				return reinterpret_cast<char *>(data->data());
 			}
@@ -31,7 +31,7 @@ namespace mt::IO {
 			return std::string(c_str());
 		}
 
-		explicit operator const char*() const
+		explicit operator const char *() const
 		{
 			return c_str();
 		}
@@ -47,6 +47,9 @@ namespace mt::IO {
 		size_t len = 0;
 	};
 
+	struct FileRecord;
+	using FileList = RefList<FileRecord>;
+
 	class FileSource {
 	public:
 		FileSource();
@@ -56,6 +59,13 @@ namespace mt::IO {
 		virtual bool findFile(const std::string &name) = 0;
 
 		virtual Ref<MTFile> loadFile(const std::string &name) = 0;
+
+		virtual FileList getFiles()
+		{
+			return getFiles("");
+		}
+
+		virtual FileList getFiles(const std::string &name) = 0;
 
 		[[nodiscard]] virtual std::string getSource() const = 0;
 
@@ -68,6 +78,14 @@ namespace mt::IO {
 		std::string identifier;
 	};
 
+	struct FileRecord {
+		std::string path{};
+		std::string name{};
+		std::string ext{};
+		bool isDirectory = false;
+		FileSource *source = nullptr;
+	};
+
 	class MTPath : public FileSource {
 	public:
 		explicit MTPath(std::string path);
@@ -77,6 +95,8 @@ namespace mt::IO {
 		bool findFile(const std::string &name) override;
 
 		Ref<MTFile> loadFile(const std::string &name) override;
+
+		FileList getFiles(const std::string &name) override;
 
 		[[nodiscard]] std::string getSource() const override
 		{
@@ -99,6 +119,8 @@ namespace mt::IO {
 
 		Ref<MTFile> loadFile(const std::string &name) override;
 
+		FileList getFiles(const std::string &name) override;
+
 		[[nodiscard]] std::string getSource() const override
 		{
 			return path;
@@ -108,6 +130,7 @@ namespace mt::IO {
 		std::string path;
 		unzFile zipFile = nullptr;
 		std::unordered_set<std::string> files;
+		std::unordered_set<std::string> folders;
 	};
 
 	class FileSystem : public FileSource {
@@ -125,11 +148,15 @@ namespace mt::IO {
 
 		void removeSource(FileSource &source);
 
+		bool hasSources();
+
 		void clear();
 
 		bool findFile(const std::string &name) override;
 
 		Ref<MTFile> loadFile(const std::string &name) override;
+
+		FileList getFiles(const std::string &name) override;
 
 		[[nodiscard]] std::string getSource() const override;
 

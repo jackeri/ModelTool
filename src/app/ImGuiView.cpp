@@ -2,7 +2,6 @@
 
 #include "GLWindow.h"
 
-#include "imgui.h"
 // Dockspace internal api is needed
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
@@ -10,10 +9,15 @@
 #define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
 
 #if defined(MT_OPENGL_2)
+
 #include "backends/imgui_impl_opengl2.h"
+
 #elif defined(MT_OPENGL_3)
 #include "backends/imgui_impl_opengl3.h"
 #endif
+
+#include "imfilebrowser.h"
+#include "state.h"
 
 namespace mt {
 
@@ -82,26 +86,24 @@ namespace mt {
 
 	void ImGuiView::draw()
 	{
+		auto &state = singleton<State>();
+
 		// Enable the whole viewport docking
 		ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-
-		// static bool wasRun = false;
-		// if (!wasRun)
-		// {
-		// 	ImGui::DockBuilderRemoveNode(dockspaceId);
-		// 	wasRun = true;
-		// }
 
 		if (ImGui::DockBuilderGetNode(dockspaceId) == nullptr)
 		{
 			ImGui::DockBuilderRemoveNode(dockspaceId); // Clear out existing layout
 			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
-			ImGui::DockBuilderSetNodeSize(dockspaceId, {500, 500 });
+			ImGui::DockBuilderSetNodeSize(dockspaceId, {500, 500});
 
 			ImGuiID dock_main_id = dockspaceId; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
-			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
-			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr, &dock_main_id);
-			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr,
+															   &dock_main_id);
+			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr,
+																 &dock_main_id);
+			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr,
+																 &dock_main_id);
 
 			ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
 			ImGui::DockBuilderDockWindow("Properties", dock_left_id);
@@ -117,9 +119,16 @@ namespace mt {
 
 			if (ImGui::BeginMenu("File"))
 			{
+
+				// Close the current model
+				if (ImGui::MenuItem("Close", nullptr, false, !state.models.empty()))
+				{
+					// FIXME: implement
+				}
+
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Quit", "Cmd+Q", false, false))
+				if (ImGui::MenuItem("Quit", "Cmd+Q", false, true))
 				{
 					// Emit quit message
 				}
@@ -139,24 +148,27 @@ namespace mt {
 				{
 
 				}
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Close", nullptr, false, false))
-				{
-
-				}
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Quit", nullptr, false, false))
-				{
-
-				}
 
 				ImGui::EndMenu();
 			}
 
 			ImGui::EndMainMenuBar();
+		}
+
+		// Setup the base path
+		if (!state.filesystem.hasSources() && !fileBrowser.IsOpened())
+		{
+			fileBrowser.SetTitle("Select the base folder");
+			fileBrowser.Open();
+		}
+
+		fileBrowser.Display();
+
+		if (fileBrowser.HasSelected())
+		{
+			std::cout << "Selected filename" << fileBrowser.GetSelected().string() << std::endl;
+			state.filesystem.addPath(fileBrowser.GetSelected());
+			fileBrowser.ClearSelected();
 		}
 	}
 

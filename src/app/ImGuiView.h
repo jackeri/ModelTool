@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mt.h"
+#include <imfilebrowser.h>
 
 namespace mt {
 	class GLWindow;
@@ -18,5 +19,8 @@ namespace mt {
 		void draw();
 
 		void shutdown();
+
+	private:
+		ImGui::FileBrowser fileBrowser{ImGuiFileBrowserFlags_SelectDirectory};
 	};
 }

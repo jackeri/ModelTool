@@ -59,6 +59,46 @@ namespace mt::IO {
 		return file;
 	}
 
+	FileList MTPath::getFiles(const std::string &name)
+	{
+		FileList files = make_ref_list<FileRecord>();
+
+		std::filesystem::path sysPath(path);
+		sysPath /= name;
+
+		for (const auto &entry : std::filesystem::directory_iterator(sysPath))
+		{
+			if (!entry.is_directory() && !entry.is_regular_file())
+			{
+				continue;
+			}
+
+			// skip the pk3dirs
+			if (entry.is_directory() && entry.path().extension().string() == ".pk3dir")
+			{
+				continue;
+			}
+
+			// skip the pk3
+			if (entry.is_regular_file() && entry.path().extension().string() == ".pk3")
+			{
+				continue;
+			}
+
+			auto tmp = relative(entry.path(), {path});
+
+			files->push_back({
+				.path = tmp.string(),
+				.name = tmp.filename().string(),
+				.ext = tmp.extension().string(),
+				.isDirectory = entry.is_directory(),
+				.source = this
+			});
+		}
+
+		return files;
+	}
+
 	MTPackage::MTPackage(std::string path) : path(std::move(path))
 	{
 		loadPackage();
@@ -74,6 +114,11 @@ namespace mt::IO {
 	{
 		zipFile = unzOpen(path.c_str());
 
+		if (!zipFile)
+		{
+			throw "Invalid package";
+		}
+
 		int err = unzGoToFirstFile(zipFile);
 		if (UNZ_OK == err)
 		{
@@ -84,7 +129,18 @@ namespace mt::IO {
 				memset(&fileInfo, 0, sizeof(unz_file_info));
 				if (unzGetCurrentFileInfo(zipFile, &fileInfo, fileName, MAX_PATH, nullptr, 0, nullptr, 0) == UNZ_OK)
 				{
-					files.insert(fileName);
+					size_t len = strlen(fileName);
+
+					if (fileName[len - 1] == '/')
+					{
+						// remove the last separator
+						fileName[len - 1] = '\0';
+						folders.insert(fileName);
+					}
+					else
+					{
+						files.insert(fileName);
+					}
 				}
 			} while (unzGoToNextFile(zipFile) == UNZ_OK);
 
@@ -138,6 +194,70 @@ namespace mt::IO {
 		}
 
 		return nullptr;
+	}
+
+	FileList MTPackage::getFiles(const std::string &name)
+	{
+		static auto charFinder = [] (const char &val) {
+			return val == '/';
+		};
+
+		FileList records = make_ref_list<FileRecord>();
+		unsigned int separators = 0;
+		if (!name.empty())
+		{
+			std::string tmp = name;
+			if (tmp[tmp.length() - 1] != '/')
+			{
+				tmp += '/';
+			}
+
+			separators = std::count_if(tmp.begin(), tmp.end(), charFinder);
+		}
+
+		for (auto &folder : folders)
+		{
+			unsigned int count = std::count_if(folder.begin(), folder.end(), charFinder);
+
+			if (count != separators)
+			{
+				continue;
+			}
+
+			// "abuse" the filesystem api a bit
+			std::filesystem::path tmp(folder);
+
+			records->push_back({
+				.path = folder,
+				.name = tmp.filename().string(),
+				.ext = {},
+				.isDirectory = true,
+				.source = this
+			});
+		}
+
+		for (auto &file : files)
+		{
+			unsigned int count = std::count_if(file.begin(), file.end(), charFinder);
+
+			if (count != separators)
+			{
+				continue;
+			}
+
+			// "abuse" the filesystem api a bit
+			std::filesystem::path tmp(file);
+
+			records->push_back({
+				.path = file,
+				.name = tmp.filename().string(),
+				.ext = tmp.extension().string(),
+				.isDirectory = false,
+				.source = this
+			});
+		}
+
+		return records;
 	}
 
 	FileSystem::FileSystem() : FileSource()
@@ -218,6 +338,11 @@ namespace mt::IO {
 		sources.erase(point);
 	}
 
+	bool FileSystem::hasSources()
+	{
+		return !sources.empty();
+	}
+
 	void FileSystem::clear()
 	{
 		sources.clear();
@@ -241,6 +366,19 @@ namespace mt::IO {
 		}
 
 		return nullptr;
+	}
+
+	FileList FileSystem::getFiles(const std::string &name)
+	{
+		FileList files = make_ref_list<FileRecord>();
+
+		for (auto &source : sources)
+		{
+			FileList found = source->getFiles(name);
+			files->insert(files->end(), found->begin(), found->end());
+		}
+
+		return files;
 	}
 
 	std::string FileSystem::getSource() const
