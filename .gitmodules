@@ -16,3 +16,6 @@
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/google/googletest.git
+[submodule "libs/imgui-filebrowser"]
+	path = libs/imgui-filebrowser
+	url = https://github.com/jackeri/imgui-filebrowser.git
