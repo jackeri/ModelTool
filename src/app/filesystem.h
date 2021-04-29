@@ -131,7 +131,7 @@ namespace mt::IO {
 
 		Ref<MTFile> loadFile(const std::string &name) override;
 
-		std::string getSource() const override;
+		[[nodiscard]] std::string getSource() const override;
 
 	private:
 		std::vector<std::shared_ptr<FileSource>> sources;

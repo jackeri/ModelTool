@@ -1,10 +1,10 @@
 #include "GLRenderer2.h"
 #include "Camera.h"
+#include "state.h"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <imgui.h>
 
 const mt::byte xAxis[] = {255, 0, 0};
 const mt::byte yAxis[] = {0, 255, 0};
@@ -121,10 +121,9 @@ void mt::GLRenderer2::grid()
 
 void mt::GLRenderer2::startFrame(Camera &cam)
 {
-	// FIXME: move this to config
-	const ImColor clearColor = {114, 144, 154};
+	auto &color = singleton<State>().clearColor;
 
-	glClearColor(clearColor.Value.x, clearColor.Value.y, clearColor.Value.z, clearColor.Value.w);
+	glClearColor(color.Value.x, color.Value.y, color.Value.z, color.Value.w);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glLoadIdentity();
