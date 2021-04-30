@@ -7,6 +7,24 @@
 
 namespace mt::IO {
 
+	static std::string fixName(std::string name, bool mustEndWithSeparator = false)
+	{
+		while (!name.empty() && name[0] == '/')
+		{
+			name = name.substr(1);
+		}
+
+		if (!name.empty() && mustEndWithSeparator)
+		{
+			if (name[name.length() - 1] != '/')
+			{
+				name += '/';
+			}
+		}
+
+		return name;
+	}
+
 	FileSource::FileSource()
 	{
 		this->identifier = tools::randomString(64);
@@ -29,22 +47,12 @@ namespace mt::IO {
 
 	bool MTPath::findFile(const std::string &name)
 	{
-		std::string tmp = name;
-		while (tmp[0] == '/')
-		{
-			tmp = tmp.substr(1);
-		}
-
-		return FileExists(this->path + '/' + tmp);
+		return FileExists(this->path + '/' + fixName(name));
 	}
 
 	Ref<MTFile> MTPath::loadFile(const std::string &name)
 	{
-		std::string tmp = name;
-		while (tmp[0] == '/')
-		{
-			tmp = tmp.substr(1);
-		}
+		std::string tmp = fixName(name);
 
 		byte_buffer data = FileRead(this->path + '/' + tmp);
 		if (!data)
@@ -64,7 +72,7 @@ namespace mt::IO {
 		FileList files = make_ref_list<FileRecord>();
 
 		std::filesystem::path sysPath(path);
-		sysPath /= name;
+		sysPath /= fixName(name);
 
 		for (const auto &entry : std::filesystem::directory_iterator(sysPath))
 		{
@@ -150,17 +158,19 @@ namespace mt::IO {
 
 	bool MTPackage::findFile(const std::string &name)
 	{
-		return (files.find(name) != files.end());
+		return (files.find(fixName(name)) != files.end());
 	}
 
 	Ref<MTFile> MTPackage::loadFile(const std::string &name)
 	{
-		if (!findFile(name))
+		std::string tmp = fixName(name);
+
+		if (!findFile(tmp))
 		{
 			return nullptr;
 		}
 
-		if (UNZ_OK != unzLocateFile(zipFile, name.c_str(), false))
+		if (UNZ_OK != unzLocateFile(zipFile, tmp.c_str(), false))
 		{
 			return nullptr;
 		}
@@ -204,15 +214,11 @@ namespace mt::IO {
 
 		FileList records = make_ref_list<FileRecord>();
 		unsigned int separators = 0;
-		if (!name.empty())
-		{
-			std::string tmp = name;
-			if (tmp[tmp.length() - 1] != '/')
-			{
-				tmp += '/';
-			}
+		std::string fixedName = fixName(name, true);
 
-			separators = std::count_if(tmp.begin(), tmp.end(), charFinder);
+		if (!fixedName.empty())
+		{
+			separators = std::count_if(fixedName.begin(), fixedName.end(), charFinder);
 		}
 
 		for (auto &folder : folders)
@@ -220,6 +226,11 @@ namespace mt::IO {
 			unsigned int count = std::count_if(folder.begin(), folder.end(), charFinder);
 
 			if (count != separators)
+			{
+				continue;
+			}
+
+			if (!tools::startsWith(folder, fixedName))
 			{
 				continue;
 			}
@@ -241,6 +252,11 @@ namespace mt::IO {
 			unsigned int count = std::count_if(file.begin(), file.end(), charFinder);
 
 			if (count != separators)
+			{
+				continue;
+			}
+
+			if (!tools::startsWith(file, fixedName))
 			{
 				continue;
 			}
@@ -377,6 +393,22 @@ namespace mt::IO {
 			FileList found = source->getFiles(name);
 			files->insert(files->end(), found->begin(), found->end());
 		}
+
+		// make sure we dont have duplicates
+		auto unique = std::unique(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
+			return (first.name == second.name && first.isDirectory == second.isDirectory);
+		});
+
+		files->erase(unique, files->end());
+
+		// Sort items by name but directories first
+		std::sort(files->begin(), files->end(), [] (const FileRecord &first, const FileRecord &second) {
+			if (first.isDirectory == second.isDirectory)
+			{
+				return first.name < second.name;
+			}
+			return first.isDirectory > second.isDirectory;
+		});
 
 		return files;
 	}

@@ -14,11 +14,11 @@ TEST(FileSystemTest, test1)
 	{
 		IO::FileList list = sys.getFiles("");
 
-		ASSERT_EQ(list->size(), 5);
+		ASSERT_EQ(list->size(), 6);
 		ASSERT_EQ(list->at(0).name, "inner");
 		ASSERT_TRUE(list->at(0).isDirectory);
-		ASSERT_EQ(list->at(2).name, "pk3inner");
-		ASSERT_TRUE(list->at(2).isDirectory);
+		ASSERT_EQ(list->at(1).name, "pk3inner");
+		ASSERT_TRUE(list->at(1).isDirectory);
 	}
 
 	// These files should be directly in the data folder and are accessed with normal system IO
