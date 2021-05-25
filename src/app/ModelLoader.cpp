@@ -7,7 +7,7 @@ mt::Model *mt::model::ModelLoader::load(const mt::Ref<mt::IO::MTFile> &file)
 	init();
 
 	auto it = std::find_if(std::begin(loaders), std::end(loaders),
-						   [&](auto &&p) { return p->first == file->ext; });
+						   [&](auto &&loader) { return loader.first == file->ext; });
 
 	if (it == std::end(loaders))
 	{
