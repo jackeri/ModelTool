@@ -5,7 +5,7 @@ namespace mt {
 
 	Application::Application(const std::string &title)
 	{
-		// Ini the application state structure
+		// Init the application state structure
 		singleton<State>();
 
 		window = make_ref<GLWindow>(title);

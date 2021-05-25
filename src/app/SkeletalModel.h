@@ -2,6 +2,7 @@
 
 #include "mt.h"
 #include "Model.h"
+#include "Material.h"
 
 namespace mt::model::Skeletal {
 
@@ -10,7 +11,7 @@ namespace mt::model::Skeletal {
 		int parentId{};
 		int flags{};
 		int startIndex{};
-		float torsoWeight{}; // FIXME: compute value
+		float torsoWeight{};
 		bool asTag{};
 		bool possibleTag{};
 
@@ -103,7 +104,7 @@ namespace mt::model::Skeletal {
 
 		bool operator==(const Weight &rhs) const
 		{
-			return (jointId == rhs.jointId && bias == rhs.bias && VectorEqual(pos, rhs.pos));
+			return (jointId == rhs.jointId && bias == rhs.bias && pos == rhs.pos);
 		}
 
 		bool operator!=(const Weight &rhs) const
@@ -122,23 +123,21 @@ namespace mt::model::Skeletal {
 
 		int minLod = 0;
 
-		Material *material = nullPtr;
+		Material *material = nullptr;
 
 		std::vector<int> collapseMap; // Every mesh has a map
 
-		Mesh()
-		{
-		}
+		Mesh() = default;
 
 		~Mesh()
 		{
-			emptyVector(m_Verts);
-			emptyVector(m_Tris);
-			emptyVector(m_Weights);
+			emptyVector(vertices);
+			emptyVector(tris);
+			emptyVector(weights);
 		}
 	};
 
-	class SkeletalModel {
+	class SkeletalModel : public Model {
 	public:
 
 	};

@@ -9,6 +9,12 @@ namespace mt {
 
 		~Renderer() = default;
 
+		Renderer(const Renderer &other) = delete;
+
+		Renderer(Renderer &other) = delete;
+
+		Renderer(Renderer &&other) = delete;
+
 		virtual void setup()
 		{}
 
@@ -19,5 +25,11 @@ namespace mt {
 		virtual void grid() = 0;
 
 		virtual void endFrame() = 0;
+
+		Renderer &operator=(const Renderer &other) = delete;
+
+		Renderer &operator=(Renderer &other) = delete;
+
+		Renderer &operator=(Renderer &&other) = delete;
 	};
 }

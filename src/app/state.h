@@ -8,7 +8,7 @@ namespace mt {
 
 	class State {
 	public:
-		std::vector<Model> models{};
+		std::vector<Ref<Model>> models{};
 		ImColor clearColor{114, 144, 154};
 		IO::FileSystem filesystem{};
 
