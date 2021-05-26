@@ -1,30 +1,39 @@
 #include "ModelLoader.h"
 #include "ModelMD5.h"
 
-mt::Model *mt::model::ModelLoader::load(const mt::Ref<mt::IO::MTFile> &file)
-{
-	// Make sure the loader map is initialized
-	init();
+namespace mt {
 
-	auto it = std::find_if(std::begin(loaders), std::end(loaders),
-						   [&](auto &&loader) { return loader.first == file->ext; });
-
-	if (it == std::end(loaders))
+	Model *model::ModelLoader::load(const Ref<IO::MTFile> &file)
 	{
-		throw std::invalid_argument("Unknown extension.");
+		// Make sure the loader map is initialized
+		init();
+
+		auto it = std::find_if(std::begin(m_loaders), std::end(m_loaders),
+							   [&](auto &&loader) { return loader.first == file->ext; });
+
+		if (it == std::end(m_loaders))
+		{
+			throw std::invalid_argument("Unknown extension.");
+		}
+
+		return it->second(file);
 	}
 
-	return it->second(file);
-}
-
-void mt::model::ModelLoader::init()
-{
-	if (!loaders.empty())
+	Ref<Model> model::ModelLoader::load_ref(const Ref<IO::MTFile> &file)
 	{
-		return;
+		return Ref<Model>(load(file));
 	}
 
-	loaders.emplace(std::string("md5"), mt::model::loadMD5);
+	void model::ModelLoader::init()
+	{
+		if (!m_loaders.empty())
+		{
+			return;
+		}
 
-	// FIXME: register the the missing model formats here
+		m_loaders.emplace(std::string("md5"), model::loadMD5);
+
+		// FIXME: register the the missing model formats here
+	}
+
 }

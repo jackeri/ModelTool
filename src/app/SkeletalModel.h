@@ -140,6 +140,12 @@ namespace mt::model::Skeletal {
 	class SkeletalModel : public Model {
 	public:
 
+		int numFrames() override
+		{
+			// FIXME: actually implement this
+			return 0;
+		}
+
 	};
 
 }

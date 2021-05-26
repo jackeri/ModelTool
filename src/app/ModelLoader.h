@@ -12,13 +12,15 @@ namespace mt::model {
 
 		static Model *load(const Ref<IO::MTFile> &);
 
+		static Ref<Model> load_ref(const Ref<IO::MTFile> &);
+
 	private:
 		ModelLoader() = default;
 
 		static void init();
 
-		static LoaderMap loaders;
+		static LoaderMap m_loaders;
 	};
 
-	LoaderMap ModelLoader::loaders{};
+	LoaderMap ModelLoader::m_loaders{};
 }

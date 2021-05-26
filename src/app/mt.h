@@ -13,6 +13,7 @@
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION
 #endif
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -27,14 +28,7 @@ namespace mt {
 
 	const int MAX_PATH = 1024;
 
-	template<class X>
-	X &singleton()
-	{
-		static X x;
-		return x;
-	}
-
-	template <class T>
+	template<class T>
 	inline void emptyVector(std::vector<T> &deleteMe)
 	{
 		if (deleteMe.empty())
@@ -72,4 +66,43 @@ namespace mt {
 		return make_ref_list<byte>(size);
 	}
 
+	template<class X>
+	Ref<X> singleton_ref()
+	{
+		static Ref<X> x{new X};
+		return x;
+	}
+
+	template<class X>
+	inline X &singleton()
+	{
+		// static X x;
+		// return x;
+		return *singleton_ref<X>().get();
+	}
+
+	template<typename T>
+	class SingletonType {
+	public:
+		SingletonType(SingletonType const &) = delete;
+
+		SingletonType &operator=(SingletonType const &) = delete;
+
+		static T &instance()
+		{
+			return singleton<T>();
+		}
+
+		static Ref<T> &instance_ref()
+		{
+			return singleton_ref<T>();
+		}
+
+		friend T &singleton<T>();
+
+		friend Ref<T> singleton_ref<T>();
+
+	protected:
+		SingletonType() = default;
+	};
 }

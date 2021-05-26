@@ -7,12 +7,17 @@
 namespace mt {
 
 	class State {
+
+		friend Ref<State> singleton_ref<State>();
+
 	public:
 		std::vector<Ref<Model>> models{};
 		ImColor clearColor{114, 144, 154};
 		IO::FileSystem filesystem{};
 
-		State() = default;
+		State(State const &) = delete;
+
+		State &operator=(State const &) = delete;
 
 		~State()
 		{
@@ -23,5 +28,8 @@ namespace mt {
 		{
 			emptyVector(models);
 		}
+
+	private:
+		State() = default;
 	};
 }
