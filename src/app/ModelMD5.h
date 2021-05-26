@@ -5,5 +5,8 @@
 #include "filesystem.h"
 
 namespace mt::model {
-	Model* loadMD5(const Ref<IO::MTFile> &);
+	const int MD5_VERSION = 10;
+
+	Model* loadMd5Model(const Ref<IO::MTFile> &);
+	void loadMD5Anim(Model *, const Ref<IO::MTFile> &);
 }

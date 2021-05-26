@@ -21,6 +21,8 @@ namespace mt {
 
 		std::string token(bool allowLineBreaks = true);
 
+		ScriptStream &parse(bool allowLineBreaks = true);
+
 		bool isBlockStart(bool parse = false);
 
 		bool isBlockEnd(bool parse = false);
@@ -39,7 +41,7 @@ namespace mt {
 
 		bool hasNext();
 
-		bool operator == (const std::string &other) const;
+		bool operator==(const std::string &other) const;
 
 		explicit operator float();
 

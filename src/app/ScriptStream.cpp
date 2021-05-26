@@ -42,6 +42,12 @@ std::string mt::ScriptStream::token(bool allowLineBreaks)
 	return currentToken;
 }
 
+mt::ScriptStream &mt::ScriptStream::parse(bool allowLineBreaks)
+{
+	parseNext(allowLineBreaks);
+	return *this;
+}
+
 bool mt::ScriptStream::isBlockStart(bool parse)
 {
 	if (parse)
@@ -286,7 +292,7 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 			return;
 		}
 
-		if (multiPunctuations.find({current(), next() }) != multiPunctuations.end())
+		if (multiPunctuations.find({current(), next()}) != multiPunctuations.end())
 		{
 			if (currentToken.empty())
 			{

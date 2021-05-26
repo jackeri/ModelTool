@@ -117,14 +117,15 @@ namespace mt::model::Skeletal {
 		std::string name{};
 		std::string materialName{};
 		// This vertex list stores the vertices in the bind pose.
-		std::vector<Vertex> vertices;
-		std::vector<glm::ivec3> tris;
-		std::vector<Weight> weights;
+		std::vector<Vertex> vertices{};
+		std::vector<glm::ivec3> tris{};
+		std::vector<Weight> weights{};
 
 		int minLod = 0;
 
 		Material *material = nullptr;
 
+		// FIXME: this will be used by the ET models, implement later
 		std::vector<int> collapseMap; // Every mesh has a map
 
 		Mesh() = default;
@@ -140,10 +141,44 @@ namespace mt::model::Skeletal {
 	class SkeletalModel : public Model {
 	public:
 
+		std::vector<Joint> joints{};
+		std::vector<Mesh> meshes{};
+		std::vector<BoneTag> tags{};
+
+		bool hasBindPose = false;
+
 		int numFrames() override
 		{
-			// FIXME: actually implement this
-			return 0;
+			return int(joints.empty() ? 0 : joints[0].frames.size());
+		}
+
+		bool hasTags()
+		{
+			if (!tags.empty())
+			{
+				return true;
+			}
+
+			return std::any_of(joints.begin(), joints.end(), [](const Joint &joint) { return joint.asTag; });
+		}
+
+		int findParentIndex(int boneIndex)
+		{
+			if (boneIndex == -1)
+			{
+				return -1;
+			}
+
+			int foundParent = 0;
+			for (auto i = 0; i < boneIndex; i++)
+			{
+				if (!joints[i].asTag)
+				{
+					foundParent++;
+				}
+			}
+
+			return foundParent;
 		}
 
 	};

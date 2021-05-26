@@ -3,15 +3,15 @@
 
 namespace mt {
 
-	Model *model::ModelLoader::load(const Ref<IO::MTFile> &file)
+	Model *model::ModelLoader::loadModel(const Ref<IO::MTFile> &file)
 	{
 		// Make sure the loader map is initialized
 		init();
 
-		auto it = std::find_if(std::begin(m_loaders), std::end(m_loaders),
+		auto it = std::find_if(std::begin(m_modelLoaders), std::end(m_modelLoaders),
 							   [&](auto &&loader) { return loader.first == file->ext; });
 
-		if (it == std::end(m_loaders))
+		if (it == std::end(m_modelLoaders))
 		{
 			throw std::invalid_argument("Unknown extension.");
 		}
@@ -19,21 +19,42 @@ namespace mt {
 		return it->second(file);
 	}
 
-	Ref<Model> model::ModelLoader::load_ref(const Ref<IO::MTFile> &file)
+	Ref<Model> model::ModelLoader::loadModel_ref(const Ref<IO::MTFile> &file)
 	{
-		return Ref<Model>(load(file));
+		return Ref<Model>(loadModel(file));
+	}
+
+	void model::ModelLoader::loadAnimation(Model *parent, const Ref<IO::MTFile> &file)
+	{
+		init();
+
+		auto it = std::find_if(std::begin(m_animationLoaders), std::end(m_animationLoaders),
+							   [&](auto &&loader) { return loader.first == file->ext; });
+
+		if (it == std::end(m_animationLoaders))
+		{
+			throw std::invalid_argument("Unknown extension.");
+		}
+
+		return it->second(parent, file);
+	}
+
+	void model::ModelLoader::loadAnimation(const Ref<Model> &parent, const Ref<IO::MTFile> &file)
+	{
+		loadAnimation(parent.get(), file);
 	}
 
 	void model::ModelLoader::init()
 	{
-		if (!m_loaders.empty())
+		if (!m_modelLoaders.empty())
 		{
 			return;
 		}
 
-		m_loaders.emplace(std::string("md5"), model::loadMD5);
+		// MD5 model and animations loaders setup
+		m_modelLoaders.emplace("md5mesh", model::loadMd5Model);
+		m_animationLoaders.emplace("md5anim", model::loadMD5Anim);
 
 		// FIXME: register the the missing model formats here
 	}
-
 }
