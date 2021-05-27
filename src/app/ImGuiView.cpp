@@ -21,6 +21,23 @@
 
 namespace mt {
 
+	static void showModelLoadModal(bool &ok)
+	{
+		if (ImGui::BeginPopupModal("Load modal"))
+		{
+
+			ImGui::Text("Test");
+
+			ImGui::EndPopup();
+		}
+
+	}
+
+	static void showAnimationLoadModal(bool &ok)
+	{
+		ok = true;
+	}
+
 	bool ImGuiView::setup(GLWindow *window, const char *glslVersion)
 	{
 		IMGUI_CHECKVERSION();
@@ -113,12 +130,90 @@ namespace mt {
 			ImGui::DockBuilderFinish(dockspaceId);
 		}
 
+		drawMenu();
+
+		auto layerIterator = m_uiLayers.begin();
+		while (layerIterator != m_uiLayers.end())
+		{
+			bool layerOk = true;
+			layerIterator->second(layerOk);
+
+			if (!layerOk)
+			{
+				layerIterator = m_uiLayers.erase(layerIterator);
+			}
+			else
+			{
+				layerIterator++;
+			}
+		}
+
+		std::vector<int> v = { 1, 2, 3, 4, 5, 6 };
+
+		auto it = v.begin();
+		while (it != v.end())
+		{
+			// remove odd numbers
+			if (*it & 1)
+			{
+				// `erase()` invalidates the iterator, use returned iterator
+				it = v.erase(it);
+			}
+				// Notice that the iterator is incremented only on the else part (why?)
+			else {
+				++it;
+			}
+		}
+
+		// Setup the base path
+		if (!state.filesystem.hasSources() && !fileBrowser.IsOpened())
+		{
+			fileBrowser.SetTitle("Select the base folder");
+			fileBrowser.Open();
+		}
+
+		fileBrowser.Display();
+
+		if (fileBrowser.HasSelected())
+		{
+			std::cout << "Selected filename" << fileBrowser.GetSelected().string() << std::endl;
+			state.filesystem.addPath(fileBrowser.GetSelected());
+			fileBrowser.ClearSelected();
+		}
+	}
+
+	void ImGuiView::shutdown()
+	{
+#if defined(MT_OPENGL_2)
+		ImGui_ImplOpenGL2_Shutdown();
+#elif defined(MT_OPENGL_3)
+		ImGui_ImplOpenGL3_Shutdown();
+#endif
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
+
+	void ImGuiView::drawMenu()
+	{
+		auto &state = singleton<State>();
+
 		// Setup the main menu bar.
 		if (ImGui::BeginMainMenuBar())
 		{
 
 			if (ImGui::BeginMenu("File"))
 			{
+
+				if (ImGui::MenuItem("Open model"))
+				{
+					ImGui::OpenPopup("Load modal");
+					this->m_uiLayers.emplace("model-loader", showModelLoadModal);
+				}
+
+				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
+				{
+					this->m_uiLayers.emplace("animation-loader", showAnimationLoadModal);
+				}
 
 				// Close the current model
 				if (ImGui::MenuItem("Close", nullptr, false, !state.models.empty()))
@@ -154,32 +249,5 @@ namespace mt {
 
 			ImGui::EndMainMenuBar();
 		}
-
-		// Setup the base path
-		if (!state.filesystem.hasSources() && !fileBrowser.IsOpened())
-		{
-			fileBrowser.SetTitle("Select the base folder");
-			fileBrowser.Open();
-		}
-
-		fileBrowser.Display();
-
-		if (fileBrowser.HasSelected())
-		{
-			std::cout << "Selected filename" << fileBrowser.GetSelected().string() << std::endl;
-			state.filesystem.addPath(fileBrowser.GetSelected());
-			fileBrowser.ClearSelected();
-		}
-	}
-
-	void ImGuiView::shutdown()
-	{
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_Shutdown();
-#elif defined(MT_OPENGL_3)
-		ImGui_ImplOpenGL3_Shutdown();
-#endif
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
 	}
 }

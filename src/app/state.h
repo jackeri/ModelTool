@@ -11,6 +11,7 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	public:
+		Model *model = nullptr;
 		std::vector<Ref<Model>> models{};
 		ImColor clearColor{114, 144, 154};
 		IO::FileSystem filesystem{};

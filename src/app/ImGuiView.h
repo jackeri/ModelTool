@@ -2,6 +2,7 @@
 
 #include "mt.h"
 #include <imfilebrowser.h>
+#include <unordered_map>
 
 namespace mt {
 	class GLWindow;
@@ -21,6 +22,11 @@ namespace mt {
 		void shutdown();
 
 	private:
+
+		void drawMenu();
+
+		std::unordered_map<std::string, const std::function<void(bool &)>> m_uiLayers{};
+
 		ImGui::FileBrowser fileBrowser{ImGuiFileBrowserFlags_SelectDirectory};
 	};
 }
