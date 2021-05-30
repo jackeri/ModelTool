@@ -142,6 +142,44 @@ std::string mt::ScriptStream::peekNext()
 	return next;
 }
 
+void mt::ScriptStream::parse1DMatrix(int x, float *output)
+{
+	if (token() != "(")
+	{
+		throw std::invalid_argument("Expected ( but found: " + last());
+	}
+
+	for (int i = 0; i < x; i++)
+	{
+		output[i] = parseFloat(false);
+	}
+
+	if (token() != ")")
+	{
+		throw std::invalid_argument("Expected ) but found: " + last());
+	}
+}
+
+float mt::ScriptStream::parseFloat(bool allowLineBreaks)
+{
+	return std::stof(token(allowLineBreaks));
+}
+
+int mt::ScriptStream::parseInt(bool allowLineBreaks)
+{
+	return std::stoi(token(allowLineBreaks));
+}
+
+bool mt::ScriptStream::parseBool(bool allowLineBreaks)
+{
+	std::string tmp = token(allowLineBreaks);
+	for (auto &s : tmp)
+	{
+		s = static_cast<char>(tolower(s));
+	}
+	return tmp == "true";
+}
+
 bool mt::ScriptStream::hasNext()
 {
 	return !peekNext().empty();

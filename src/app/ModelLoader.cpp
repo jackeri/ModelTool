@@ -3,6 +3,11 @@
 
 namespace mt {
 
+	namespace model {
+		ModelLoaderMap ModelLoader::m_modelLoaders{};
+		AnimationLoaderMap ModelLoader::m_animationLoaders{};
+	}
+
 	Model *model::ModelLoader::loadModel(const Ref<IO::MTFile> &file)
 	{
 		// Make sure the loader map is initialized

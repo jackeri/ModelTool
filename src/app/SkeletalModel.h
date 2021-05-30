@@ -117,13 +117,13 @@ namespace mt::model::Skeletal {
 		std::string name{};
 		std::string materialName{};
 		// This vertex list stores the vertices in the bind pose.
-		std::vector<Vertex> vertices{};
+		std::vector<SkeletalVertex> vertices{};
 		std::vector<glm::ivec3> tris{};
 		std::vector<Weight> weights{};
 
 		int minLod = 0;
 
-		Material *material = nullptr;
+		Material material{};
 
 		// FIXME: this will be used by the ET models, implement later
 		std::vector<int> collapseMap; // Every mesh has a map

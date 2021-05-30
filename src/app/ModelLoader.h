@@ -12,6 +12,7 @@ namespace mt::model {
 
 	class ModelLoader {
 
+	public:
 		static Model *loadModel(const Ref<IO::MTFile> &);
 
 		static Ref<Model> loadModel_ref(const Ref<IO::MTFile> &);
@@ -28,7 +29,4 @@ namespace mt::model {
 		static ModelLoaderMap m_modelLoaders;
 		static AnimationLoaderMap m_animationLoaders;
 	};
-
-	ModelLoaderMap ModelLoader::m_modelLoaders{};
-	AnimationLoaderMap ModelLoader::m_animationLoaders{};
 }

@@ -39,6 +39,14 @@ namespace mt {
 
 		std::string peekNext();
 
+		void parse1DMatrix(int x, float *output);
+
+		int parseInt(bool allowLineBreaks = true);
+
+		float parseFloat(bool allowLineBreaks = true);
+
+		bool parseBool(bool allowLineBreaks = true);
+
 		bool hasNext();
 
 		bool operator==(const std::string &other) const;
