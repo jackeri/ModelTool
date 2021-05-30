@@ -3,6 +3,7 @@
 #include "mt.h"
 #include "Model.h"
 #include "filesystem.h"
+#include "ModelLoader.h"
 
 namespace mt {
 
@@ -28,6 +29,28 @@ namespace mt {
 		void clear()
 		{
 			emptyVector(models);
+		}
+
+		void loadModel(const std::string &path)
+		{
+			closeModels();
+			model = model::ModelLoader::loadModel(filesystem.loadFile(path));
+		}
+
+		void loadAnimation(const std::string &path)
+		{
+			if (!model)
+			{
+				return;
+			}
+
+			model::ModelLoader::loadAnimation(model, filesystem.loadFile(path));
+		}
+
+		void closeModels()
+		{
+			delete model;
+			model = nullptr;
 		}
 
 	private:
