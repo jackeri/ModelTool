@@ -18,25 +18,12 @@
 
 #include "imfilebrowser.h"
 #include "state.h"
+#include "ModelLoader.h"
 
 namespace mt {
 
-	static void showModelLoadModal(bool &ok)
-	{
-		if (ImGui::BeginPopupModal("Load modal"))
-		{
-
-			ImGui::Text("Test");
-
-			ImGui::EndPopup();
-		}
-
-	}
-
-	static void showAnimationLoadModal(bool &ok)
-	{
-		ok = true;
-	}
+	const char *LOAD_MODEL = "Load model";
+	const char *LOAD_ANIMATION = "Load animation";
 
 	bool ImGuiView::setup(GLWindow *window, const char *glslVersion)
 	{
@@ -132,6 +119,24 @@ namespace mt {
 
 		drawMenu();
 
+		if (!m_lateExecution.empty()) {
+			for (auto &exec : m_lateExecution) {
+				exec();
+			}
+			m_lateExecution.clear();
+		}
+
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		if (ImGui::BeginPopupModal(LOAD_MODEL, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+
+			ImGui::Text("Test");
+
+			ImGui::EndPopup();
+		}
+
+
 		auto layerIterator = m_uiLayers.begin();
 		while (layerIterator != m_uiLayers.end())
 		{
@@ -145,23 +150,6 @@ namespace mt {
 			else
 			{
 				layerIterator++;
-			}
-		}
-
-		std::vector<int> v = { 1, 2, 3, 4, 5, 6 };
-
-		auto it = v.begin();
-		while (it != v.end())
-		{
-			// remove odd numbers
-			if (*it & 1)
-			{
-				// `erase()` invalidates the iterator, use returned iterator
-				it = v.erase(it);
-			}
-				// Notice that the iterator is incremented only on the else part (why?)
-			else {
-				++it;
 			}
 		}
 
@@ -206,13 +194,18 @@ namespace mt {
 
 				if (ImGui::MenuItem("Open model"))
 				{
-					ImGui::OpenPopup("Load modal");
-					this->m_uiLayers.emplace("model-loader", showModelLoadModal);
+					m_lateExecution.emplace_back([&]() {
+						// ImGui::OpenPopup(LOAD_MODEL, ImGuiWindowFlags_AlwaysAutoResize);
+						state.loadModel("models/md5/bob_lamp_update_export.md5mesh");
+					});
 				}
 
 				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
 				{
-					this->m_uiLayers.emplace("animation-loader", showAnimationLoadModal);
+					m_lateExecution.emplace_back([&]() {
+						// ImGui::OpenPopup(LOAD_ANIMATION, ImGuiWindowFlags_AlwaysAutoResize);
+						state.loadAnimation("models/md5/bob_lamp_update_export.md5anim");
+					});
 				}
 
 				// Close the current model

@@ -5,9 +5,11 @@
 #include <unordered_map>
 
 namespace mt {
+
 	class GLWindow;
 
 	class ImGuiView {
+
 	public:
 		ImGuiView() = default;
 
@@ -26,6 +28,8 @@ namespace mt {
 		void drawMenu();
 
 		std::unordered_map<std::string, const std::function<void(bool &)>> m_uiLayers{};
+
+		std::vector<const std::function<void(void)>> m_lateExecution{};
 
 		ImGui::FileBrowser fileBrowser{ImGuiFileBrowserFlags_SelectDirectory};
 	};
