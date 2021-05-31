@@ -57,8 +57,8 @@ namespace mt {
 		}
 
 		// MD5 model and animations loaders setup
-		m_modelLoaders.emplace("md5mesh", model::loadMd5Model);
-		m_animationLoaders.emplace("md5anim", model::loadMD5Anim);
+		m_modelLoaders.emplace(".md5mesh", model::loadMd5Model);
+		m_animationLoaders.emplace(".md5anim", model::loadMD5Anim);
 
 		// FIXME: register the the missing model formats here
 	}
