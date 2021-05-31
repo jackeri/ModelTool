@@ -25,4 +25,7 @@ TEST(ModelMD5Test, test1)
 
 	// Load animation data into the model
 	ASSERT_NO_THROW(model::loadMD5Anim(model.get(), path.loadFile("models/md5/bob_lamp_update_export.md5anim")););
+
+	// We should have loaded 141 frames
+	ASSERT_EQ(model->numFrames(), 141);
 }

@@ -272,8 +272,27 @@ namespace mt::model {
 		return model;
 	}
 
+	static void ComputeQuatW(glm::quat &quat)
+	{
+		float t = 1.0f - (quat.x * quat.x) - (quat.y * quat.y) - (quat.z * quat.z);
+		if (t < 0.0f)
+		{
+			quat.w = 0.0f;
+		}
+		else
+		{
+			quat.w = -sqrtf(t);
+		}
+	}
+
 	static void parseAnimRoot(ScriptStream &stream, SkeletalModel *model)
 	{
+		int numFrames = -1;
+		int frameRate = -1;
+		int numAnimatedComponents = -1;
+
+		int processedFrames = 0;
+
 		while (stream.hasNext())
 		{
 			std::string token = stream.token();
@@ -284,43 +303,171 @@ namespace mt::model {
 				case hash("MD5Version"):
 					if ((int) stream.parse() != MD5_VERSION)
 					{
-						return;
+						throw std::invalid_argument("Invalid MD5 version: " + stream.last());
 					}
 					break;
 
 					// This can be ignored
 				case hash("commandline"):
+					// Skip the rest of the line, we do not care about the command line used
+					stream.skipLine();
 					break;
 
 				case hash("numFrames"):
+					numFrames = stream.parseInt();
 					break;
 
 				case hash("numJoints"):
+					if (model->joints.size() != stream.parseInt())
+					{
+						throw std::invalid_argument("Invalid number of joints expected: " + stream.last());
+					}
 					break;
 
 				case hash("frameRate"):
+					frameRate = stream.parseInt();
 					break;
 
 				case hash("numAnimatedComponents"):
+					numAnimatedComponents = stream.parseInt();
 					break;
 
 				case hash("hierarchy"):
+				{
+					if (stream.token() != "{")
+					{
+						throw std::invalid_argument("Invalid hierarchy data");
+					}
+
+					for (auto &joint : model->joints)
+					{
+						if (joint.name != stream.token())
+						{
+							throw std::invalid_argument(
+									"Invalid joint hierarchy, name does not match: " + joint.name + " != " +
+									stream.last());
+						}
+
+						if (joint.parentId != stream.parseInt())
+						{
+							throw std::invalid_argument(
+									"Invalid joint hierarchy, parent ID does not match for: " + joint.name);
+						}
+
+						joint.flags = stream.parseInt();
+						joint.startIndex = stream.parseInt();
+					}
+
+					if (stream.token() != "}")
+					{
+						throw std::invalid_argument("Invalid number of joints");
+					}
+
 					break;
+				}
 
 				case hash("bounds"):
+				{
+					if (stream.token() != "{")
+					{
+						throw std::invalid_argument("Invalid bounds data");
+					}
+
+					while (stream.peekNext() != "}")
+					{
+						Bounds bound{};
+						stream.parse1DMatrix(3, glm::value_ptr(bound.min));
+						stream.parse1DMatrix(3, glm::value_ptr(bound.max));
+						model->bounds.emplace_back(bound);
+					}
+					stream.parse();
 					break;
+				}
 
 				case hash("baseframe"):
+					// The model should already have a bind pose, so just skip this section
+					stream.skipSection();
 					break;
 
 				case hash("frame"):
+				{
+					int frameNumber = stream.parseInt();
+					std::vector<float> frameValues{};
+
+					if (stream.token() != "{")
+					{
+						throw std::invalid_argument("Invalid frame data for frame: " + std::to_string(frameNumber));
+					}
+
+					while (stream.peekNext() != "}")
+					{
+						frameValues.emplace_back(stream.parseFloat());
+					}
+					stream.parse();
+
+					// calculate the final joint locations per frame
+					for (auto &joint : model->joints)
+					{
+						Point point;
+
+						unsigned int j = 0;
+
+						if (joint.flags & 1) // Pos.x
+						{
+							point.location.x = frameValues[joint.startIndex + j++];
+						}
+						if (joint.flags & 2) // Pos.y
+						{
+							point.location.y = frameValues[joint.startIndex + j++];
+						}
+						if (joint.flags & 4) // Pos.z
+						{
+							point.location.z = frameValues[joint.startIndex + j++];
+						}
+						if (joint.flags & 8) // Orient.x
+						{
+							point.rotation.x = frameValues[joint.startIndex + j++];
+						}
+						if (joint.flags & 16) // Orient.y
+						{
+							point.rotation.y = frameValues[joint.startIndex + j++];
+						}
+						if (joint.flags & 32) // Orient.z
+						{
+							point.rotation.z = frameValues[joint.startIndex + j++];
+						}
+
+						ComputeQuatW(point.rotation);
+
+						// Has a parent joint so we need to calculate the position based on the parent position
+						if (joint.parentId >= 0)
+						{
+							Point &parentJoint = model->joints[joint.parentId].frames.back();
+
+							point.location = parentJoint.location + (point.location * parentJoint.rotation);
+							point.rotation = glm::normalize(parentJoint.rotation * point.rotation);
+						}
+
+						joint.frames.push_back(point);
+					}
+
+					processedFrames++;
+
 					break;
+				}
 
 				default:
 				{
 					throw std::invalid_argument("Unknown token: " + token);
 				}
 			}
+		}
+
+		if (numFrames != processedFrames)
+		{
+			throw std::invalid_argument(
+					"Invalid animation data. Framecounts do not match: " + std::to_string(numFrames) + " != " +
+					std::to_string(processedFrames));
 		}
 	}
 
