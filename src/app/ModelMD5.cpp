@@ -19,14 +19,15 @@ namespace mt::model {
 
 		int numVerts = 0;
 		int numTris = 0;
-		int numWeight = 0;
+		int numWeights = 0;
 
 		while (stream.token() != "}")
 		{
 			switch (hash(stream.last().c_str()))
 			{
 				case hash("shader"):
-					mesh.material.name = stream.token();
+					// A mesh does not have a name per say, but usually the material name is the same as the mesh name
+					mesh.name = mesh.material.name = stream.token();
 					break;
 
 				case hash("numverts"):
@@ -47,6 +48,7 @@ namespace mt::model {
 					}
 
 					mesh.vertices.emplace_back(vertex);
+					break;
 				}
 
 				case hash("numtris"):
@@ -56,6 +58,14 @@ namespace mt::model {
 				case hash("tri"):
 				{
 					glm::ivec3 tri;
+
+					int triangleOffset = stream.parseInt();
+
+					if (triangleOffset != mesh.tris.size())
+					{
+						throw std::invalid_argument("Invalid triangle offset: " + std::to_string(triangleOffset));
+					}
+
 					tri.x = stream.parseInt();
 					tri.y = stream.parseInt();
 					tri.z = stream.parseInt();
@@ -65,7 +75,7 @@ namespace mt::model {
 				}
 
 				case hash("numweights"):
-					numWeight = stream.parseInt();
+					numWeights = stream.parseInt();
 					break;
 
 				case hash("weight"):
@@ -85,7 +95,27 @@ namespace mt::model {
 					mesh.weights.emplace_back(weight);
 					break;
 				}
+
+				default:
+				{
+					throw std::invalid_argument("Unknown token: " + stream.last());
+				}
 			}
+		}
+
+		if (numVerts < 0 || numVerts != mesh.vertices.size())
+		{
+			throw std::invalid_argument("Invalid amount of vertices: " + std::to_string(numVerts));
+		}
+
+		if (numTris < 0 || numTris != mesh.tris.size())
+		{
+			throw std::invalid_argument("Invalid amount of triangles: " + std::to_string(numTris));
+		}
+
+		if (numWeights < 0 || numWeights != mesh.weights.size())
+		{
+			throw std::invalid_argument("Invalid amount of weights: " + std::to_string(numWeights));
 		}
 
 		// Compute vertex positions
@@ -145,6 +175,8 @@ namespace mt::model {
 
 			vert.normal = glm::normalize(vert.normal);
 		}
+
+		model->meshes.emplace_back(mesh);
 	}
 
 	static void parseMeshRoot(ScriptStream &stream, SkeletalModel *model)
@@ -168,6 +200,8 @@ namespace mt::model {
 
 					// This can be ignored
 				case hash("commandline"):
+					// Skip the rest of the line, we do not care about the command line used
+					stream.skipLine();
 					break;
 
 				case hash("numJoints"):
@@ -188,7 +222,7 @@ namespace mt::model {
 					while (stream.token() != "}")
 					{
 						Joint joint;
-						joint.name = stream.token();
+						joint.name = stream.last();
 						joint.parentId = stream.parseInt();
 						stream.parse1DMatrix(3, glm::value_ptr(joint.location));
 						stream.parse1DMatrix(3, glm::value_ptr(joint.rotation));

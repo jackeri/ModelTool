@@ -145,6 +145,13 @@ namespace mt::model::Skeletal {
 		std::vector<Mesh> meshes{};
 		std::vector<BoneTag> tags{};
 
+		~SkeletalModel() override
+		{
+			emptyVector(joints);
+			emptyVector(meshes);
+			emptyVector(tags);
+		}
+
 		bool hasBindPose = false;
 
 		int numFrames() override
