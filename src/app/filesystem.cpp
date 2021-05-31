@@ -54,6 +54,14 @@ namespace mt::IO {
 	{
 		std::string tmp = fixName(name);
 
+		std::filesystem::path sysPath(path);
+		sysPath /= tmp;
+
+		if (!exists(sysPath))
+		{
+			return nullptr;
+		}
+
 		byte_buffer data = FileRead(this->path + '/' + tmp);
 		if (!data)
 		{
@@ -63,6 +71,7 @@ namespace mt::IO {
 		auto file = make_ref<MTFile>();
 		file->data = data;
 		file->name = tmp;
+		file->ext = sysPath.extension().string();
 
 		return file;
 	}
