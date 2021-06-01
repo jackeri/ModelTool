@@ -18,7 +18,7 @@ namespace mt::model {
 		}
 		else
 		{
-			quat.w = -std::sqrtf(comp);
+			quat.w = -std::sqrt(comp);
 		}
 	}
 

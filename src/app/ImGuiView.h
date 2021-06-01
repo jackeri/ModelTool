@@ -29,7 +29,7 @@ namespace mt {
 
 		std::unordered_map<std::string, const std::function<void(bool &)>> m_uiLayers{};
 
-		std::vector<const std::function<void(void)>> m_lateExecution{};
+		std::vector<std::function<void()>> m_lateExecution{};
 
 		ImGui::FileBrowser fileBrowser{ImGuiFileBrowserFlags_SelectDirectory};
 	};
