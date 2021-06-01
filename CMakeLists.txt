@@ -72,6 +72,8 @@ elseif(MINGW AND CMAKE_BUILD_TYPE MATCHES Release)
 	add_definitions(-D_WIN32_IE=0x0501)
 endif()
 
+# some linux systems provide a wrapper (GLVND) for opengl, but lets stick to the legacy version for now
+SET(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 

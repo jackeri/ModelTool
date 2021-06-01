@@ -1,4 +1,4 @@
-# ModelTool
+# ModelTool [![CMake](https://github.com/jackeri/ModelTool/actions/workflows/cmake.yml/badge.svg)](https://github.com/jackeri/ModelTool/actions/workflows/cmake.yml)
 > Jere 'Jacker' S. 2021
 
 ## What is this for
