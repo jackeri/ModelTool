@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "ModelMD5.h"
 #include "SkeletalModel.h"
+#include "ModelLoader.h"
 
 using namespace mt;
 using namespace mt::model::Skeletal;
@@ -14,7 +15,10 @@ TEST(ModelMD5Test, test1)
 			path.loadFile("models/md5/bob_lamp_update_export.md5mesh"))));
 	);
 
-	// Make sure the right ammount of meshes was parsed
+	// MD5 has a bind pose
+	ASSERT_TRUE(model->hasBindPose);
+
+	// Make sure the right amount of meshes was parsed
 	ASSERT_EQ(model->meshes.size(), 6);
 
 	// Check the first mesh for some information (these are just manually checked from the text data)

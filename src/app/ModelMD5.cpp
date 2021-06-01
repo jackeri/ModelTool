@@ -4,9 +4,23 @@
 #include "glm/gtx/normal.hpp"
 
 namespace mt::model {
-
-	const int MD5_VERSION = 10;
 	using namespace Skeletal;
+
+	// There should not be any other versions
+	const int MD5_VERSION = 10;
+
+	static void computeQuaternionWComponent(glm::quat &quat)
+	{
+		float comp = 1.0f - (quat.x * quat.x) - (quat.y * quat.y) - (quat.z * quat.z);
+		if (comp < 0.0f)
+		{
+			quat.w = 0.0f;
+		}
+		else
+		{
+			quat.w = -std::sqrtf(comp);
+		}
+	}
 
 	static void parseMeshPart(ScriptStream &stream, SkeletalModel *model)
 	{
@@ -132,8 +146,8 @@ namespace mt::model {
 				auto &joint = model->joints[weight.jointId];
 
 				// Convert the weight positions from joint local space to object space
-				glm::vec3 rotatedPosition = weight.pos * joint.rotation;
-				vert.pos = joint.location + (rotatedPosition * weight.bias);
+				glm::vec3 rotatedPosition = joint.rotation * weight.pos;
+				vert.pos += (joint.location + rotatedPosition) * weight.bias;
 			}
 		}
 
@@ -184,6 +198,9 @@ namespace mt::model {
 		int numJoints = -1;
 		int numMeshes = -1;
 
+		// MD5 models do have a bind pose by default
+		model->hasBindPose = true;
+
 		while (stream.hasNext())
 		{
 			std::string token = stream.token();
@@ -226,6 +243,7 @@ namespace mt::model {
 						joint.parentId = stream.parseInt();
 						stream.parse1DMatrix(3, glm::value_ptr(joint.location));
 						stream.parse1DMatrix(3, glm::value_ptr(joint.rotation));
+						computeQuaternionWComponent(joint.rotation);
 						model->joints.push_back(joint);
 					}
 					break;
@@ -270,19 +288,6 @@ namespace mt::model {
 		}
 
 		return model;
-	}
-
-	static void ComputeQuatW(glm::quat &quat)
-	{
-		float t = 1.0f - (quat.x * quat.x) - (quat.y * quat.y) - (quat.z * quat.z);
-		if (t < 0.0f)
-		{
-			quat.w = 0.0f;
-		}
-		else
-		{
-			quat.w = -sqrtf(t);
-		}
 	}
 
 	static void parseAnimRoot(ScriptStream &stream, SkeletalModel *model)
@@ -437,7 +442,7 @@ namespace mt::model {
 							point.rotation.z = frameValues[joint.startIndex + j++];
 						}
 
-						ComputeQuatW(point.rotation);
+						computeQuaternionWComponent(point.rotation);
 
 						// Has a parent joint so we need to calculate the position based on the parent position
 						if (joint.parentId >= 0)

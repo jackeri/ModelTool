@@ -15,6 +15,8 @@ namespace mt {
 
 		void grid() override;
 
+		void renderBuffer() override;
+
 		void endFrame() override;
 	};
 }

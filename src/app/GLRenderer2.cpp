@@ -144,6 +144,43 @@ void mt::GLRenderer2::startFrame(Camera &cam)
 	}
 }
 
+void mt::GLRenderer2::renderBuffer()
+{
+	// Render in wireframe atm
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glDisable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+	}
+
+	glColor4f(0, 0, 0, 1.f);
+	glBegin(GL_TRIANGLES);
+	{
+		for (int i = 0; i < buffer.numIndexes; i++)
+		{
+			auto &index = buffer.indexes[i];
+
+			glNormal3fv(glm::value_ptr(buffer.normals[index.x]));
+
+			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.x]));
+			glVertex3fv(glm::value_ptr(buffer.xyz[index.x]));
+
+			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.y]));
+			glVertex3fv(glm::value_ptr(buffer.xyz[index.y]));
+
+			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.z]));
+			glVertex3fv(glm::value_ptr(buffer.xyz[index.z]));
+		}
+	}
+	glEnd();
+
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glEnable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+	}
+}
+
 void mt::GLRenderer2::endFrame()
 {
 

@@ -2,6 +2,7 @@
 #include "Framebuffer.h"
 #include "Camera.h"
 #include "GLRenderer2.h"
+#include "state.h"
 
 mt::ScenePanel::ScenePanel()
 {
@@ -21,6 +22,7 @@ mt::ScenePanel::~ScenePanel()
 void mt::ScenePanel::render()
 {
 	ImGuiWindowFlags sceneFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration;
+	auto &state = singleton<State>();
 
 	ImGui::Begin("Scene", nullptr, sceneFlags);
 
@@ -35,6 +37,11 @@ void mt::ScenePanel::render()
 	renderer->setView(size.x, size.y);
 
 	renderer->grid();
+
+	if (state.model)
+	{
+		state.model->renderModel(renderer);
+	}
 
 	renderer->endFrame();
 

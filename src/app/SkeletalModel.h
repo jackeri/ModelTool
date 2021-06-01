@@ -147,49 +147,22 @@ namespace mt::model::Skeletal {
 
 		std::vector<Bounds> bounds{};
 
-		~SkeletalModel() override
-		{
-			emptyVector(joints);
-			emptyVector(meshes);
-			emptyVector(tags);
-			emptyVector(bounds);
-		}
-
 		bool hasBindPose = false;
 
-		int numFrames() override
+		~SkeletalModel() override;
+
+		int numFrames() override;
+
+		bool skeletalModel() override
 		{
-			return int(joints.empty() ? 0 : joints[0].frames.size());
+			return true;
 		}
 
-		bool hasTags()
-		{
-			if (!tags.empty())
-			{
-				return true;
-			}
+		bool hasTags();
 
-			return std::any_of(joints.begin(), joints.end(), [](const Joint &joint) { return joint.asTag; });
-		}
+		int findParentIndex(int boneIndex);
 
-		int findParentIndex(int boneIndex)
-		{
-			if (boneIndex == -1)
-			{
-				return -1;
-			}
-
-			int foundParent = 0;
-			for (auto i = 0; i < boneIndex; i++)
-			{
-				if (!joints[i].asTag)
-				{
-					foundParent++;
-				}
-			}
-
-			return foundParent;
-		}
+		void renderModel(Ref<mt::Renderer>) override;
 
 	};
 

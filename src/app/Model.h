@@ -3,6 +3,8 @@
 #include "mt.h"
 
 namespace mt {
+	class Renderer;
+
 	struct Point {
 		glm::vec3 location{};
 		glm::quat rotation{};
@@ -56,6 +58,8 @@ namespace mt {
 		{
 			return false;
 		}
+
+		virtual void renderModel(Ref<mt::Renderer>) = 0;
 
 		Point origin{};
 		Point transform{};
