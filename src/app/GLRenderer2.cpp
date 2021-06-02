@@ -153,7 +153,8 @@ void mt::GLRenderer2::renderBuffer()
 		glDisable(GL_LIGHTING);
 	}
 
-	glColor4f(0, 0, 0, 1.f);
+	glColor4fv(glm::value_ptr(buffer.color));
+
 	glBegin(GL_TRIANGLES);
 	{
 		for (int i = 0; i < buffer.numIndexes; i++)

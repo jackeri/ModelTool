@@ -21,6 +21,8 @@ namespace mt {
 		glm::vec3 max{};
 	};
 
+	const int FRAME_BIND_POSE = -1;
+
 	class Model {
 	public:
 		Model() = default;
@@ -44,11 +46,6 @@ namespace mt {
 
 		virtual int numFrames() = 0;
 
-		bool hasTransform() const
-		{
-			return false;
-		}
-
 		virtual bool morphModel()
 		{
 			return false;
@@ -65,6 +62,7 @@ namespace mt {
 		Point transform{};
 		float scale{};
 		std::string name;
+		int currentFrame = FRAME_BIND_POSE;
 	};
 
 }

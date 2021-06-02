@@ -449,7 +449,7 @@ namespace mt::model {
 						{
 							Point &parentJoint = model->joints[joint.parentId].frames.back();
 
-							point.location = parentJoint.location + (point.location * parentJoint.rotation);
+							point.location = parentJoint.location + (parentJoint.rotation * point.location);
 							point.rotation = glm::normalize(parentJoint.rotation * point.rotation);
 						}
 

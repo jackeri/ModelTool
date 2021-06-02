@@ -11,6 +11,8 @@ namespace mt {
 		glm::fvec3 normals[10000]{};
 		glm::fvec2 texCoords[10000]{};
 
+		glm::fvec4 color{0, 0, 0, 1};
+
 		int numIndexes = 0;
 		int numVertices = 0;
 		int numNormals = 0;
@@ -21,19 +23,39 @@ namespace mt {
 			indexes[numIndexes++] = index;
 		}
 
+		glm::ivec3 &getIndex()
+		{
+			return indexes[numIndexes++];
+		}
+
 		void addXyz(const glm::fvec3 &vert)
 		{
-			xyz[numVertices++] = glm::fvec4(vert, 0);
+			xyz[numVertices++] = vert;
+		}
+
+		glm::fvec3 &getXyz()
+		{
+			return xyz[numVertices++];
 		}
 
 		void addNormal(const glm::fvec3 &normal)
 		{
-			normals[numNormals++] = glm::fvec4(normal, 0);
+			normals[numNormals++] = normal;
+		}
+
+		glm::fvec3 &getNormal()
+		{
+			return normals[numNormals++];
 		}
 
 		void addTexCoord(const glm::fvec2 &tex)
 		{
 			texCoords[numTexCoords++] = tex;
+		}
+
+		glm::fvec2 &getTexCoord()
+		{
+			return texCoords[numTexCoords++];
 		}
 
 		void clear()
@@ -42,6 +64,8 @@ namespace mt {
 			numVertices = 0;
 			numNormals = 0;
 			numTexCoords = 0;
+
+			color = {0, 0, 0, 1};
 		}
 	};
 

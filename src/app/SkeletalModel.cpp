@@ -49,15 +49,49 @@ namespace mt::model::Skeletal {
 	{
 		auto &buffer = renderer->getBuffer();
 
-		// This isn't particularly fast, but it doesn't matter
+		bool drawBindPose = false;
+
+		if (!this->hasFrames() || this->currentFrame == FRAME_BIND_POSE)
+		{
+			drawBindPose = true;
+
+			if (!this->hasBindPose)
+			{
+				// FIXME: output an error or a log message? We have nothing to draw..
+				return;
+			}
+		}
+
+		// This isn't particularly fast, but it doesn't really matter in this case
 		for (auto &mesh : this->meshes)
 		{
 			buffer.clear();
+			buffer.color = {1, 1, 1, 1};
 
 			for (auto &vert : mesh.vertices)
 			{
-				buffer.addXyz(vert.pos);
-				buffer.addNormal(vert.bindNormal);
+				if (drawBindPose)
+				{
+					buffer.addXyz(vert.pos);
+					buffer.addNormal(vert.bindNormal);
+				}
+				else
+				{
+					glm::fvec3 pos(0), normal(0);
+					for (int i = 0; i < vert.weightCount; i++)
+					{
+						const Weight &weight = mesh.weights[vert.startWeight + i];
+						const Point &point = joints[weight.jointId].frames[currentFrame];
+
+						glm::vec3 rotatedPos = point.rotation * weight.pos;
+						pos += (point.location + rotatedPos) * weight.bias;
+
+						rotatedPos = point.rotation * vert.normal;
+						normal += rotatedPos * weight.bias;
+					}
+					buffer.addXyz(pos);
+					buffer.addNormal(normal);
+				}
 			}
 
 			for (auto &tri : mesh.tris)
