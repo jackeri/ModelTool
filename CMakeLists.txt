@@ -155,6 +155,8 @@ if (NATIVE_DIALOG)
 	IF (UNIX AND NOT APPLE)
 		target_link_libraries(bundled_nfd ${GTK3_LIBRARIES})
 	ENDIF ()
+
+    set_target_properties(bundled_nfd PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 else ()
 	# Dummy target for nfd
 	# add_custom_target(bundled_nfd)
@@ -215,7 +217,6 @@ set_target_properties(glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(glfw PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-set_target_properties(bundled_nfd PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 target_compile_definitions(ModelTool PUBLIC GLEW_STATIC)
 

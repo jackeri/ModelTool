@@ -15,6 +15,8 @@ TEST(ModelMD5Test, test1)
 			path.loadFile("models/md5/bob_lamp_update_export.md5mesh"))));
 	);
 
+	ASSERT_TRUE(model);
+
 	// MD5 has a bind pose
 	ASSERT_TRUE(model->hasBindPose);
 

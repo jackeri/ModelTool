@@ -28,13 +28,13 @@ namespace mt::IO {
 			return nullptr;
 		}
 
-		infile.seekg(0, infile.end);
+		infile.seekg(0, std::ios::end);
 		auto length = infile.tellg();
-		infile.seekg(0, infile.beg);
+		infile.seekg(0, std::ios::beg);
 
 		if (length > 0)
 		{
-			byte_buffer buffer = make_ref<std::vector<byte>>(length);
+			byte_buffer buffer = make_ref<std::vector<byte>>(1 + length);
 			// fill the memory with zeroes
 			std::fill(buffer->begin(), buffer->end(), 0);
 
