@@ -1,6 +1,8 @@
 #pragma once
 
 #include "mt.h"
+#include "Model.h"
+
 
 namespace mt {
 	class Camera;
@@ -10,6 +12,8 @@ namespace mt {
 		glm::fvec3 xyz[10000]{};
 		glm::fvec3 normals[10000]{};
 		glm::fvec2 texCoords[10000]{};
+
+		bool triangles = true;
 
 		glm::fvec4 color{0, 0, 0, 1};
 
@@ -58,7 +62,7 @@ namespace mt {
 			return texCoords[numTexCoords++];
 		}
 
-		void clear()
+		void clear(bool drawTriangles = true)
 		{
 			numIndexes = 0;
 			numVertices = 0;
@@ -66,6 +70,8 @@ namespace mt {
 			numTexCoords = 0;
 
 			color = {0, 0, 0, 1};
+
+			triangles = drawTriangles;
 		}
 	};
 
@@ -90,6 +96,10 @@ namespace mt {
 		{
 			return buffer;
 		}
+
+		virtual void push(const glm::mat4x4 &matrix) = 0;
+
+		virtual void pop() = 0;
 
 		virtual void startFrame(Camera &) = 0;
 

@@ -11,6 +11,10 @@ namespace mt {
 
 		void setView(int width, int height) override;
 
+		void push(const glm::mat4x4 &matrix) override;
+
+		void pop() override;
+
 		void startFrame(Camera &) override;
 
 		void grid() override;

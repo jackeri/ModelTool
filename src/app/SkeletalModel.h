@@ -4,7 +4,31 @@
 #include "Model.h"
 #include "Material.h"
 
+#include <unordered_set>
+
 namespace mt::model::Skeletal {
+
+	struct Hitbox : public Bounds, public Point
+	{
+		std::string name{};
+		int parentJoint = -1;
+		std::unordered_set<std::string> modifiers{};
+
+		explicit Hitbox(float size = 0) : Bounds(), Point()
+		{
+			if (size > 0)
+			{
+				float tmp = size / 2;
+				min = glm::vec3(-tmp);
+				max = glm::vec3(tmp);
+			}
+			else
+			{
+				min = glm::vec3(0);
+				max = glm::vec3(0);
+			}
+		}
+	};
 
 	struct Joint : public Point {
 		std::string name{};
@@ -146,6 +170,8 @@ namespace mt::model::Skeletal {
 		std::vector<BoneTag> tags{};
 
 		std::vector<Bounds> bounds{};
+
+		std::vector<Hitbox> hitboxes{};
 
 		bool hasBindPose = false;
 

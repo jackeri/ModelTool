@@ -63,6 +63,17 @@ void mt::GLRenderer2::setView(int width, int height)
 	glMatrixMode(GL_MODELVIEW);
 }
 
+void mt::GLRenderer2::push(const glm::mat4x4 &matrix)
+{
+	glPushMatrix();
+	glMultMatrixf(glm::value_ptr(matrix));
+}
+
+void mt::GLRenderer2::pop()
+{
+	glPopMatrix();
+}
+
 void mt::GLRenderer2::grid()
 {
 	glDisable(GL_BLEND);
@@ -146,39 +157,65 @@ void mt::GLRenderer2::startFrame(Camera &cam)
 
 void mt::GLRenderer2::renderBuffer()
 {
-	// Render in wireframe atm
+	if (buffer.triangles)
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glDisable(GL_TEXTURE_2D);
-		glDisable(GL_LIGHTING);
-	}
-
-	glColor4fv(glm::value_ptr(buffer.color));
-
-	glBegin(GL_TRIANGLES);
-	{
-		for (int i = 0; i < buffer.numIndexes; i++)
+		// Render in wireframe atm
 		{
-			auto &index = buffer.indexes[i];
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glDisable(GL_TEXTURE_2D);
+			glDisable(GL_LIGHTING);
+		}
 
-			glNormal3fv(glm::value_ptr(buffer.normals[index.x]));
+		glColor4fv(glm::value_ptr(buffer.color));
 
-			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.x]));
-			glVertex3fv(glm::value_ptr(buffer.xyz[index.x]));
+		glBegin(GL_TRIANGLES);
+		{
+			for (int i = 0; i < buffer.numIndexes; i++)
+			{
+				auto &index = buffer.indexes[i];
 
-			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.y]));
-			glVertex3fv(glm::value_ptr(buffer.xyz[index.y]));
+				glNormal3fv(glm::value_ptr(buffer.normals[index.x]));
 
-			glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.z]));
-			glVertex3fv(glm::value_ptr(buffer.xyz[index.z]));
+				glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.x]));
+				glVertex3fv(glm::value_ptr(buffer.xyz[index.x]));
+
+				glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.y]));
+				glVertex3fv(glm::value_ptr(buffer.xyz[index.y]));
+
+				glTexCoord2fv(glm::value_ptr(buffer.texCoords[index.z]));
+				glVertex3fv(glm::value_ptr(buffer.xyz[index.z]));
+			}
+		}
+		glEnd();
+
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glEnable(GL_TEXTURE_2D);
+			glDisable(GL_LIGHTING);
 		}
 	}
-	glEnd();
-
+	else
 	{
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		glEnable(GL_TEXTURE_2D);
-		glDisable(GL_LIGHTING);
+		glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
+		{
+			glDisable(GL_TEXTURE_2D);
+			glDisable(GL_LIGHTING);
+			glDisable(GL_BLEND);
+			glDisable(GL_DEPTH_TEST);
+
+			glColor4fv(glm::value_ptr(buffer.color));
+
+			glBegin(GL_LINES);
+			{
+				for (int i = 0; i < buffer.numVertices; i = i + 2)
+				{
+					glVertex3fv(glm::value_ptr(buffer.xyz[i]));
+					glVertex3fv(glm::value_ptr(buffer.xyz[i + 1]));
+				}
+			}
+			glEnd();
+		}
+		glPopAttrib();
 	}
 }
 

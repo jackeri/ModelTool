@@ -21,6 +21,8 @@ namespace mt {
 		glm::vec3 max{};
 	};
 
+	void setupBounds(const Ref<mt::Renderer>& renderer, const Bounds &bounds, bool drawPoints = false);
+
 	const int FRAME_BIND_POSE = -1;
 
 	class Model {

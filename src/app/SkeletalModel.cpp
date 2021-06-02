@@ -101,5 +101,28 @@ namespace mt::model::Skeletal {
 
 			renderer->renderBuffer();
 		}
+
+		for (auto &hitbox : hitboxes)
+		{
+			glm::mat4x4 matrix{0};
+
+			if (hitbox.parentJoint >= 0)
+			{
+				const Point& joint = (drawBindPose ? joints[hitbox.parentJoint] : joints[hitbox.parentJoint].frames[currentFrame]);
+				glm::vec3 rotPoint = joint.location + (joint.rotation * hitbox.location);
+				matrix = glm::translate(rotPoint) * glm::toMat4(joint.rotation * hitbox.rotation);
+			}
+			else
+			{
+				matrix = glm::translate(hitbox.location) * glm::toMat4(hitbox.rotation);
+			}
+
+			setupBounds(renderer, hitbox);
+
+			// Push the hitbox matrix to the renderer
+			renderer->push(matrix);
+			renderer->renderBuffer();
+			renderer->pop();
+		}
 	}
 }

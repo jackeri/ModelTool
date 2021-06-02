@@ -10,5 +10,9 @@ namespace mt {
 		~ModelPropertyPanel();
 
 		void render();
+
+	private:
+
+		void drawHitboxMenu();
 	};
 }
