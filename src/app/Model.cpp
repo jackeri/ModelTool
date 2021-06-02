@@ -7,6 +7,10 @@ namespace mt {
 		auto &buffer = renderer->getBuffer();
 		buffer.clear(false);
 
+		// Green boxes
+		buffer.color = {0, 1, 0, 1};
+		buffer.lineWidth = 2;
+
 		buffer.addXyz({bounds.max.x, bounds.min.y, bounds.max.z}); // 2
 		buffer.addXyz({bounds.min.x, bounds.min.y, bounds.max.z}); // 3
 

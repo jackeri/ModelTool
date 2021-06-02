@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mt.h"
-#include <imfilebrowser.h>
+#include "FileBrowser.h"
 #include <unordered_map>
 
 namespace mt {
@@ -12,6 +12,8 @@ namespace mt {
 
 	public:
 		ImGuiView() = default;
+
+		~ImGuiView() = default;
 
 		bool setup(GLWindow *window, const char *glslVersion);
 
@@ -27,10 +29,8 @@ namespace mt {
 
 		void drawMenu();
 
-		std::unordered_map<std::string, const std::function<void(bool &)>> m_uiLayers{};
-
 		std::vector<std::function<void()>> m_lateExecution{};
 
-		ImGui::FileBrowser fileBrowser{ImGuiFileBrowserFlags_SelectDirectory};
+		FileBrowser browser{};
 	};
 }

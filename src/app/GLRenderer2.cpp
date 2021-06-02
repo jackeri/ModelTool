@@ -198,6 +198,7 @@ void mt::GLRenderer2::renderBuffer()
 	{
 		glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
 		{
+			glLineWidth(buffer.lineWidth);
 			glDisable(GL_TEXTURE_2D);
 			glDisable(GL_LIGHTING);
 			glDisable(GL_BLEND);
@@ -214,6 +215,8 @@ void mt::GLRenderer2::renderBuffer()
 				}
 			}
 			glEnd();
+
+			glLineWidth(1);
 		}
 		glPopAttrib();
 	}

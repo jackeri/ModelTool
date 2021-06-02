@@ -62,7 +62,7 @@ void mt::ModelPropertyPanel::drawHitboxMenu()
 {
 	auto &state = singleton<State>();
 
-	auto *model = dynamic_cast<SkeletalModel *>(state.model);
+	auto *model = dynamic_cast<SkeletalModel *>(state.model.get());
 
 	ImGui::Text("Number of Hitboxes: %lu", model->hitboxes.size());
 	ImGui::SameLine();

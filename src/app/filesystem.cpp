@@ -390,7 +390,24 @@ namespace mt::IO {
 			}
 		}
 
-		return nullptr;
+		std::filesystem::path sysPath(name);
+		if (!exists(sysPath))
+		{
+			return nullptr;
+		}
+
+		byte_buffer data = FileRead(sysPath);
+		if (!data)
+		{
+			return nullptr;
+		}
+
+		auto file = make_ref<MTFile>();
+		file->data = data;
+		file->name = name;
+		file->ext = sysPath.extension().string();
+
+		return file;
 	}
 
 	FileList FileSystem::getFiles(const std::string &name)

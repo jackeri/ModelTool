@@ -12,8 +12,7 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	public:
-		Model *model = nullptr;
-		std::vector<Ref<Model>> models{};
+		std::unique_ptr<Model> model = nullptr;
 		ImColor clearColor{114, 144, 154};
 		IO::FileSystem filesystem{};
 
@@ -28,13 +27,18 @@ namespace mt {
 
 		void clear()
 		{
-			emptyVector(models);
+			closeModels();
 		}
 
 		void loadModel(const std::string &path)
 		{
 			closeModels();
-			model = model::ModelLoader::loadModel(filesystem.loadFile(path));
+
+			auto *tmp = model::ModelLoader::loadModel(filesystem.loadFile(path));
+			if (tmp)
+			{
+				model = std::unique_ptr<Model>(tmp);
+			}
 		}
 
 		void loadAnimation(const std::string &path)
@@ -44,12 +48,11 @@ namespace mt {
 				return;
 			}
 
-			model::ModelLoader::loadAnimation(model, filesystem.loadFile(path));
+			model::ModelLoader::loadAnimation(model.get(), filesystem.loadFile(path));
 		}
 
 		void closeModels()
 		{
-			delete model;
 			model = nullptr;
 		}
 

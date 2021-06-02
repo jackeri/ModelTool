@@ -14,6 +14,7 @@ namespace mt {
 		glm::fvec2 texCoords[10000]{};
 
 		bool triangles = true;
+		float lineWidth = 1;
 
 		glm::fvec4 color{0, 0, 0, 1};
 

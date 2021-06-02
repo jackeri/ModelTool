@@ -119,6 +119,7 @@ namespace mt {
 
 		drawMenu();
 
+		// We might need to execute some ImGui code out of menus or a window for example, this is here for that
 		if (!m_lateExecution.empty()) {
 			for (auto &exec : m_lateExecution) {
 				exec();
@@ -126,48 +127,15 @@ namespace mt {
 			m_lateExecution.clear();
 		}
 
-		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-		if (ImGui::BeginPopupModal(LOAD_MODEL, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-		{
-
-			ImGui::Text("Test");
-
-			ImGui::EndPopup();
-		}
-
-
-		auto layerIterator = m_uiLayers.begin();
-		while (layerIterator != m_uiLayers.end())
-		{
-			bool layerOk = true;
-			layerIterator->second(layerOk);
-
-			if (!layerOk)
-			{
-				layerIterator = m_uiLayers.erase(layerIterator);
-			}
-			else
-			{
-				layerIterator++;
-			}
-		}
-
 		// Setup the base path
-		if (!state.filesystem.hasSources() && !fileBrowser.IsOpened())
+		if (!state.filesystem.hasSources() && !browser.isOpen())
 		{
-			fileBrowser.SetTitle("Select the base folder");
-			fileBrowser.Open();
+			browser.show("Select the base folder", [&](const std::string &path) {
+				state.filesystem.addPath(path);
+			}, true);
 		}
 
-		fileBrowser.Display();
-
-		if (fileBrowser.HasSelected())
-		{
-			std::cout << "Selected filename" << fileBrowser.GetSelected().string() << std::endl;
-			state.filesystem.addPath(fileBrowser.GetSelected());
-			fileBrowser.ClearSelected();
-		}
+		browser.handle();
 	}
 
 	void ImGuiView::shutdown()
@@ -194,51 +162,54 @@ namespace mt {
 
 				if (ImGui::MenuItem("Open model"))
 				{
-					m_lateExecution.emplace_back([&]() {
-						// ImGui::OpenPopup(LOAD_MODEL, ImGuiWindowFlags_AlwaysAutoResize);
-						state.loadModel("models/md5/bob_lamp_update_export.md5mesh");
+					browser.show("Load model", [&](const std::string &model) {
+						std::cout << "Selected filename" << model << std::endl;
+						state.loadModel(model);
 					});
+					browser.setTypeFilters({".md5mesh"});
 				}
 
 				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
 				{
-					m_lateExecution.emplace_back([&]() {
-						// ImGui::OpenPopup(LOAD_ANIMATION, ImGuiWindowFlags_AlwaysAutoResize);
-						state.loadAnimation("models/md5/bob_lamp_update_export.md5anim");
+					browser.show("Load animation", [&](const std::string &animation) {
+						std::cout << "Selected filename" << animation << std::endl;
+						state.loadAnimation(animation);
 					});
+					browser.setTypeFilters({".md5anim"});
 				}
 
 				// Close the current model
-				if (ImGui::MenuItem("Close", nullptr, false, !state.models.empty()))
+				if (ImGui::MenuItem("Close", nullptr, false, !!state.model))
 				{
-					// FIXME: implement
+					state.closeModels();
 				}
 
 				ImGui::Separator();
 
 				if (ImGui::MenuItem("Quit", "Cmd+Q", false, true))
 				{
-					// Emit quit message
+					std::exit(0);
 				}
 
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Options"))
-			{
-				// Disabling fullscreen would allow the window to be moved to the front of other windows,
-				// which we can't undo at the moment without finer window depth/z control.
-				if (ImGui::MenuItem("Fullscreen", nullptr, false))
-				{
-
-				}
-				if (ImGui::MenuItem("Padding", nullptr, false))
-				{
-
-				}
-
-				ImGui::EndMenu();
-			}
+			// FIXME: implement when we have property loading and persisting
+			// if (ImGui::BeginMenu("Options"))
+			// {
+			// 	// Disabling fullscreen would allow the window to be moved to the front of other windows,
+			// 	// which we can't undo at the moment without finer window depth/z control.
+			// 	if (ImGui::MenuItem("Fullscreen", nullptr, false))
+			// 	{
+			//
+			// 	}
+			// 	if (ImGui::MenuItem("Padding", nullptr, false))
+			// 	{
+			//
+			// 	}
+			//
+			// 	ImGui::EndMenu();
+			// }
 
 			ImGui::EndMainMenuBar();
 		}
