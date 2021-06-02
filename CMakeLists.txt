@@ -174,6 +174,7 @@ FILE(GLOB IMGUI_SRC
         "libs/imgui/imstb_rectpack.h"
         "libs/imgui/imstb_textedit.h"
         "libs/imgui/imstb_truetype.h"
+        "libs/imgui/misc/cpp/imgui_stdlib.cpp"
         # Backends
         "libs/imgui/backends/imgui_impl_glfw.cpp"
         "libs/imgui/backends/imgui_impl_opengl3.cpp"

@@ -18,6 +18,7 @@
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
