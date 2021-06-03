@@ -13,7 +13,13 @@ the [ET:Legacy](https://www.etlegacy.com) project.
 The tool uses the same package loading system as the game itself. When the application starts it will ask the user
 for a folder path.
 
-TODO: include images
+TODO: write a full manual at point & include images
+
+### Hitboxes
+
+The user can add hitboxes to a model.
+
+![ModelTool hitboxes](doc/hitboxes.png)
 
 ## Compile
 
