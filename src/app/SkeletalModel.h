@@ -7,17 +7,17 @@
 
 namespace mt::model::Skeletal {
 
+	/*! Skeletons joint */
 	struct Joint : public Point {
-		std::string name{};
-		int parentId{};
-		int flags{};
-		int startIndex{};
-		float torsoWeight{};
-		bool asTag{};
-		bool possibleTag{};
+		std::string name{}; ///< name of the bone
+		int parentId{}; ///< parent bone offset
 
-		// The frame's pre calculated joints
-		std::vector<Point> frames;
+		bool asTag{}; ///< can this bone be used as a tag
+		std::vector<Point> frames; ///< The frame's pre calculated joints
+
+		// FIXME: remove these, these are really only MD5 related
+		int flags{}; ///< bone flags
+		int startIndex{};
 
 		Joint() : Point()
 		{
@@ -29,6 +29,11 @@ namespace mt::model::Skeletal {
 			emptyVector(frames);
 		}
 
+		/**
+		 * Return the joint information for the frame
+		 * @param offset frame offset
+		 * @return joint data for the frame
+		 */
 		Point &frame(int offset = -1)
 		{
 			if (offset == -1)
@@ -45,10 +50,11 @@ namespace mt::model::Skeletal {
 		{ return frame(i); }
 	};
 
+	/*! Skeletal models vertex which holds weight information */
 	struct SkeletalVertex : public Vertex {
-		int startWeight{};
-		int weightCount{};
-		glm::vec3 bindNormal{};
+		int startWeight{}; ///< Weight offset
+		int weightCount{}; ///< weight count
+		glm::vec3 bindNormal{}; ///< bind pose normal for this vertex
 
 		SkeletalVertex() : Vertex()
 		{
@@ -64,7 +70,6 @@ namespace mt::model::Skeletal {
 
 		SkeletalVertex &operator=(const SkeletalVertex &other)
 		{
-
 			return *this;
 		}
 
@@ -89,8 +94,9 @@ namespace mt::model::Skeletal {
 		}
 	};
 
+	/*! Tag that is bound to a bone */
 	struct BoneTag : public Point {
-		int parentBone;
+		int parentBone; ///< Parent bone offset
 
 		BoneTag() : Point()
 		{
@@ -98,10 +104,11 @@ namespace mt::model::Skeletal {
 		}
 	};
 
+	/*! Bone weight */
 	struct Weight {
-		int jointId{};
-		float bias{};
-		glm::vec3 pos{};
+		int jointId{}; ///< bone offset
+		float bias{}; ///< bias value (how much does it affect the output)
+		glm::vec3 pos{}; ///< relative position
 
 		bool operator==(const Weight &rhs) const
 		{
@@ -114,20 +121,18 @@ namespace mt::model::Skeletal {
 		}
 	};
 
+	/*! Skeletal models mesh */
 	struct Mesh {
-		std::string name{};
-		std::string materialName{};
-		// This vertex list stores the vertices in the bind pose.
-		std::vector<SkeletalVertex> vertices{};
-		std::vector<glm::ivec3> tris{};
-		std::vector<Weight> weights{};
-
-		int minLod = 0;
-
-		Material material{};
+		std::string name{}; ///< name of the mesh
+		std::string materialName{}; ///< name of the material for the mesh
+		std::vector<SkeletalVertex> vertices{}; ///< This vertex list stores the vertices in the bind pose.
+		std::vector<glm::ivec3> tris{}; ///< mesh triangles
+		std::vector<Weight> weights{}; ///< mesh weights
+		int minLod = 0; ///< lodding level of the mesh
+		Material material{}; ///< material instance used in this mesh
 
 		// FIXME: this will be used by the ET models, implement later
-		std::vector<int> collapseMap; // Every mesh has a map
+		std::vector<int> collapseMap; ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
 
 		Mesh() = default;
 
@@ -139,18 +144,15 @@ namespace mt::model::Skeletal {
 		}
 	};
 
+	/*! Model with a skeleton managing the vertices positions */
 	class SkeletalModel : public Model {
 	public:
-
-		std::vector<Joint> joints{};
-		std::vector<Mesh> meshes{};
-		std::vector<BoneTag> tags{};
-
-		std::vector<Bounds> bounds{};
-
-		std::vector<Hitbox> hitboxes{};
-
-		bool hasBindPose = false;
+		std::vector<Joint> joints{}; ///< model bones
+		std::vector<Mesh> meshes{}; ///< model meshes
+		std::vector<BoneTag> tags{}; ///< model tags, which can be bound to other tags or bones
+		std::vector<Bounds> bounds{}; ///< models bounds
+		std::vector<Hitbox> hitboxes{}; ///< models hitboxes which can be bound to tags or bones
+		bool hasBindPose = false; ///< defines if the loaded model has a bind pose setup
 
 		~SkeletalModel() override;
 
@@ -166,12 +168,11 @@ namespace mt::model::Skeletal {
 			return &hitboxes;
 		}
 
-		bool hasTags();
+		bool hasTags() override;
 
+		// TODO: needed when doing bone scaling in the future
 		int findParentIndex(int boneIndex);
 
 		void renderModel(Ref<mt::Renderer>) override;
-
 	};
-
 }

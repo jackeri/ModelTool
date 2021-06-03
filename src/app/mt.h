@@ -33,8 +33,13 @@
 
 namespace mt {
 
-	const int MAX_PATH = 1024;
+	const int MAX_PATH = 1024; ///< Max path length in the model files (game has a max path length)
 
+	/**
+	 * Clears an vector and handles the destruction of the elements
+	 * @tparam T type of the vector
+	 * @param deleteMe vector to be cleared
+	 */
 	template<class T>
 	inline void emptyVector(std::vector<T> &deleteMe)
 	{
@@ -73,6 +78,11 @@ namespace mt {
 		return make_ref_list<byte>(size);
 	}
 
+	/**
+	 * constructs an singleton and keeps it locally in hunk
+	 * @tparam X type of the singleton
+	 * @return instance of the singleton
+	 */
 	template<class X>
 	Ref<X> singleton_ref()
 	{
@@ -80,6 +90,11 @@ namespace mt {
 		return x;
 	}
 
+	/**
+	 * constructs an singleton and keeps it locally in hunk
+	 * @tparam X type of the singleton
+	 * @return instance of the singleton
+	 */
 	template<class X>
 	inline X &singleton()
 	{
@@ -88,38 +103,24 @@ namespace mt {
 		return *singleton_ref<X>().get();
 	}
 
-	template<typename T>
-	class SingletonType {
-	public:
-		SingletonType(SingletonType const &) = delete;
-
-		SingletonType &operator=(SingletonType const &) = delete;
-
-		static T &instance()
-		{
-			return singleton<T>();
-		}
-
-		static Ref<T> &instance_ref()
-		{
-			return singleton_ref<T>();
-		}
-
-		friend T &singleton<T>();
-
-		friend Ref<T> singleton_ref<T>();
-
-	protected:
-		SingletonType() = default;
-	};
-
-	uint64_t constexpr mix(char m, uint64_t s)
+	/**
+	 * Used in conjunction with the hash function
+	 * @param character character to hash
+	 * @param seed seed number
+	 * @return hashed character
+	 */
+	uint64_t constexpr mix(char character, uint64_t seed)
 	{
-		return ((s << 7) + ~(s >> 3)) + ~m;
+		return ((seed << 7) + ~(seed >> 3)) + ~character;
 	}
 
-	uint64_t constexpr hash(const char *m)
+	/**
+	 * Create a simple hash number from a string, not secure but works great with simple switches
+	 * @param string to be hashed
+	 * @return hash number
+	 */
+	uint64_t constexpr hash(const char *string)
 	{
-		return (*m) ? mix(*m, hash(m + 1)) : 0;
+		return (*string) ? mix(*string, hash(string + 1)) : 0;
 	}
 }

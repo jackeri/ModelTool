@@ -106,6 +106,15 @@ namespace mt {
 		}
 
 		/**
+		 * Does the model have tags
+		 * @return true if tags are present
+		 */
+		virtual bool hasTags()
+		{
+			return false;
+		}
+
+		/**
 		 * Render this model with a renderer
 		 * @param renderer renderer to be used
 		 */

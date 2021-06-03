@@ -142,14 +142,14 @@ std::string mt::ScriptStream::peekNext()
 	return next;
 }
 
-void mt::ScriptStream::parse1DMatrix(int x, float *output)
+void mt::ScriptStream::parse1DMatrix(int columns, float *output)
 {
 	if (token() != "(")
 	{
 		throw std::invalid_argument("Expected ( but found: " + last());
 	}
 
-	for (int i = 0; i < x; i++)
+	for (int i = 0; i < columns; i++)
 	{
 		output[i] = parseFloat(false);
 	}
