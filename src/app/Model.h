@@ -21,7 +21,11 @@ namespace mt {
 		glm::vec3 max{};
 	};
 
-	void setupBounds(const Ref<mt::Renderer>& renderer, const Bounds &bounds, bool drawPoints = false);
+	namespace model {
+		struct Hitbox;
+	}
+
+	void setupBounds(const Ref<mt::Renderer> &renderer, const Bounds &bounds, bool drawPoints = false);
 
 	const int FRAME_BIND_POSE = -1;
 
@@ -56,6 +60,11 @@ namespace mt {
 		virtual bool skeletalModel()
 		{
 			return false;
+		}
+
+		virtual std::vector<mt::model::Hitbox> *getHitboxes()
+		{
+			return nullptr;
 		}
 
 		virtual void renderModel(Ref<mt::Renderer>) = 0;

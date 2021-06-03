@@ -18,7 +18,7 @@
 
 #include "imfilebrowser.h"
 #include "state.h"
-#include "ModelLoader.h"
+#include "Hitbox.h"
 
 namespace mt {
 
@@ -120,8 +120,10 @@ namespace mt {
 		drawMenu();
 
 		// We might need to execute some ImGui code out of menus or a window for example, this is here for that
-		if (!m_lateExecution.empty()) {
-			for (auto &exec : m_lateExecution) {
+		if (!m_lateExecution.empty())
+		{
+			for (auto &exec : m_lateExecution)
+			{
 				exec();
 			}
 			m_lateExecution.clear();
@@ -177,6 +179,27 @@ namespace mt {
 					});
 					browser.setTypeFilters({".md5anim"});
 				}
+
+				if (ImGui::MenuItem("Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
+				{
+					browser.show("Load hitboxes", [&](const std::string &file) {
+						std::cout << "Selected filename" << file << std::endl;
+						model::Hitbox::loadHitboxes(state.filesystem.loadFile(file), *state.model->getHitboxes());
+					});
+					browser.setTypeFilters({".hitboxes"});
+				}
+
+				if (ImGui::MenuItem("Save hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel() &&
+																	  !state.model->getHitboxes()->empty())))
+				{
+					browser.show("Load hitboxes", [&](const std::string &file) {
+						std::cout << "Selected filename" << file << std::endl;
+						model::Hitbox::saveHitboxes(file, *state.model->getHitboxes());
+					});
+					browser.setTypeFilters({".hitboxes"});
+				}
+
+				ImGui::Separator();
 
 				// Close the current model
 				if (ImGui::MenuItem("Close", nullptr, false, !!state.model))

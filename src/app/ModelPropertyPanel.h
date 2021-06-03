@@ -5,9 +5,9 @@
 namespace mt {
 	class ModelPropertyPanel {
 	public:
-		ModelPropertyPanel();
+		ModelPropertyPanel() = default;
 
-		~ModelPropertyPanel();
+		~ModelPropertyPanel() = default;
 
 		void render();
 
