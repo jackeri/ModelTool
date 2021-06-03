@@ -4,6 +4,8 @@
 #include "renderer.h"
 
 namespace mt {
+
+	/*! Opengl 1.1 - 2 compatible renderer implementation */
 	class GLRenderer2 : public Renderer {
 	public:
 

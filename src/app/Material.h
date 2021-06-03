@@ -6,6 +6,8 @@
 #include "Texture.h"
 
 namespace mt {
+
+	/*! Material, not used currently but this will hold the parsable material script and loaded textures */
 	class Material {
 	public:
 		Material() = default;
@@ -13,7 +15,7 @@ namespace mt {
 		Material(std::string materialName) : name(std::move(materialName))
 		{}
 
-		std::string name{};
-		Texture *texture = nullptr;
+		std::string name{}; ///< Name of the material
+		Texture *texture = nullptr; ///< Loaded texture instance
 	};
 }
