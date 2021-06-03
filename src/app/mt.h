@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <memory>
+#include <functional>
 
 #ifdef __APPLE__
 #define GL_SILENCE_DEPRECATION

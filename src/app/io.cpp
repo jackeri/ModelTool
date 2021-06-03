@@ -29,7 +29,7 @@ namespace mt::IO {
 		}
 
 		infile.seekg(0, std::ios::end);
-		auto length = infile.tellg();
+		long length = long(infile.tellg());
 		infile.seekg(0, std::ios::beg);
 
 		if (length > 0)

@@ -105,11 +105,11 @@ namespace mt::IO {
 			auto tmp = relative(entry.path(), {path});
 
 			files->push_back({
-				.path = tmp.string(),
-				.name = tmp.filename().string(),
-				.ext = tmp.extension().string(),
-				.isDirectory = entry.is_directory(),
-				.source = this
+				tmp.string(),
+				tmp.filename().string(),
+				tmp.extension().string(),
+				entry.is_directory(),
+				this
 			});
 		}
 
@@ -248,11 +248,11 @@ namespace mt::IO {
 			std::filesystem::path tmp(folder);
 
 			records->push_back({
-				.path = folder,
-				.name = tmp.filename().string(),
-				.ext = {},
-				.isDirectory = true,
-				.source = this
+				folder,
+				tmp.filename().string(),
+				{},
+				true,
+				this
 			});
 		}
 
@@ -274,11 +274,11 @@ namespace mt::IO {
 			std::filesystem::path tmp(file);
 
 			records->push_back({
-				.path = file,
-				.name = tmp.filename().string(),
-				.ext = tmp.extension().string(),
-				.isDirectory = false,
-				.source = this
+				file,
+				tmp.filename().string(),
+				tmp.extension().string(),
+				false,
+				this
 			});
 		}
 
@@ -317,11 +317,11 @@ namespace mt::IO {
 					// Check if directory, ignore if not a PK3Dir
 					if (entry.is_directory() && tools::endsWith(name, ".pk3dir"))
 					{
-						sources.push_back(std::make_shared<MTPath>(absolute(entry.path())));
+						sources.push_back(std::make_shared<MTPath>(absolute(entry.path()).string()));
 					}
 					else if (entry.is_regular_file() && ext == ".pk3")
 					{
-						sources.push_back(std::make_shared<MTPackage>(absolute(entry.path())));
+						sources.push_back(std::make_shared<MTPackage>(absolute(entry.path()).string()));
 					}
 				}
 			}
@@ -396,7 +396,7 @@ namespace mt::IO {
 			return nullptr;
 		}
 
-		byte_buffer data = FileRead(sysPath);
+		byte_buffer data = FileRead(sysPath.string());
 		if (!data)
 		{
 			return nullptr;
