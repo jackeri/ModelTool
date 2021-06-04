@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mt.h"
-#include "Model.h"
+#include "model.h"
 #include "filesystem.h"
 
 #include <unordered_set>

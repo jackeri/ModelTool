@@ -1,6 +1,6 @@
-#include "ImGuiView.h"
+#include "imgui_view.h"
 
-#include "GLWindow.h"
+#include "glwindow.h"
 
 // Dockspace internal api is needed
 #include "imgui_internal.h"
@@ -18,7 +18,7 @@
 
 #include "imfilebrowser.h"
 #include "state.h"
-#include "Hitbox.h"
+#include "hitbox.h"
 
 namespace mt {
 

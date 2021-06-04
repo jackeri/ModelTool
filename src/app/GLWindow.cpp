@@ -1,5 +1,5 @@
-#include "GLWindow.h"
-#include "ImGuiView.h"
+#include "glwindow.h"
+#include "imgui_view.h"
 #include <utility>
 
 static void glfwAppErrorCallback(int error, const char *description)

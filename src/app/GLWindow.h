@@ -3,9 +3,9 @@
 #include "mt.h"
 #include "renderer.h"
 
-#include "ModelPropertyPanel.h"
-#include "ScenePanel.h"
-#include "ImGuiView.h"
+#include "model_propertypanel.h"
+#include "scene_panel.h"
+#include "imgui_view.h"
 
 namespace mt {
 

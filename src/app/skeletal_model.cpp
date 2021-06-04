@@ -1,4 +1,4 @@
-#include "SkeletalModel.h"
+#include "skeletal_model.h"
 #include "renderer.h"
 
 namespace mt::model::Skeletal {

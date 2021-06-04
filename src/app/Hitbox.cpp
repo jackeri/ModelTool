@@ -1,5 +1,5 @@
-#include "Hitbox.h"
-#include "ScriptStream.h"
+#include "hitbox.h"
+#include "script_stream.h"
 
 namespace mt::model {
 

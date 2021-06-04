@@ -1,7 +1,7 @@
-#include "ModelPropertyPanel.h"
+#include "model_propertypanel.h"
 #include "state.h"
-#include "SkeletalModel.h"
-#include "Hitbox.h"
+#include "skeletal_model.h"
+#include "hitbox.h"
 
 using namespace mt::model;
 using namespace mt::model::Skeletal;

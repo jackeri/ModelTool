@@ -1,4 +1,4 @@
-#include "Framebuffer.h"
+#include "framebuffer.h"
 #include "tools.h"
 
 mt::Framebuffer::~Framebuffer()

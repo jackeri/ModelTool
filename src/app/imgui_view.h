@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mt.h"
-#include "FileBrowser.h"
+#include "file_browser.h"
 #include <unordered_map>
 
 namespace mt {
