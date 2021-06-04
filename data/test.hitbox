@@ -1,0 +1,24 @@
+// Test hitbox data
+
+hitbox {
+    name "Test name"
+    origin 0 ( 0.1 0.2 0.3) ( 0.4 0.5 0.6 0.7 )
+    bounds ( 0.1 0.2 0.3 ) ( 0.4 0.5 0.6 )
+    modifiers {
+        headshot
+    }
+}
+
+hitbox {
+    name "Test name 2"
+    origin 0 ( 0.7 0.6 0.5) ( 0.4 0.3 0.2 0.1 )
+    bounds ( 0.6 0.5 0.4 ) ( 0.3 0.2 0.1 )
+}
+
+hitbox {
+    name "Test name 3"
+    origin 0 ( 0.7 0.6 0.5) ( 0.4 0.3 0.2 0.1 )
+    bounds ( 0.6 0.5 0.4 ) ( 0.3 0.2 0.1 )
+    modifiers {
+    }
+}

@@ -112,7 +112,7 @@ namespace mt::model {
 		{
 			out << "hitbox {" << nl;
 
-			out << "\tname " << box.name << nl;
+			out << "\tname \"" << box.name << "\"" << nl;
 
 			out << "\torigin " << box.parentJoint << " ( " << box.location.x << " " << box.location.y << " " << box.location.z << " ) ( "
 				<< box.rotation.x << " " << box.rotation.y << " " << box.rotation.z << " " << box.rotation.w << " )"
