@@ -30,7 +30,17 @@ namespace mt {
 		float scaleFactor{}; ///< Camera scale
 
 	private:
+
+		/**
+		 * Clamp angle to be between -360 to 360 degrees
+		 * @param angle angle to be clamped
+		 */
 		static void clampAngle(float &angle);
+
+		/**
+		 * Clamp position to be between -1000 and 1000 units
+		 * @param pos position to be clamped
+		 */
 		static void clampPos(float &pos);
 	};
 }
