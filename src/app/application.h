@@ -1,7 +1,7 @@
 #pragma once
 
 #include "mt.h"
-#include "GLWindow.h"
+#include "gl_window.h"
 
 namespace mt {
 

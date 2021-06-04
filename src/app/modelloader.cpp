@@ -1,5 +1,5 @@
-#include "ModelLoader.h"
-#include "ModelMD5.h"
+#include "modelloader.h"
+#include "model_md5.h"
 
 namespace mt {
 

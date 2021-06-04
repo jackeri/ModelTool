@@ -1,6 +1,7 @@
-#include "ImGuiView.h"
-
-#include "GLWindow.h"
+#include "imgui_view.h"
+#include "gl_window.h"
+#include "state.h"
+#include "hitbox.h"
 
 // Dockspace internal api is needed
 #include "imgui_internal.h"
@@ -15,10 +16,6 @@
 #elif defined(MT_OPENGL_3)
 #include "backends/imgui_impl_opengl3.h"
 #endif
-
-#include "imfilebrowser.h"
-#include "state.h"
-#include "Hitbox.h"
 
 namespace mt {
 

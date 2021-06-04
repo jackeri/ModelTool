@@ -1,7 +1,7 @@
-#include "ScenePanel.h"
-#include "Framebuffer.h"
-#include "Camera.h"
-#include "GLRenderer2.h"
+#include "scene_panel.h"
+#include "framebuffer.h"
+#include "camera.h"
+#include "gl_renderer2.h"
 #include "state.h"
 
 mt::ScenePanel::ScenePanel()

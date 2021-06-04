@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
-#include "ModelMD5.h"
-#include "SkeletalModel.h"
-#include "ModelLoader.h"
+#include "model_md5.h"
+#include "skeletal_model.h"
+#include "modelloader.h"
 
 using namespace mt;
 using namespace mt::model::Skeletal;

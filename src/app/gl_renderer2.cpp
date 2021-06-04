@@ -1,5 +1,5 @@
-#include "GLRenderer2.h"
-#include "Camera.h"
+#include "gl_renderer2.h"
+#include "camera.h"
 #include "state.h"
 
 #include <GL/glew.h>
