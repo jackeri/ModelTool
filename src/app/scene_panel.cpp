@@ -67,11 +67,11 @@ void mt::ScenePanel::render()
 	{
 		if (ImGui::GetIO().MouseWheel > 0)
 		{
-			camera.zPos += CAMERA_ZOOM_STEP;
+			camera.pos.z += CAMERA_ZOOM_STEP;
 		}
 		else
 		{
-			camera.zPos -= CAMERA_ZOOM_STEP;
+			camera.pos.z -= CAMERA_ZOOM_STEP;
 		}
 
 		camera.checkLimits(true);
@@ -94,7 +94,7 @@ void mt::ScenePanel::onMouseMove(double x, double y, int button)
 	}
 
 	auto delta = ImGui::GetIO().MouseDelta;
-	camera.rotAngleY += (float) (delta.x) * CAMERA_ROTATION_SCALE;
-	camera.rotAngleX += (float) (delta.y) * CAMERA_ROTATION_SCALE;
+	camera.angles.x += (float) (delta.y) * CAMERA_ROTATION_SCALE;
+	camera.angles.y += (float) (delta.x) * CAMERA_ROTATION_SCALE;
 	camera.checkLimits();
 }

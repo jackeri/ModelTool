@@ -57,7 +57,7 @@ void mt::GLRenderer2::setView(int width, int height)
 	glLoadIdentity();
 	if (height > 0)
 	{
-		gluPerspective(90.f, (double)width / (double)height, 0.1f, 512);
+		gluPerspective(90.f, (double) width / (double) height, 0.1f, 512);
 	}
 	glViewport(0, 0, width, height);
 	glMatrixMode(GL_MODELVIEW);
@@ -138,21 +138,14 @@ void mt::GLRenderer2::startFrame(Camera &cam)
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	glLoadIdentity();
-	glTranslatef(cam.xPos, cam.yPos, cam.zPos);
-	glScalef(cam.scaleFactor, cam.scaleFactor, cam.scaleFactor);
-	glRotatef(cam.rotAngleX, 1.0f, 0.0f, 0.0f);
-	glRotatef(cam.rotAngleY, 0.0f, 1.0f, 0.0f);
-	glRotatef(cam.rotAngleZ, 1.0f, 0.0f, 0.0f);
 
-	if (true)
-	{
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-	else
-	{
-		glDisable(GL_BLEND);
-	}
+	glm::mat4 cameraMatrix = glm::scale(glm::translate(cam.pos), {cam.scaleFactor, cam.scaleFactor, cam.scaleFactor}) *
+							 glm::orientate4(glm::radians(cam.angles));
+
+	glMultMatrixf(glm::value_ptr(cameraMatrix));
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void mt::GLRenderer2::renderBuffer()

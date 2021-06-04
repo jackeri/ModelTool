@@ -7,20 +7,23 @@ mt::Camera::Camera()
 
 void mt::Camera::levelCamera()
 {
-	xPos = yPos = 0.0f;
-	zPos = -2.f;
-	rotAngleX = rotAngleY = 0;
-	rotAngleZ = -90.0f;
+	pos.x = 0.f;
+	pos.y = 0.f;
+	pos.z = -2.f;
+	angles.x = -90.0f;
+	angles.y = 0;
+	angles.z = 0;
 	scaleFactor = 0.05f;
 }
 
 void mt::Camera::modelViewCamera()
 {
-	xPos = yPos = 0.f;
-	zPos = -4.5f;
-	rotAngleX = 32.5f;
-	rotAngleY = -38.5f;
-	rotAngleZ = -90.0f;
+	pos.x = 0.f;
+	pos.y = 0.f;
+	pos.z = -4.5f;
+	angles.x = -57.5;
+	angles.y = -38.5f;
+	angles.z = 0;
 	scaleFactor = 0.05f;
 }
 
@@ -29,33 +32,37 @@ void mt::Camera::checkLimits(bool zoom)
 	if (!zoom)
 	{
 		// rotation limits
-		if (rotAngleY > 360.0f)
-		{
-			rotAngleY = rotAngleY - 360.0f;
-		}
-		if (rotAngleY < -360.0f)
-		{
-			rotAngleY = rotAngleY + 360.0f;
-		}
-		if (rotAngleX > 360.0f)
-		{
-			rotAngleX = rotAngleX - 360.0f;
-		}
-		if (rotAngleX < -360.0f)
-		{
-			rotAngleX = rotAngleX + 360.0f;
-		}
+		clampAngle(angles.x);
+		clampAngle(angles.y);
+		clampAngle(angles.z);
 	}
 	else
 	{
 		//zoom limits
-		if (zPos < -1000.f)
-		{
-			zPos = -1000.f;
-		}
-		if (zPos > 1000.f)
-		{
-			zPos = 1000.f;
-		}
+		clampPos(pos.z);
+	}
+}
+
+void mt::Camera::clampAngle(float &angle)
+{
+	if (angle > 360.0f)
+	{
+		angle = angle - 360.0f;
+	}
+	if (angle < -360.0f)
+	{
+		angle = angle + 360.0f;
+	}
+}
+
+void mt::Camera::clampPos(float &pos)
+{
+	if (pos < -1000.f)
+	{
+		pos = -1000.f;
+	}
+	if (pos > 1000.f)
+	{
+		pos = 1000.f;
 	}
 }
