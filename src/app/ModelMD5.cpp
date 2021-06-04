@@ -1,6 +1,6 @@
-#include "model_md5.h"
-#include "skeletal_model.h"
-#include "script_stream.h"
+#include "ModelMD5.h"
+#include "SkeletalModel.h"
+#include "ScriptStream.h"
 #include "glm/gtx/normal.hpp"
 
 namespace mt::model {

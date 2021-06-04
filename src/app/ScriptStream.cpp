@@ -1,4 +1,4 @@
-#include "script_stream.h"
+#include "ScriptStream.h"
 
 const std::set<char> singlePunctuations = {
 		'{', '}', '[', ']', '<', '>', '(', ')'

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "mt.h"
-#include "model.h"
+#include "Model.h"
 #include "filesystem.h"
-#include "model_loader.h"
+#include "ModelLoader.h"
 
 namespace mt {
 

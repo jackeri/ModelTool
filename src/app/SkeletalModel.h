@@ -1,9 +1,9 @@
 #pragma once
 
 #include "mt.h"
-#include "model.h"
-#include "material.h"
-#include "hitbox.h"
+#include "Model.h"
+#include "Material.h"
+#include "Hitbox.h"
 
 namespace mt::model::Skeletal {
 

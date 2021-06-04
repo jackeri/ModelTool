@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "mt.h"
-#include "texture.h"
+#include "Texture.h"
 
 namespace mt {
 

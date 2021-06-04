@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "script_stream.h"
+#include "ScriptStream.h"
 
 using namespace mt;
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "mt.h"
-#include "camera.h"
+#include "Camera.h"
 #include "renderer.h"
-#include "framebuffer.h"
+#include "Framebuffer.h"
 
 namespace mt {
 
