@@ -14,7 +14,7 @@ TEST(FileSystemTest, test1)
 	{
 		IO::FileList list = sys.getFiles("");
 
-		ASSERT_EQ(list->size(), 7);
+		ASSERT_EQ(list->size(), 6);
 		ASSERT_EQ(list->at(0).name, "inner");
 		ASSERT_TRUE(list->at(0).isDirectory);
 		ASSERT_EQ(list->at(2).name, "pk3inner");
@@ -22,8 +22,8 @@ TEST(FileSystemTest, test1)
 	}
 
 	// These files should be directly in the data folder and are accessed with normal system IO
-	ASSERT_TRUE(sys.findFile("test.cfg"));
-	ASSERT_TRUE(sys.findFile("test.script"));
+	ASSERT_TRUE(sys.findFile("test/test.cfg"));
+	ASSERT_TRUE(sys.findFile("test/test.script"));
 
 	// This is "emulated" pk3 content and is accessed with normal system IO, just the path is relative
 	ASSERT_TRUE(sys.findFile("unpacked.dir.cfg"));

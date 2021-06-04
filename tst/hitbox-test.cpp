@@ -10,7 +10,7 @@ TEST(HitboxTest, ReadTest)
 	IO::MTPath path("data");
 	std::vector<model::Hitbox> hitboxes{};
 
-	ASSERT_NO_THROW(model::Hitbox::loadHitboxes(path.loadFile("test.hitbox"), hitboxes););
+	ASSERT_NO_THROW(model::Hitbox::loadHitboxes(path.loadFile("test/test.hitbox"), hitboxes););
 
 	ASSERT_EQ(hitboxes.size(), 3);
 	ASSERT_EQ(hitboxes[0].name, "Test name");
