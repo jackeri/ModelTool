@@ -34,10 +34,9 @@ namespace mt::model {
 				throw std::invalid_argument("Invalid file data, expected '{'");
 			}
 
+			Hitbox hitbox;
 			while (stream.hasNext() && stream.peekNext() != "}")
 			{
-				Hitbox hitbox;
-
 				std::string token = stream.token();
 
 				switch (hash(token.c_str()))
@@ -84,9 +83,14 @@ namespace mt::model {
 					default:
 						throw std::invalid_argument("Unexpected token: " + token);
 				}
-
-				list.emplace_back(hitbox);
 			}
+
+			if (stream.token() != "}")
+			{
+				throw std::invalid_argument("Invalid hierarchy data");
+			}
+
+			list.emplace_back(hitbox);
 		}
 	}
 
@@ -110,7 +114,7 @@ namespace mt::model {
 
 			out << "\tname " << box.name << nl;
 
-			out << "\torigin ( " << box.location.x << " " << box.location.y << " " << box.location.z << " ) ( "
+			out << "\torigin " << box.parentJoint << " ( " << box.location.x << " " << box.location.y << " " << box.location.z << " ) ( "
 				<< box.rotation.x << " " << box.rotation.y << " " << box.rotation.z << " " << box.rotation.w << " )"
 				<< nl;
 
