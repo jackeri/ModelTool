@@ -12,7 +12,7 @@ namespace mt {
 		/**
 		 * Create an empty ScriptStream
 		 */
-		ScriptStream();
+		ScriptStream() = default;
 
 		/**
 		 * Create and stream and use the input string as the script
@@ -26,7 +26,13 @@ namespace mt {
 		 */
 		explicit ScriptStream(const Ref<IO::MTFile> &file);
 
-		~ScriptStream();
+		~ScriptStream() = default;
+
+		/**
+		 * use the input file as the script
+		 * @param file data to parse
+		 */
+		void load(const Ref<IO::MTFile> &file);
 
 		/**
 		 * use the input string as the script

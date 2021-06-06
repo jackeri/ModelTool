@@ -6,20 +6,17 @@ using namespace mt;
 TEST(FileSystemTest, test1)
 {
 	IO::FileSystem sys;
-	sys.addPath("data");
 
+	ASSERT_TRUE(sys.addPath("data"));
 	ASSERT_TRUE(sys.hasSources());
 
-	if (sys.hasSources())
-	{
-		IO::FileList list = sys.getFiles("");
+	IO::FileList list = sys.getFiles("");
 
-		ASSERT_EQ(list->size(), 6);
-		ASSERT_EQ(list->at(0).name, "inner");
-		ASSERT_TRUE(list->at(0).isDirectory);
-		ASSERT_EQ(list->at(2).name, "pk3inner");
-		ASSERT_TRUE(list->at(2).isDirectory);
-	}
+	ASSERT_EQ(list->size(), 6);
+	ASSERT_EQ(list->at(0).name, "inner");
+	ASSERT_TRUE(list->at(0).isDirectory);
+	ASSERT_EQ(list->at(2).name, "pk3inner");
+	ASSERT_TRUE(list->at(2).isDirectory);
 
 	// These files should be directly in the data folder and are accessed with normal system IO
 	ASSERT_TRUE(sys.findFile("test/test.cfg"));

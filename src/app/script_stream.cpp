@@ -9,8 +9,6 @@ const std::set<std::string> multiPunctuations = {
 		"&&", "||", "<=", ">=", "==", "!="
 };
 
-mt::ScriptStream::ScriptStream() = default;
-
 mt::ScriptStream::ScriptStream(const std::string &value)
 {
 	load(value);
@@ -18,10 +16,13 @@ mt::ScriptStream::ScriptStream(const std::string &value)
 
 mt::ScriptStream::ScriptStream(const Ref<IO::MTFile> &file)
 {
-	load(file->string());
+	load(file);
 }
 
-mt::ScriptStream::~ScriptStream() = default;
+void mt::ScriptStream::load(const Ref<IO::MTFile> &file)
+{
+	load(file->string());
+}
 
 void mt::ScriptStream::load(const std::string &value)
 {

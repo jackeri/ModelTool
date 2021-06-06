@@ -5,7 +5,13 @@ using namespace mt;
 
 TEST(ScriptStreamTest, test1)
 {
-	ScriptStream script(IO::MTPath("data").loadFile("test/test.script"));
+	auto file = IO::MTPath("data").loadFile("test/test.script");
+
+	ASSERT_TRUE(file->valid());
+
+	ScriptStream script;
+
+	ASSERT_NO_THROW(script.load(file););
 	ASSERT_TRUE(script.valid());
 
 	// Script should have tokens
