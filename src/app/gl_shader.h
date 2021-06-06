@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include <GL/glew.h>
+#include "mt.h"
 
 namespace mt {
 

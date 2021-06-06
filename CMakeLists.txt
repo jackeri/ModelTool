@@ -200,6 +200,8 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(libs/glfw)
 
+add_subdirectory(libs/spdlog)
+
 include(libs/glew-2.1.0/CMakeLists.txt)
 
 # Add this when we need it
@@ -208,14 +210,15 @@ include(libs/glew-2.1.0/CMakeLists.txt)
 include_directories(libs/glew-2.1.0/include)
 include_directories(libs/glm)
 
-set(MTLINK_LIBRARIES glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd)
+set(MTLINK_LIBRARIES glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 
 add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
-add_dependencies(ModelTool glew glfw)
+add_dependencies(ModelTool glew glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
 set_target_properties(glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(glfw PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+set_target_properties(spdlog PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 

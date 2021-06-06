@@ -15,6 +15,8 @@
 #define GL_SILENCE_DEPRECATION
 #endif
 
+#include <spdlog/spdlog.h>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -36,6 +38,7 @@
 namespace mt {
 
 	const int MAX_PATH = 1024; ///< Max path length in the model files (game has a max path length)
+	const std::string MT_LOGGER = "mt"; ///< Used logger name
 
 	/**
 	 * Clears an vector and handles the destruction of the elements

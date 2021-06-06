@@ -22,6 +22,11 @@ namespace mt {
 	const char *LOAD_MODEL = "Load model";
 	const char *LOAD_ANIMATION = "Load animation";
 
+	ImGuiView::ImGuiView()
+	{
+		logger = spdlog::get(MT_LOGGER);
+	}
+
 	bool ImGuiView::setup(GLWindow *window, const char *glslVersion)
 	{
 		IMGUI_CHECKVERSION();
@@ -162,14 +167,14 @@ namespace mt {
 				if (ImGui::MenuItem("Open model"))
 				{
 					browser.show("Load model", [&](const std::string &model) {
-						std::cout << "Selected filename" << model << std::endl;
+						logger->info("Selected filename: {}", model);
 						try
 						{
 							state.loadModel(model);
 						}
 						catch (const std::exception &ex)
 						{
-							//FIXME: print message
+							logger->error("Failed to load model: {}", ex.what());
 						}
 					});
 					browser.setTypeFilters({".md5mesh"});
@@ -178,14 +183,14 @@ namespace mt {
 				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
 				{
 					browser.show("Load animation", [&](const std::string &animation) {
-						std::cout << "Selected filename" << animation << std::endl;
+						logger->info("Selected filename: {}", animation);
 						try
 						{
 							state.loadAnimation(animation);
 						}
 						catch (const std::exception &ex)
 						{
-							//FIXME: print message
+							logger->error("Failed to load animation: {}", ex.what());
 						}
 					});
 					browser.setTypeFilters({".md5anim"});
@@ -194,14 +199,14 @@ namespace mt {
 				if (ImGui::MenuItem("Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
-						std::cout << "Selected filename" << file << std::endl;
+						logger->info("Selected filename: {}", file);
 						try
 						{
 							model::Hitbox::loadHitboxes(state.filesystem.loadFile(file), *state.model->getHitboxes());
 						}
 						catch (const std::exception &ex)
 						{
-							//FIXME: print message
+							logger->error("Failed to load hitboxes: {}", ex.what());
 						}
 					});
 					browser.setTypeFilters({".hitboxes"});
@@ -211,14 +216,14 @@ namespace mt {
 																	  !state.model->getHitboxes()->empty())))
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
-						std::cout << "Selected filename" << file << std::endl;
+						logger->info("Selected filename: {}", file);
 						try
 						{
 							model::Hitbox::saveHitboxes(file, *state.model->getHitboxes());
 						}
 						catch (const std::exception &ex)
 						{
-							//FIXME: print message
+							logger->error("Failed to save hitboxes: {}", ex.what());
 						}
 					});
 					browser.setTypeFilters({".hitboxes"});

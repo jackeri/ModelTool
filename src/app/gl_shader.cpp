@@ -118,13 +118,13 @@ void mt::GLShader::checkCompileErr() const
 	if (!success)
 	{
 		glGetShaderInfoLog(vertId, 1024, nullptr, infoLog);
-		std::cout << "Error compiling Vertex Shader:\n" << infoLog << std::endl;
+		spdlog::get(MT_LOGGER)->error("Error compiling Vertex Shader: {}", infoLog);
 	}
 	glGetShaderiv(fragId, GL_COMPILE_STATUS, &success);
 	if (!success)
 	{
 		glGetShaderInfoLog(fragId, 1024, nullptr, infoLog);
-		std::cout << "Error compiling Fragment Shader:\n" << infoLog << std::endl;
+		spdlog::get(MT_LOGGER)->error("Error compiling Fragment Shader: {}", infoLog);
 	}
 }
 
@@ -136,6 +136,6 @@ void mt::GLShader::checkLinkingErr() const
 	if (!success)
 	{
 		glGetProgramInfoLog(progId, 1024, nullptr, infoLog);
-		std::cout << "Error Linking Shader Program:\n" << infoLog << std::endl;
+		spdlog::get(MT_LOGGER)->error("Error Linking Shader Program: {}", infoLog);
 	}
 }

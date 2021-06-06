@@ -98,8 +98,10 @@ bool mt::GLWindow::init()
 	// Print the current GPU info
 	const GLubyte *rendererStr = glGetString(GL_RENDERER);
 	const GLubyte *version = glGetString(GL_VERSION);
-	std::cout << "Renderer: " << rendererStr << std::endl;
-	std::cout << "OpenGL version supported " << version << std::endl;
+
+	auto logger = spdlog::get(MT_LOGGER);
+	logger->info("Renderer: {}", rendererStr);
+	logger->info("OpenGL version supported: {}", version);
 
 	propertyPanel = make_ref<ModelPropertyPanel>();
 	scenePanel = make_ref<ScenePanel>();

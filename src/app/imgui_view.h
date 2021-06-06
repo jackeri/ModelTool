@@ -11,7 +11,7 @@ namespace mt {
 	class ImGuiView {
 
 	public:
-		ImGuiView() = default;
+		ImGuiView();
 
 		~ImGuiView() = default;
 
@@ -53,5 +53,7 @@ namespace mt {
 		std::vector<std::function<void()>> m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
 
 		FileBrowser browser{}; ///< File browser instance which is changed by requirements
+
+		std::shared_ptr<spdlog::logger> logger; ///< shared logger
 	};
 }
