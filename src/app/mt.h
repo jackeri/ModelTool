@@ -125,4 +125,43 @@ namespace mt {
 	{
 		return (*string) ? mix(*string, hash(string + 1)) : 0;
 	}
+
+	class mt_exception : public std::runtime_error {
+		std::string m_msg;
+	public:
+		explicit mt_exception(const std::string &msg, const std::string &file = "", const int &line = -1) :
+				std::runtime_error(msg)
+		{
+			std::ostringstream stream;
+			if (!file.empty())
+			{
+				stream << file;
+				if (line >= 0)
+				{
+					stream << "(" << (line + 1) << "): ";
+				}
+				else
+				{
+					stream << ": ";
+				}
+			}
+
+			if (line >= 0 && !line)
+			{
+				stream << "(" << (line + 1) << "): ";
+			}
+
+			stream << msg;
+
+			m_msg = stream.str();
+		}
+
+		[[nodiscard]] const char *what() const noexcept override
+		{
+			return m_msg.c_str();
+		}
+	};
 }
+
+#define mt_ex(arg) mt::mt_exception(arg, __FILE__, __LINE__);
+#define throw_line(arg) throw mt_ex(arg);

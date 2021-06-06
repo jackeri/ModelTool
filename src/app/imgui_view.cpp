@@ -163,7 +163,14 @@ namespace mt {
 				{
 					browser.show("Load model", [&](const std::string &model) {
 						std::cout << "Selected filename" << model << std::endl;
-						state.loadModel(model);
+						try
+						{
+							state.loadModel(model);
+						}
+						catch (const std::exception &ex)
+						{
+							//FIXME: print message
+						}
 					});
 					browser.setTypeFilters({".md5mesh"});
 				}
@@ -172,7 +179,14 @@ namespace mt {
 				{
 					browser.show("Load animation", [&](const std::string &animation) {
 						std::cout << "Selected filename" << animation << std::endl;
-						state.loadAnimation(animation);
+						try
+						{
+							state.loadAnimation(animation);
+						}
+						catch (const std::exception &ex)
+						{
+							//FIXME: print message
+						}
 					});
 					browser.setTypeFilters({".md5anim"});
 				}
@@ -181,7 +195,14 @@ namespace mt {
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
 						std::cout << "Selected filename" << file << std::endl;
-						model::Hitbox::loadHitboxes(state.filesystem.loadFile(file), *state.model->getHitboxes());
+						try
+						{
+							model::Hitbox::loadHitboxes(state.filesystem.loadFile(file), *state.model->getHitboxes());
+						}
+						catch (const std::exception &ex)
+						{
+							//FIXME: print message
+						}
 					});
 					browser.setTypeFilters({".hitboxes"});
 				}
@@ -191,7 +212,14 @@ namespace mt {
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
 						std::cout << "Selected filename" << file << std::endl;
-						model::Hitbox::saveHitboxes(file, *state.model->getHitboxes());
+						try
+						{
+							model::Hitbox::saveHitboxes(file, *state.model->getHitboxes());
+						}
+						catch (const std::exception &ex)
+						{
+							//FIXME: print message
+						}
 					});
 					browser.setTypeFilters({".hitboxes"});
 				}

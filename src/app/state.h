@@ -67,7 +67,17 @@ namespace mt {
 				return;
 			}
 
-			model::ModelLoader::loadAnimation(model.get(), filesystem.loadFile(path));
+			try
+			{
+				model::ModelLoader::loadAnimation(model.get(), filesystem.loadFile(path));
+			} catch (const std::exception &ex)
+			{
+				// The model is now possibly broken, so just close it
+				closeModels();
+
+				// rethrow the same exception forward
+				throw;
+			}
 		}
 
 		/**

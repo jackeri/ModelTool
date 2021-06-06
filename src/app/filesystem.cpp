@@ -133,7 +133,7 @@ namespace mt::IO {
 
 		if (!zipFile)
 		{
-			throw "Invalid package";
+			throw mt_ex("Invalid package");
 		}
 
 		int err = unzGoToFirstFile(zipFile);

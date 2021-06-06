@@ -26,12 +26,12 @@ namespace mt::model {
 		{
 			if (stream.token() != "hitbox")
 			{
-				throw std::invalid_argument("Invalid file data, expected 'hitboxes'");
+				throw mt_ex("Invalid file data, expected 'hitboxes'");
 			}
 
 			if (stream.token() != "{")
 			{
-				throw std::invalid_argument("Invalid file data, expected '{'");
+				throw mt_ex("Invalid file data, expected '{'");
 			}
 
 			Hitbox hitbox;
@@ -49,7 +49,7 @@ namespace mt::model {
 					{
 						if (stream.token() != "{")
 						{
-							throw std::invalid_argument("Invalid hierarchy data");
+							throw mt_ex("Invalid hierarchy data");
 						}
 
 						while (stream.hasNext() && stream.peekNext() != "}")
@@ -59,7 +59,7 @@ namespace mt::model {
 
 						if (stream.token() != "}")
 						{
-							throw std::invalid_argument("Invalid hierarchy data");
+							throw mt_ex("Invalid hierarchy data");
 						}
 
 						break;
@@ -81,13 +81,13 @@ namespace mt::model {
 					}
 
 					default:
-						throw std::invalid_argument("Unexpected token: " + token);
+						throw mt_ex("Unexpected token: " + token);
 				}
 			}
 
 			if (stream.token() != "}")
 			{
-				throw std::invalid_argument("Invalid hierarchy data");
+				throw mt_ex("Invalid hierarchy data");
 			}
 
 			list.emplace_back(hitbox);
@@ -103,7 +103,7 @@ namespace mt::model {
 
 		if (!out.is_open())
 		{
-			throw std::invalid_argument("Invalid path: " + path);
+			throw mt_ex("Invalid path: " + path);
 		}
 
 		out << "// Hitboxes exported with ModelTool" << nl;

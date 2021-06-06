@@ -26,7 +26,7 @@ namespace mt::model {
 	{
 		if (stream.token() != "{")
 		{
-			throw std::invalid_argument("Invalid token: " + stream.last());
+			throw mt_ex("Invalid token: " + stream.last());
 		}
 
 		Mesh mesh;
@@ -58,7 +58,7 @@ namespace mt::model {
 
 					if (vertex.startWeight < 0 || vertex.weightCount <= 0)
 					{
-						throw std::invalid_argument("Invalid vertex");
+						throw mt_ex("Invalid vertex");
 					}
 
 					mesh.vertices.emplace_back(vertex);
@@ -77,7 +77,7 @@ namespace mt::model {
 
 					if (triangleOffset != mesh.tris.size())
 					{
-						throw std::invalid_argument("Invalid triangle offset: " + std::to_string(triangleOffset));
+						throw mt_ex("Invalid triangle offset: " + std::to_string(triangleOffset));
 					}
 
 					tri.x = stream.parseInt();
@@ -99,7 +99,7 @@ namespace mt::model {
 
 					if (stream.parseInt() < 0)
 					{
-						throw std::invalid_argument("Invalid weight offset");
+						throw mt_ex("Invalid weight offset");
 					}
 
 					weight.jointId = stream.parseInt();
@@ -112,24 +112,24 @@ namespace mt::model {
 
 				default:
 				{
-					throw std::invalid_argument("Unknown token: " + stream.last());
+					throw mt_ex("Unknown token: " + stream.last());
 				}
 			}
 		}
 
 		if (numVerts < 0 || numVerts != mesh.vertices.size())
 		{
-			throw std::invalid_argument("Invalid amount of vertices: " + std::to_string(numVerts));
+			throw mt_ex("Invalid amount of vertices: " + std::to_string(numVerts));
 		}
 
 		if (numTris < 0 || numTris != mesh.tris.size())
 		{
-			throw std::invalid_argument("Invalid amount of triangles: " + std::to_string(numTris));
+			throw mt_ex("Invalid amount of triangles: " + std::to_string(numTris));
 		}
 
 		if (numWeights < 0 || numWeights != mesh.weights.size())
 		{
-			throw std::invalid_argument("Invalid amount of weights: " + std::to_string(numWeights));
+			throw mt_ex("Invalid amount of weights: " + std::to_string(numWeights));
 		}
 
 		// Compute vertex positions
@@ -211,7 +211,7 @@ namespace mt::model {
 				case hash("MD5Version"):
 					if (stream.parseInt() != MD5_VERSION)
 					{
-						throw std::invalid_argument("Invalid MD5 version: " + stream.last());
+						throw mt_ex("Invalid MD5 version: " + stream.last());
 					}
 					break;
 
@@ -233,7 +233,7 @@ namespace mt::model {
 				{
 					if (stream.token() != "{")
 					{
-						throw std::invalid_argument("Invalid joint data");
+						throw mt_ex("Invalid joint data");
 					}
 
 					while (stream.token() != "}")
@@ -256,19 +256,19 @@ namespace mt::model {
 
 				default:
 				{
-					throw std::invalid_argument("Unknown token: " + token);
+					throw mt_ex("Unknown token: " + token);
 				}
 			}
 		}
 
 		if (model->meshes.size() != numMeshes)
 		{
-			throw std::invalid_argument("invalid number of meshes");
+			throw mt_ex("invalid number of meshes");
 		}
 
 		if (model->joints.size() != numJoints)
 		{
-			throw std::invalid_argument("invalid number of joints");
+			throw mt_ex("invalid number of joints");
 		}
 	}
 
@@ -308,7 +308,7 @@ namespace mt::model {
 				case hash("MD5Version"):
 					if ((int) stream.parse() != MD5_VERSION)
 					{
-						throw std::invalid_argument("Invalid MD5 version: " + stream.last());
+						throw mt_ex("Invalid MD5 version: " + stream.last());
 					}
 					break;
 
@@ -325,7 +325,7 @@ namespace mt::model {
 				case hash("numJoints"):
 					if (model->joints.size() != stream.parseInt())
 					{
-						throw std::invalid_argument("Invalid number of joints expected: " + stream.last());
+						throw mt_ex("Invalid number of joints expected: " + stream.last());
 					}
 					break;
 
@@ -341,21 +341,21 @@ namespace mt::model {
 				{
 					if (stream.token() != "{")
 					{
-						throw std::invalid_argument("Invalid hierarchy data");
+						throw mt_ex("Invalid hierarchy data");
 					}
 
 					for (auto &joint : model->joints)
 					{
 						if (joint.name != stream.token())
 						{
-							throw std::invalid_argument(
+							throw mt_ex(
 									"Invalid joint hierarchy, name does not match: " + joint.name + " != " +
 									stream.last());
 						}
 
 						if (joint.parentId != stream.parseInt())
 						{
-							throw std::invalid_argument(
+							throw mt_ex(
 									"Invalid joint hierarchy, parent ID does not match for: " + joint.name);
 						}
 
@@ -365,7 +365,7 @@ namespace mt::model {
 
 					if (stream.token() != "}")
 					{
-						throw std::invalid_argument("Invalid number of joints");
+						throw mt_ex("Invalid number of joints");
 					}
 
 					break;
@@ -375,7 +375,7 @@ namespace mt::model {
 				{
 					if (stream.token() != "{")
 					{
-						throw std::invalid_argument("Invalid bounds data");
+						throw mt_ex("Invalid bounds data");
 					}
 
 					while (stream.peekNext() != "}")
@@ -401,7 +401,7 @@ namespace mt::model {
 
 					if (stream.token() != "{")
 					{
-						throw std::invalid_argument("Invalid frame data for frame: " + std::to_string(frameNumber));
+						throw mt_ex("Invalid frame data for frame: " + std::to_string(frameNumber));
 					}
 
 					while (stream.peekNext() != "}")
@@ -463,14 +463,14 @@ namespace mt::model {
 
 				default:
 				{
-					throw std::invalid_argument("Unknown token: " + token);
+					throw mt_ex("Unknown token: " + token);
 				}
 			}
 		}
 
 		if (numFrames != processedFrames)
 		{
-			throw std::invalid_argument(
+			throw mt_ex(
 					"Invalid animation data. Framecounts do not match: " + std::to_string(numFrames) + " != " +
 					std::to_string(processedFrames));
 		}
@@ -483,12 +483,6 @@ namespace mt::model {
 		// MD5 model file is just a text file
 		ScriptStream stream(file);
 
-		try
-		{
-			parseAnimRoot(stream, model);
-		} catch (const std::exception &ex)
-		{
-			// FIXME: handle
-		}
+		parseAnimRoot(stream, model);
 	}
 }
