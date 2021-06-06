@@ -19,3 +19,6 @@
 [submodule "libs/imgui-filebrowser"]
 	path = libs/imgui-filebrowser
 	url = https://github.com/jackeri/imgui-filebrowser.git
+[submodule "libs/spdlog"]
+	path = libs/spdlog
+	url = https://github.com/gabime/spdlog.git
