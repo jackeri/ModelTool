@@ -142,8 +142,7 @@ namespace mt::model::Skeletal {
 	};
 
 	/*! Model with a skeleton managing the vertices positions */
-	class SkeletalModel : public Model {
-	  public:
+	struct SkeletalModel : public Model {
 		std::vector<Joint> joints{};	///< model bones
 		std::vector<Mesh> meshes{};		///< model meshes
 		std::vector<BoneTag> tags{};	///< model tags, which can be bound to other tags or bones

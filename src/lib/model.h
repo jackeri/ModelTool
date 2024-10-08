@@ -1,7 +1,5 @@
 #pragma once
 
-#include "mt.h"
-
 namespace mt {
 	class Renderer;
 
@@ -39,8 +37,7 @@ namespace mt {
 
 	const int FRAME_BIND_POSE = -1; ///< "Number" of the bind pose frame in the model frames array, which go from 0 -> *
 
-	class Model {
-	  public:
+	struct Model {
 		Model() = default;
 
 		virtual ~Model() = default;
