@@ -193,6 +193,11 @@ include_directories("libs/imgui")
 include_directories("libs/imgui-filebrowser")
 include_directories("libs/stb")
 
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE BOOL "" FORCE)
+include_directories("libs/tinygltf")
+
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -213,6 +218,7 @@ include_directories(libs/glm)
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
+target_link_libraries(ModelToolLib PUBLIC tinygltf)
 
 add_executable(ModelToolCLI ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
