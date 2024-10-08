@@ -10,8 +10,8 @@ namespace mt::model {
 
 	/*! Hitbox instance, just a box at the moment */
 	struct Hitbox : public Bounds, public Point {
-		std::string name{}; ///< Name of this hitbox
-		int parentJoint = -1; ///< Parent joint or tag which to link
+		std::string name{};							 ///< Name of this hitbox
+		int parentJoint = -1;						 ///< Parent joint or tag which to link
 		std::unordered_set<std::string> modifiers{}; ///< List of modifiers that this hitbox has
 
 		explicit Hitbox(float size = 0);

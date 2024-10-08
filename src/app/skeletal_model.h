@@ -10,19 +10,16 @@ namespace mt::model::Skeletal {
 	/*! Skeletons joint */
 	struct Joint : public Point {
 		std::string name{}; ///< name of the bone
-		int parentId{}; ///< parent bone offset
+		int parentId{};		///< parent bone offset
 
-		bool asTag{}; ///< can this bone be used as a tag
+		bool asTag{};			   ///< can this bone be used as a tag
 		std::vector<Point> frames; ///< The frame's pre calculated joints
 
 		// FIXME: remove these, these are really only MD5 related
 		int flags{}; ///< bone flags
 		int startIndex{};
 
-		Joint() : Point()
-		{
-
-		}
+		Joint() : Point() {}
 
 		~Joint()
 		{
@@ -47,18 +44,18 @@ namespace mt::model::Skeletal {
 		}
 
 		Point &operator[](int i)
-		{ return frame(i); }
+		{
+			return frame(i);
+		}
 	};
 
 	/*! Skeletal models vertex which holds weight information */
 	struct SkeletalVertex : public Vertex {
-		int startWeight{}; ///< Weight offset
-		int weightCount{}; ///< weight count
+		int startWeight{};		///< Weight offset
+		int weightCount{};		///< weight count
 		glm::vec3 bindNormal{}; ///< bind pose normal for this vertex
 
-		SkeletalVertex() : Vertex()
-		{
-		}
+		SkeletalVertex() : Vertex() {}
 
 		SkeletalVertex(const SkeletalVertex &other) : Vertex(other)
 		{
@@ -106,8 +103,8 @@ namespace mt::model::Skeletal {
 
 	/*! Bone weight */
 	struct Weight {
-		int jointId{}; ///< bone offset
-		float bias{}; ///< bias value (how much does it affect the output)
+		int jointId{};	 ///< bone offset
+		float bias{};	 ///< bias value (how much does it affect the output)
 		glm::vec3 pos{}; ///< relative position
 
 		bool operator==(const Weight &rhs) const
@@ -123,13 +120,13 @@ namespace mt::model::Skeletal {
 
 	/*! Skeletal models mesh */
 	struct Mesh {
-		std::string name{}; ///< name of the mesh
-		std::string materialName{}; ///< name of the material for the mesh
+		std::string name{};						///< name of the mesh
+		std::string materialName{};				///< name of the material for the mesh
 		std::vector<SkeletalVertex> vertices{}; ///< This vertex list stores the vertices in the bind pose.
-		std::vector<glm::ivec3> tris{}; ///< mesh triangles
-		std::vector<Weight> weights{}; ///< mesh weights
-		int minLod = 0; ///< lodding level of the mesh
-		Material material{}; ///< material instance used in this mesh
+		std::vector<glm::ivec3> tris{};			///< mesh triangles
+		std::vector<Weight> weights{};			///< mesh weights
+		int minLod = 0;							///< lodding level of the mesh
+		Material material{};					///< material instance used in this mesh
 
 		// FIXME: this will be used by the ET models, implement later
 		std::vector<int> collapseMap; ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
@@ -146,13 +143,13 @@ namespace mt::model::Skeletal {
 
 	/*! Model with a skeleton managing the vertices positions */
 	class SkeletalModel : public Model {
-	public:
-		std::vector<Joint> joints{}; ///< model bones
-		std::vector<Mesh> meshes{}; ///< model meshes
-		std::vector<BoneTag> tags{}; ///< model tags, which can be bound to other tags or bones
-		std::vector<Bounds> bounds{}; ///< models bounds
+	  public:
+		std::vector<Joint> joints{};	///< model bones
+		std::vector<Mesh> meshes{};		///< model meshes
+		std::vector<BoneTag> tags{};	///< model tags, which can be bound to other tags or bones
+		std::vector<Bounds> bounds{};	///< models bounds
 		std::vector<Hitbox> hitboxes{}; ///< models hitboxes which can be bound to tags or bones
-		bool hasBindPose = false; ///< defines if the loaded model has a bind pose setup
+		bool hasBindPose = false;		///< defines if the loaded model has a bind pose setup
 
 		~SkeletalModel() override;
 

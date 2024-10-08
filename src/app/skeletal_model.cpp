@@ -108,7 +108,7 @@ namespace mt::model::Skeletal {
 
 			if (hitbox.parentJoint >= 0)
 			{
-				const Point& joint = (drawBindPose ? joints[hitbox.parentJoint] : joints[hitbox.parentJoint].frames[currentFrame]);
+				const Point &joint = (drawBindPose ? joints[hitbox.parentJoint] : joints[hitbox.parentJoint].frames[currentFrame]);
 				glm::vec3 rotPoint = joint.location + (joint.rotation * hitbox.location);
 				matrix = glm::translate(rotPoint) * glm::toMat4(joint.rotation * hitbox.rotation);
 			}

@@ -7,7 +7,7 @@ namespace mt {
 
 	/*! Main application class */
 	class Application {
-	public:
+	  public:
 		explicit Application(const std::string &title);
 
 		~Application();
@@ -23,7 +23,7 @@ namespace mt {
 		 */
 		void loop();
 
-	private:
+	  private:
 		Ref<GLWindow> window = nullptr; ///< Main window instance
 	};
 }

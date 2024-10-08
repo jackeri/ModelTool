@@ -46,7 +46,7 @@ mt::GLRenderer2::GLRenderer2()
 
 	glEnable(GL_BLEND);
 
-	glBlendFunc(GL_ONE, GL_ZERO); //bug fix
+	glBlendFunc(GL_ONE, GL_ZERO); // bug fix
 
 	glEnable(GL_POLYGON_SMOOTH);
 }
@@ -57,7 +57,7 @@ void mt::GLRenderer2::setView(int width, int height)
 	glLoadIdentity();
 	if (height > 0)
 	{
-		gluPerspective(90.f, (double) width / (double) height, 0.1f, 512);
+		gluPerspective(90.f, (double)width / (double)height, 0.1f, 512);
 	}
 	glViewport(0, 0, width, height);
 	glMatrixMode(GL_MODELVIEW);
@@ -78,7 +78,7 @@ void mt::GLRenderer2::grid()
 {
 	glDisable(GL_BLEND);
 
-	//Draw grid
+	// Draw grid
 	const float ORIGIN_LINE_LEN = 60.0f;
 	const float GRID_LINE_LEN = ORIGIN_LINE_LEN * 2;
 
@@ -95,7 +95,7 @@ void mt::GLRenderer2::grid()
 		glDisable(GL_TEXTURE_2D);
 		glDisable(GL_LIGHTING);
 
-		//Draw the grid first
+		// Draw the grid first
 		glColor4f(0, 0, 0, 0.5f);
 		glBegin(GL_LINES);
 		for (float i = 0; i <= GRID_LINE_LEN; i += 2.0f)
@@ -107,8 +107,7 @@ void mt::GLRenderer2::grid()
 		}
 		glEnd();
 
-
-		//Draw the lines
+		// Draw the lines
 		glLineWidth(2);
 		glBegin(GL_LINES);
 		{
@@ -139,8 +138,8 @@ void mt::GLRenderer2::startFrame(Camera &cam)
 
 	glLoadIdentity();
 
-	glm::mat4 cameraMatrix = glm::scale(glm::translate(cam.pos), {cam.scaleFactor, cam.scaleFactor, cam.scaleFactor}) *
-							 glm::orientate4(glm::radians(cam.angles));
+	glm::mat4 cameraMatrix = glm::scale(glm::translate(cam.pos), {cam.scaleFactor, cam.scaleFactor, cam.scaleFactor})
+							 * glm::orientate4(glm::radians(cam.angles));
 
 	glMultMatrixf(glm::value_ptr(cameraMatrix));
 
@@ -215,7 +214,4 @@ void mt::GLRenderer2::renderBuffer()
 	}
 }
 
-void mt::GLRenderer2::endFrame()
-{
-
-}
+void mt::GLRenderer2::endFrame() {}

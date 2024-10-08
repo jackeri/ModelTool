@@ -13,7 +13,7 @@ namespace mt::IO {
 
 	/*! Loaded file instance */
 	class MTFile {
-	public:
+	  public:
 		MTFile() = default;
 
 		~MTFile() = default;
@@ -61,7 +61,7 @@ namespace mt::IO {
 		}
 
 		byte_buffer data = nullptr; ///< Loaded file data
-		std::string name; ///< Full name of the file
+		std::string name;			///< Full name of the file
 		std::string ext;
 		size_t len = 0;
 	};
@@ -71,7 +71,7 @@ namespace mt::IO {
 
 	/*! Base class for different file sources like a local filesystem path, or a zip file */
 	class FileSource {
-	public:
+	  public:
 		FileSource();
 
 		virtual ~FileSource() = default;
@@ -121,22 +121,22 @@ namespace mt::IO {
 			return identifier;
 		}
 
-	private:
+	  private:
 		std::string identifier; ///< Unique generated identifier for this file source
 	};
 
 	/*! Record of a file found in a FileSource's path */
 	struct FileRecord {
-		std::string path{}; ///< Relative path of the file
-		std::string name{}; ///< Name of the file
-		std::string ext{}; ///< Extension of the file
-		bool isDirectory = false; ///< Is the file a directory
+		std::string path{};			  ///< Relative path of the file
+		std::string name{};			  ///< Name of the file
+		std::string ext{};			  ///< Extension of the file
+		bool isDirectory = false;	  ///< Is the file a directory
 		FileSource *source = nullptr; ///< Source of this record
 	};
 
 	/*! Local filesystem path as a FileSource */
 	class MTPath : public FileSource {
-	public:
+	  public:
 		explicit MTPath(std::string path);
 
 		~MTPath() override;
@@ -152,13 +152,13 @@ namespace mt::IO {
 			return path;
 		}
 
-	private:
+	  private:
 		std::string path; ///< Local filesystem path which is used as a base
 	};
 
 	/*! Zip or pk3 file as a file source */
 	class MTPackage : public FileSource {
-	public:
+	  public:
 		explicit MTPackage(std::string path);
 
 		~MTPackage() override;
@@ -176,16 +176,16 @@ namespace mt::IO {
 			return path;
 		}
 
-	private:
-		std::string path; ///< Path to the zip file
-		unzFile zipFile = nullptr; ///< minizip zip instance
-		std::unordered_set<std::string> files; ///< Files in the package (scanned for faster finds)
+	  private:
+		std::string path;						 ///< Path to the zip file
+		unzFile zipFile = nullptr;				 ///< minizip zip instance
+		std::unordered_set<std::string> files;	 ///< Files in the package (scanned for faster finds)
 		std::unordered_set<std::string> folders; ///< Folders in the package (scanned for faster finds)
 	};
 
 	/*! Class that wraps multiple other FileSources and unifies their usage to a single point of access */
 	class FileSystem : public FileSource {
-	public:
+	  public:
 		FileSystem();
 
 		~FileSystem() override;
@@ -237,8 +237,7 @@ namespace mt::IO {
 
 		[[nodiscard]] std::string getSource() const override;
 
-	private:
+	  private:
 		std::vector<std::shared_ptr<FileSource>> sources;
 	};
 }
-

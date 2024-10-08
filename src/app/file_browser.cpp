@@ -12,14 +12,12 @@ namespace mt {
 
 		if (folderSelector)
 		{
-			browser = std::make_unique<ImGui::FileBrowser>(
-					ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_CloseOnEsc);
+			browser = std::make_unique<ImGui::FileBrowser>(ImGuiFileBrowserFlags_SelectDirectory | ImGuiFileBrowserFlags_CloseOnEsc);
 		}
 		else
 		{
-			browser = std::make_unique<ImGui::FileBrowser>(
-					ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir |
-					ImGuiFileBrowserFlags_CloseOnEsc);
+			browser = std::make_unique<ImGui::FileBrowser>(ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir
+														   | ImGuiFileBrowserFlags_CloseOnEsc);
 		}
 
 		this->browserCallback = std::move(callback);

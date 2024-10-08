@@ -7,13 +7,11 @@
 
 namespace mt::model {
 	using ModelLoaderMap = std::unordered_map<std::string, const std::function<Model *(const Ref<IO::MTFile> &)>>;
-	using AnimationLoaderMap = std::unordered_map<std::string, const std::function<void(Model *,
-																						const Ref<IO::MTFile> &)>>;
+	using AnimationLoaderMap = std::unordered_map<std::string, const std::function<void(Model *, const Ref<IO::MTFile> &)>>;
 
 	/*! Static loader class for centralized model and animation loading, multiple loaders can be registered for use */
 	class ModelLoader {
-
-	public:
+	  public:
 		/**
 		 * load and parse a model file
 		 * @param file file instance to parse
@@ -42,7 +40,7 @@ namespace mt::model {
 		 */
 		static void loadAnimation(const Ref<Model> &parent, const Ref<IO::MTFile> &file);
 
-	private:
+	  private:
 		ModelLoader() = default;
 
 		/**
@@ -50,7 +48,7 @@ namespace mt::model {
 		 */
 		static void init();
 
-		static ModelLoaderMap m_modelLoaders; ///< List of available model loaders with extensions
+		static ModelLoaderMap m_modelLoaders;		  ///< List of available model loaders with extensions
 		static AnimationLoaderMap m_animationLoaders; ///< List of available animation loaders with extensions
 	};
 }

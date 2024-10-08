@@ -7,8 +7,7 @@ namespace mt {
 
 	/*! Script parser and streamer, parses IDTech games script files and model files */
 	class ScriptStream {
-	public:
-
+	  public:
 		/**
 		 * Create an empty ScriptStream
 		 */
@@ -151,8 +150,7 @@ namespace mt {
 
 		explicit operator bool();
 
-	private:
-
+	  private:
 		/**
 		 * Current character in point
 		 * @return character
@@ -183,10 +181,10 @@ namespace mt {
 		 */
 		bool skipWhitespace();
 
-		std::string fullScript{}; ///< the script that is used for parsing
-		unsigned int offset = 0; ///< current parsing offset
-		unsigned int lines = 0; ///< line counter
-		std::string currentToken{}; ///< current token value
+		std::string fullScript{};	 ///< the script that is used for parsing
+		unsigned int offset = 0;	 ///< current parsing offset
+		unsigned int lines = 0;		 ///< line counter
+		std::string currentToken{};	 ///< current token value
 		std::string previousToken{}; ///< previous token value
 	};
 }

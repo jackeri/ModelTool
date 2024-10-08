@@ -11,7 +11,7 @@ namespace mt {
 
 	/*! Main window with the OpenGL context */
 	class GLWindow {
-	public:
+	  public:
 		explicit GLWindow(std::string title);
 
 		~GLWindow();
@@ -60,16 +60,16 @@ namespace mt {
 		 */
 		void onResize(int width, int height);
 
-	private:
+	  private:
 		/**
 		 * Handle window input
 		 */
 		void handleInput();
 
-		std::string title; ///< Window title
-		GLFWwindow *window{}; ///< GLFW window instance
-		Ref<ImGuiView> view; ///< UI instance
+		std::string title;								 ///< Window title
+		GLFWwindow *window{};							 ///< GLFW window instance
+		Ref<ImGuiView> view;							 ///< UI instance
 		Ref<ModelPropertyPanel> propertyPanel = nullptr; ///< Model property panels instance to be drawn
-		Ref<ScenePanel> scenePanel = nullptr; ///< 3d scene panel instance to be drawn
+		Ref<ScenePanel> scenePanel = nullptr;			 ///< 3d scene panel instance to be drawn
 	};
 }

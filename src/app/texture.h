@@ -6,8 +6,7 @@ namespace mt {
 
 	/*! OpenGL texture wrapper */
 	class Texture {
-	public:
-
+	  public:
 		/**
 		 * Creates an texture with a name
 		 * @param name name of the texture
@@ -24,7 +23,7 @@ namespace mt {
 		 * @param data file data
 		 * @return true if the loading succeeded
 		 */
-		bool load(const byte_buffer& data);
+		bool load(const byte_buffer &data);
 
 		/**
 		 * bind the current texture
@@ -48,10 +47,10 @@ namespace mt {
 		 */
 		GLuint id();
 
-	private:
-		int width = -1; ///< texture width
-		int height = -1; ///< texture height
+	  private:
+		int width = -1;		///< texture width
+		int height = -1;	///< texture height
 		std::string name{}; ///< texture name
-		GLuint textId = 0; ///< texture OpenGL id
+		GLuint textId = 0;	///< texture OpenGL id
 	};
 }

@@ -6,7 +6,7 @@ namespace mt {
 
 	/*! Opengl framebuffer object wrapper */
 	class Framebuffer {
-	public:
+	  public:
 		Framebuffer() = default;
 
 		~Framebuffer();
@@ -39,12 +39,11 @@ namespace mt {
 		 */
 		GLuint texture();
 
-
-	private:
-		GLuint fboId = 0; ///< Framebuffer ID
-		GLuint texId = 0; ///< Texture ID
-		GLuint depthId = 0; ///< Depth texture ID
-		GLint curWidth = 0; ///< Buffer current width
+	  private:
+		GLuint fboId = 0;	 ///< Framebuffer ID
+		GLuint texId = 0;	 ///< Texture ID
+		GLuint depthId = 0;	 ///< Depth texture ID
+		GLint curWidth = 0;	 ///< Buffer current width
 		GLint curHeight = 0; ///< Buffer current height
 	};
 }

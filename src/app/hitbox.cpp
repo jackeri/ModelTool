@@ -41,47 +41,41 @@ namespace mt::model {
 
 				switch (hash(token.c_str()))
 				{
-					case hash("name"):
-						hitbox.name = stream.token();
-						break;
+				case hash("name"): hitbox.name = stream.token(); break;
 
-					case hash("modifiers"):
+				case hash("modifiers"): {
+					if (stream.token() != "{")
 					{
-						if (stream.token() != "{")
-						{
-							throw mt_ex("Invalid hierarchy data");
-						}
-
-						while (stream.hasNext() && stream.peekNext() != "}")
-						{
-							hitbox.modifiers.emplace(stream.token());
-						}
-
-						if (stream.token() != "}")
-						{
-							throw mt_ex("Invalid hierarchy data");
-						}
-
-						break;
+						throw mt_ex("Invalid hierarchy data");
 					}
 
-					case hash("origin"):
+					while (stream.hasNext() && stream.peekNext() != "}")
 					{
-						hitbox.parentJoint = stream.parseInt();
-						stream.parse1DMatrix(3, glm::value_ptr(hitbox.location));
-						stream.parse1DMatrix(4, glm::value_ptr(hitbox.rotation));
-						break;
+						hitbox.modifiers.emplace(stream.token());
 					}
 
-					case hash("bounds"):
+					if (stream.token() != "}")
 					{
-						stream.parse1DMatrix(3, glm::value_ptr(hitbox.min));
-						stream.parse1DMatrix(3, glm::value_ptr(hitbox.max));
-						break;
+						throw mt_ex("Invalid hierarchy data");
 					}
 
-					default:
-						throw mt_ex("Unexpected token: " + token);
+					break;
+				}
+
+				case hash("origin"): {
+					hitbox.parentJoint = stream.parseInt();
+					stream.parse1DMatrix(3, glm::value_ptr(hitbox.location));
+					stream.parse1DMatrix(4, glm::value_ptr(hitbox.rotation));
+					break;
+				}
+
+				case hash("bounds"): {
+					stream.parse1DMatrix(3, glm::value_ptr(hitbox.min));
+					stream.parse1DMatrix(3, glm::value_ptr(hitbox.max));
+					break;
+				}
+
+				default: throw mt_ex("Unexpected token: " + token);
 				}
 			}
 
@@ -115,11 +109,10 @@ namespace mt::model {
 			out << "\tname \"" << box.name << "\"" << nl;
 
 			out << "\torigin " << box.parentJoint << " ( " << box.location.x << " " << box.location.y << " " << box.location.z << " ) ( "
-				<< box.rotation.x << " " << box.rotation.y << " " << box.rotation.z << " " << box.rotation.w << " )"
-				<< nl;
+				<< box.rotation.x << " " << box.rotation.y << " " << box.rotation.z << " " << box.rotation.w << " )" << nl;
 
-			out << "\tbounds ( " << box.min.x << " " << box.min.y << " " << box.min.z << " ) ( "
-				<< box.max.x << " " << box.max.y << " " << box.max.z << " )" << nl;
+			out << "\tbounds ( " << box.min.x << " " << box.min.y << " " << box.min.z << " ) ( " << box.max.x << " " << box.max.y << " "
+				<< box.max.z << " )" << nl;
 
 			out << "\tmodifiers {" << nl;
 			for (auto &mod : box.modifiers)

@@ -14,7 +14,9 @@ namespace mt::tools {
 	 */
 	template<typename T, typename S>
 	inline T *SafeAllocate(S size)
-	{ return (T *) (new byte[size_t(size)]); }
+	{
+		return (T *)(new byte[size_t(size)]);
+	}
 
 	/**
 	 * @deprecated not needed anymore, cleanup at some point

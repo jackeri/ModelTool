@@ -25,10 +25,7 @@ static void on_window_size_callback(GLFWwindow *window, int width, int height)
 	pWindow->onResize(width, height);
 }
 
-mt::GLWindow::GLWindow(std::string title) : title(std::move(title))
-{
-
-}
+mt::GLWindow::GLWindow(std::string title) : title(std::move(title)) {}
 
 mt::GLWindow::~GLWindow()
 {
@@ -66,10 +63,10 @@ bool mt::GLWindow::init()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 #elif defined(MT_OPENGL_3)
 	// Let's use OpenGL 3.3 for now, maybe upgrade in the future
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #else
 #error What GL version are we supposed to use?
 #endif

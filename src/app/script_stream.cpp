@@ -1,13 +1,8 @@
 #include "script_stream.h"
 
-const std::set<char> singlePunctuations = {
-		'{', '}', '[', ']', '<', '>', '(', ')'
-};
+const std::set<char> singlePunctuations = {'{', '}', '[', ']', '<', '>', '(', ')'};
 
-const std::set<std::string> multiPunctuations = {
-		"+=", "-=", "*=", "/=", "&=", "|=", "++", "--",
-		"&&", "||", "<=", ">=", "==", "!="
-};
+const std::set<std::string> multiPunctuations = {"+=", "-=", "*=", "/=", "&=", "|=", "++", "--", "&&", "||", "<=", ">=", "==", "!="};
 
 mt::ScriptStream::ScriptStream(const std::string &value)
 {
@@ -255,7 +250,7 @@ void mt::ScriptStream::parseNext(bool linebreaks)
 
 			continue;
 		}
-			// Block comment
+		// Block comment
 		else if (current() == '/' && next() == '*')
 		{
 			if (!currentToken.empty())

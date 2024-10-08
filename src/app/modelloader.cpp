@@ -13,8 +13,8 @@ namespace mt {
 		// Make sure the loader map is initialized
 		init();
 
-		auto it = std::find_if(std::begin(m_modelLoaders), std::end(m_modelLoaders),
-							   [&](auto &&loader) { return loader.first == file->ext; });
+		auto it
+			= std::find_if(std::begin(m_modelLoaders), std::end(m_modelLoaders), [&](auto &&loader) { return loader.first == file->ext; });
 
 		if (it == std::end(m_modelLoaders))
 		{

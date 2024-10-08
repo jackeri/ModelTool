@@ -32,9 +32,9 @@ namespace mt {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO &io = ImGui::GetIO();
-		(void) io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+		(void)io;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // Enable Docking
 		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
 		// Setup Dear ImGui style
@@ -99,17 +99,15 @@ namespace mt {
 
 		if (ImGui::DockBuilderGetNode(dockId) == nullptr)
 		{
-			ImGui::DockBuilderRemoveNode(dockId); // Clear out existing layout
+			ImGui::DockBuilderRemoveNode(dockId);							 // Clear out existing layout
 			ImGui::DockBuilderAddNode(dockId, ImGuiDockNodeFlags_DockSpace); // Add empty node
 			ImGui::DockBuilderSetNodeSize(dockId, {500, 500});
 
-			ImGuiID dock_main_id = dockId; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
-			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr,
-															   &dock_main_id);
-			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr,
-																 &dock_main_id);
-			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr,
-																 &dock_main_id);
+			ImGuiID dock_main_id = dockId; // This variable will track the document node, however we are not using it here as we aren't
+										   // docking anything into it.
+			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
+			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr, &dock_main_id);
+			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
 
 			ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
 			ImGui::DockBuilderDockWindow("Properties", dock_left_id);
@@ -134,9 +132,7 @@ namespace mt {
 		// Setup the base path
 		if (!state.filesystem.hasSources() && !browser.isOpen())
 		{
-			browser.show("Select the base folder", [&](const std::string &path) {
-				state.filesystem.addPath(path);
-			}, true);
+			browser.show("Select the base folder", [&](const std::string &path) { state.filesystem.addPath(path); }, true);
 		}
 
 		browser.handle();
@@ -160,10 +156,8 @@ namespace mt {
 		// Setup the main menu bar.
 		if (ImGui::BeginMainMenuBar())
 		{
-
 			if (ImGui::BeginMenu("File"))
 			{
-
 				if (ImGui::MenuItem("Open model"))
 				{
 					browser.show("Load model", [&](const std::string &model) {
@@ -212,8 +206,8 @@ namespace mt {
 					browser.setTypeFilters({".hitboxes"});
 				}
 
-				if (ImGui::MenuItem("Save hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel() &&
-																	  !state.model->getHitboxes()->empty())))
+				if (ImGui::MenuItem("Save hitboxes", nullptr, false,
+									(!!state.model && state.model->skeletalModel() && !state.model->getHitboxes()->empty())))
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
 						logger->info("Selected filename: {}", file);

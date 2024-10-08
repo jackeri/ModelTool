@@ -5,10 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-mt::Texture::Texture(std::string name) : name(std::move(name))
-{
-
-}
+mt::Texture::Texture(std::string name) : name(std::move(name)) {}
 
 mt::Texture::~Texture()
 {
@@ -19,7 +16,7 @@ mt::Texture::~Texture()
 	}
 }
 
-bool mt::Texture::load(const mt::byte_buffer& data)
+bool mt::Texture::load(const mt::byte_buffer &data)
 {
 	glGenTextures(1, &textId);
 	bind();

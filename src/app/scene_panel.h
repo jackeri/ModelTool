@@ -9,7 +9,7 @@ namespace mt {
 
 	/*! Scene panel which hold the actual 3d view */
 	class ScenePanel {
-	public:
+	  public:
 		ScenePanel();
 
 		~ScenePanel();
@@ -27,11 +27,11 @@ namespace mt {
 		 */
 		void onMouseMove(double x, double y, int button);
 
-	private:
-		glm::vec2 size{}; ///< Viewport size
-		Camera camera; ///< Camera instance which is used in the scene panel
-		Ref<Framebuffer> fbo; ///< Frame buffer for 3d view drawing
-		Ref<Renderer> renderer; ///< Renderer which is used for the 3d view
+	  private:
+		glm::vec2 size{};		   ///< Viewport size
+		Camera camera;			   ///< Camera instance which is used in the scene panel
+		Ref<Framebuffer> fbo;	   ///< Frame buffer for 3d view drawing
+		Ref<Renderer> renderer;	   ///< Renderer which is used for the 3d view
 		bool captureMouse = false; ///< state flag for mouse capture
 		bool sceneHovered = false; ///< state flag for mouse hover scene panel
 	};

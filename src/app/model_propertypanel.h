@@ -4,7 +4,7 @@
 
 namespace mt {
 	class ModelPropertyPanel {
-	public:
+	  public:
 		ModelPropertyPanel() = default;
 
 		~ModelPropertyPanel() = default;
@@ -14,8 +14,7 @@ namespace mt {
 		 */
 		void render();
 
-	private:
-
+	  private:
 		/**
 		 * Draw the hitbox menu
 		 */

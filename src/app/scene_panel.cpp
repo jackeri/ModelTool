@@ -14,10 +14,7 @@ mt::ScenePanel::ScenePanel()
 	fbo = make_ref<Framebuffer>();
 }
 
-mt::ScenePanel::~ScenePanel()
-{
-
-}
+mt::ScenePanel::~ScenePanel() {}
 
 void mt::ScenePanel::render()
 {
@@ -94,7 +91,7 @@ void mt::ScenePanel::onMouseMove(double x, double y, int button)
 	}
 
 	auto delta = ImGui::GetIO().MouseDelta;
-	camera.angles.x += (float) (delta.y) * CAMERA_ROTATION_SCALE;
-	camera.angles.y += (float) (delta.x) * CAMERA_ROTATION_SCALE;
+	camera.angles.x += (float)(delta.y) * CAMERA_ROTATION_SCALE;
+	camera.angles.y += (float)(delta.x) * CAMERA_ROTATION_SCALE;
 	camera.checkLimits();
 }

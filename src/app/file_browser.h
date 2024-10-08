@@ -7,7 +7,7 @@ namespace mt {
 
 	/*! Filesystem browser for folder or file picking */
 	class FileBrowser {
-	public:
+	  public:
 		FileBrowser() = default;
 
 		~FileBrowser() = default;
@@ -36,8 +36,8 @@ namespace mt {
 		 */
 		void handle();
 
-	private:
+	  private:
 		std::unique_ptr<ImGui::FileBrowser> browser = nullptr; ///< FileBrowser instance, can either be a file picker or a folder picker
-		std::function<void(std::string)> browserCallback{}; ///< Callback function to be used
+		std::function<void(std::string)> browserCallback{};	   ///< Callback function to be used
 	};
 }

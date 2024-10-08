@@ -13,9 +13,9 @@ namespace mt {
 
 	/*! Model vertex with position, normal and texture information */
 	struct Vertex {
-		glm::vec3 pos{}; ///< position vector
+		glm::vec3 pos{};	///< position vector
 		glm::vec3 normal{}; ///< normal vector
-		glm::vec2 tex{}; ///< texture coordinates
+		glm::vec2 tex{};	///< texture coordinates
 	};
 
 	/*! Model bounds data */
@@ -40,7 +40,7 @@ namespace mt {
 	const int FRAME_BIND_POSE = -1; ///< "Number" of the bind pose frame in the model frames array, which go from 0 -> *
 
 	class Model {
-	public:
+	  public:
 		Model() = default;
 
 		virtual ~Model() = default;
@@ -120,10 +120,10 @@ namespace mt {
 		 */
 		virtual void renderModel(Ref<mt::Renderer> renderer) = 0;
 
-		Point origin{}; ///< Origin point of this model
-		Point transform{}; ///< Transforms applied to this model
-		float scale{}; ///< Scale of this model
-		std::string name; ///< Name of this model
+		Point origin{};						///< Origin point of this model
+		Point transform{};					///< Transforms applied to this model
+		float scale{};						///< Scale of this model
+		std::string name;					///< Name of this model
 		int currentFrame = FRAME_BIND_POSE; ///< Currently used frame
 	};
 

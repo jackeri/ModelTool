@@ -38,7 +38,7 @@ void mt::Camera::checkLimits(bool zoom)
 	}
 	else
 	{
-		//zoom limits
+		// zoom limits
 		clampPos(pos.z);
 	}
 }

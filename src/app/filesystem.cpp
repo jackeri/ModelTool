@@ -104,13 +104,7 @@ namespace mt::IO {
 
 			auto tmp = relative(entry.path(), {path});
 
-			files->push_back({
-				tmp.string(),
-				tmp.filename().string(),
-				tmp.extension().string(),
-				entry.is_directory(),
-				this
-			});
+			files->push_back({tmp.string(), tmp.filename().string(), tmp.extension().string(), entry.is_directory(), this});
 		}
 
 		return files;
@@ -217,9 +211,7 @@ namespace mt::IO {
 
 	FileList MTPackage::getFiles(const std::string &name)
 	{
-		static auto charFinder = [] (const char &val) {
-			return val == '/';
-		};
+		static auto charFinder = [](const char &val) { return val == '/'; };
 
 		FileList records = make_ref_list<FileRecord>();
 		unsigned int separators = 0;
@@ -247,13 +239,7 @@ namespace mt::IO {
 			// "abuse" the filesystem api a bit
 			std::filesystem::path tmp(folder);
 
-			records->push_back({
-				folder,
-				tmp.filename().string(),
-				{},
-				true,
-				this
-			});
+			records->push_back({folder, tmp.filename().string(), {}, true, this});
 		}
 
 		for (auto &file : files)
@@ -273,22 +259,13 @@ namespace mt::IO {
 			// "abuse" the filesystem api a bit
 			std::filesystem::path tmp(file);
 
-			records->push_back({
-				file,
-				tmp.filename().string(),
-				tmp.extension().string(),
-				false,
-				this
-			});
+			records->push_back({file, tmp.filename().string(), tmp.extension().string(), false, this});
 		}
 
 		return records;
 	}
 
-	FileSystem::FileSystem() : FileSource()
-	{
-
-	}
+	FileSystem::FileSystem() : FileSource() {}
 
 	FileSystem::~FileSystem()
 	{
@@ -338,9 +315,9 @@ namespace mt::IO {
 
 	bool FileSystem::hasSource(FileSource &source)
 	{
-		return std::find_if(sources.begin(), sources.end(), [&](auto &tempSource) {
-			return source.getIdentifier() == tempSource->getIdentifier();
-		}) != sources.end();
+		return std::find_if(sources.begin(), sources.end(),
+							[&](auto &tempSource) { return source.getIdentifier() == tempSource->getIdentifier(); })
+			   != sources.end();
 	}
 
 	template<typename F>
@@ -356,9 +333,8 @@ namespace mt::IO {
 			return;
 		}
 
-		auto point = std::find_if(sources.begin(), sources.end(), [&](auto &tempSource) {
-			return source.getIdentifier() == tempSource->getIdentifier();
-		});
+		auto point = std::find_if(sources.begin(), sources.end(),
+								  [&](auto &tempSource) { return source.getIdentifier() == tempSource->getIdentifier(); });
 
 		sources.erase(point);
 	}
@@ -375,9 +351,7 @@ namespace mt::IO {
 
 	bool FileSystem::findFile(const std::string &name)
 	{
-		return std::any_of(sources.begin(), sources.end(), [&](auto &source) {
-			return source->findFile(name);
-		});
+		return std::any_of(sources.begin(), sources.end(), [&](auto &source) { return source->findFile(name); });
 	}
 
 	Ref<MTFile> FileSystem::loadFile(const std::string &name)
@@ -428,7 +402,7 @@ namespace mt::IO {
 		files->erase(unique, files->end());
 
 		// Sort items by name but directories first
-		std::sort(files->begin(), files->end(), [] (const FileRecord &first, const FileRecord &second) {
+		std::sort(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
 			if (first.isDirectory == second.isDirectory)
 			{
 				return first.name < second.name;

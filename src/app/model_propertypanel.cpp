@@ -22,8 +22,7 @@ namespace mt {
 					// Draw frame selector if the model has frames available
 					if (state.model->hasFrames())
 					{
-						ImGui::SliderInt("Frame", &state.model->currentFrame, mt::FRAME_BIND_POSE,
-										 state.model->numFrames() - 1);
+						ImGui::SliderInt("Frame", &state.model->currentFrame, mt::FRAME_BIND_POSE, state.model->numFrames() - 1);
 					}
 				}
 				else
@@ -42,14 +41,13 @@ namespace mt {
 
 			if (ImGui::CollapsingHeader("App", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::ColorEdit3("background color", (float *) &state.clearColor);
+				ImGui::ColorEdit3("background color", (float *)&state.clearColor);
 
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-							ImGui::GetIO().Framerate);
+				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			}
 		}
-        ImGui::End();
-    }
+		ImGui::End();
+	}
 
 	void ModelPropertyPanel::drawHitboxMenu()
 	{
@@ -75,27 +73,28 @@ namespace mt {
 
 			ImGui::Spacing();
 
-			ImGui::Combo("Bind bone", &hitbox.parentJoint,
-						 [](void *data, int idx, const char **out_text) -> bool {
-							 auto *list = (std::vector<Joint> *) data;
+			ImGui::Combo(
+				"Bind bone", &hitbox.parentJoint,
+				[](void *data, int idx, const char **out_text) -> bool {
+					auto *list = (std::vector<Joint> *)data;
 
-							 if (idx < 0 || idx >= list->size())
-							 {
-								 out_text = nullptr;
-							 }
-							 else
-							 {
-								 *out_text = list->at(idx).name.c_str();
-							 }
+					if (idx < 0 || idx >= list->size())
+					{
+						out_text = nullptr;
+					}
+					else
+					{
+						*out_text = list->at(idx).name.c_str();
+					}
 
-							 return true;
-						 },
-						 &model->joints, model->joints.size());
+					return true;
+				},
+				&model->joints, model->joints.size());
 
 			ImGui::Spacing();
 
-			bool headshot = std::any_of(hitbox.modifiers.begin(), hitbox.modifiers.end(),
-										[](auto &modifier) { return modifier == "headshot"; });
+			bool headshot
+				= std::any_of(hitbox.modifiers.begin(), hitbox.modifiers.end(), [](auto &modifier) { return modifier == "headshot"; });
 			ImGui::Checkbox("Head", &headshot);
 
 			if (!headshot)

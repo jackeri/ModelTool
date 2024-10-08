@@ -39,81 +39,70 @@ namespace mt::model {
 		{
 			switch (hash(stream.last().c_str()))
 			{
-				case hash("shader"):
-					// A mesh does not have a name per say, but usually the material name is the same as the mesh name
-					mesh.name = mesh.material.name = stream.token();
-					break;
+			case hash("shader"):
+				// A mesh does not have a name per say, but usually the material name is the same as the mesh name
+				mesh.name = mesh.material.name = stream.token();
+				break;
 
-				case hash("numverts"):
-					numVerts = stream.parseInt();
-					break;
+			case hash("numverts"): numVerts = stream.parseInt(); break;
 
-				case hash("vert"):
+			case hash("vert"): {
+				SkeletalVertex vertex;
+				int offset = stream.parseInt();
+				stream.parse1DMatrix(2, glm::value_ptr(vertex.tex));
+				vertex.startWeight = stream.parseInt();
+				vertex.weightCount = stream.parseInt();
+
+				if (vertex.startWeight < 0 || vertex.weightCount <= 0)
 				{
-					SkeletalVertex vertex;
-					int offset = stream.parseInt();
-					stream.parse1DMatrix(2, glm::value_ptr(vertex.tex));
-					vertex.startWeight = stream.parseInt();
-					vertex.weightCount = stream.parseInt();
-
-					if (vertex.startWeight < 0 || vertex.weightCount <= 0)
-					{
-						throw mt_ex("Invalid vertex");
-					}
-
-					mesh.vertices.emplace_back(vertex);
-					break;
+					throw mt_ex("Invalid vertex");
 				}
 
-				case hash("numtris"):
-					numTris = stream.parseInt();
-					break;
+				mesh.vertices.emplace_back(vertex);
+				break;
+			}
 
-				case hash("tri"):
+			case hash("numtris"): numTris = stream.parseInt(); break;
+
+			case hash("tri"): {
+				glm::ivec3 tri;
+
+				int triangleOffset = stream.parseInt();
+
+				if (triangleOffset != mesh.tris.size())
 				{
-					glm::ivec3 tri;
-
-					int triangleOffset = stream.parseInt();
-
-					if (triangleOffset != mesh.tris.size())
-					{
-						throw mt_ex("Invalid triangle offset: " + std::to_string(triangleOffset));
-					}
-
-					tri.x = stream.parseInt();
-					tri.y = stream.parseInt();
-					tri.z = stream.parseInt();
-
-					mesh.tris.emplace_back(tri);
-					break;
+					throw mt_ex("Invalid triangle offset: " + std::to_string(triangleOffset));
 				}
 
-				case hash("numweights"):
-					numWeights = stream.parseInt();
-					break;
+				tri.x = stream.parseInt();
+				tri.y = stream.parseInt();
+				tri.z = stream.parseInt();
 
-				case hash("weight"):
+				mesh.tris.emplace_back(tri);
+				break;
+			}
+
+			case hash("numweights"): numWeights = stream.parseInt(); break;
+
+			case hash("weight"): {
+				Weight weight;
+
+				if (stream.parseInt() < 0)
 				{
-					Weight weight;
-
-
-					if (stream.parseInt() < 0)
-					{
-						throw mt_ex("Invalid weight offset");
-					}
-
-					weight.jointId = stream.parseInt();
-					weight.bias = stream.parseFloat();
-					stream.parse1DMatrix(3, glm::value_ptr(weight.pos));
-
-					mesh.weights.emplace_back(weight);
-					break;
+					throw mt_ex("Invalid weight offset");
 				}
 
-				default:
-				{
-					throw mt_ex("Unknown token: " + stream.last());
-				}
+				weight.jointId = stream.parseInt();
+				weight.bias = stream.parseFloat();
+				stream.parse1DMatrix(3, glm::value_ptr(weight.pos));
+
+				mesh.weights.emplace_back(weight);
+				break;
+			}
+
+			default: {
+				throw mt_ex("Unknown token: " + stream.last());
+			}
 			}
 		}
 
@@ -207,57 +196,50 @@ namespace mt::model {
 
 			switch (hash(token.c_str()))
 			{
-				// Check that the version matches the one version that we actually support (this should always be the same)
-				case hash("MD5Version"):
-					if (stream.parseInt() != MD5_VERSION)
-					{
-						throw mt_ex("Invalid MD5 version: " + stream.last());
-					}
-					break;
-
-					// This can be ignored
-				case hash("commandline"):
-					// Skip the rest of the line, we do not care about the command line used
-					stream.skipLine();
-					break;
-
-				case hash("numJoints"):
-					numJoints = (int) stream.parse();
-					break;
-
-				case hash("numMeshes"):
-					numMeshes = (int) stream.parse();
-					break;
-
-				case hash("joints"):
+			// Check that the version matches the one version that we actually support (this should always be the same)
+			case hash("MD5Version"):
+				if (stream.parseInt() != MD5_VERSION)
 				{
-					if (stream.token() != "{")
-					{
-						throw mt_ex("Invalid joint data");
-					}
-
-					while (stream.token() != "}")
-					{
-						Joint joint;
-						joint.name = stream.last();
-						joint.parentId = stream.parseInt();
-						stream.parse1DMatrix(3, glm::value_ptr(joint.location));
-						stream.parse1DMatrix(3, glm::value_ptr(joint.rotation));
-						computeQuaternionWComponent(joint.rotation);
-						model->joints.push_back(joint);
-					}
-					break;
+					throw mt_ex("Invalid MD5 version: " + stream.last());
 				}
-				case hash("mesh"):
+				break;
+
+				// This can be ignored
+			case hash("commandline"):
+				// Skip the rest of the line, we do not care about the command line used
+				stream.skipLine();
+				break;
+
+			case hash("numJoints"): numJoints = (int)stream.parse(); break;
+
+			case hash("numMeshes"): numMeshes = (int)stream.parse(); break;
+
+			case hash("joints"): {
+				if (stream.token() != "{")
 				{
-					parseMeshPart(stream, model);
-					break;
+					throw mt_ex("Invalid joint data");
 				}
 
-				default:
+				while (stream.token() != "}")
 				{
-					throw mt_ex("Unknown token: " + token);
+					Joint joint;
+					joint.name = stream.last();
+					joint.parentId = stream.parseInt();
+					stream.parse1DMatrix(3, glm::value_ptr(joint.location));
+					stream.parse1DMatrix(3, glm::value_ptr(joint.rotation));
+					computeQuaternionWComponent(joint.rotation);
+					model->joints.push_back(joint);
 				}
+				break;
+			}
+			case hash("mesh"): {
+				parseMeshPart(stream, model);
+				break;
+			}
+
+			default: {
+				throw mt_ex("Unknown token: " + token);
+			}
 			}
 		}
 
@@ -281,7 +263,8 @@ namespace mt::model {
 		try
 		{
 			parseMeshRoot(stream, model);
-		} catch (const std::exception &exception)
+		}
+		catch (const std::exception &exception)
 		{
 			delete model;
 			return nullptr;
@@ -304,175 +287,161 @@ namespace mt::model {
 
 			switch (hash(token.c_str()))
 			{
-				// Check that the version matches the one version that we actually support (this should always be the same)
-				case hash("MD5Version"):
-					if ((int) stream.parse() != MD5_VERSION)
-					{
-						throw mt_ex("Invalid MD5 version: " + stream.last());
-					}
-					break;
-
-					// This can be ignored
-				case hash("commandline"):
-					// Skip the rest of the line, we do not care about the command line used
-					stream.skipLine();
-					break;
-
-				case hash("numFrames"):
-					numFrames = stream.parseInt();
-					break;
-
-				case hash("numJoints"):
-					if (model->joints.size() != stream.parseInt())
-					{
-						throw mt_ex("Invalid number of joints expected: " + stream.last());
-					}
-					break;
-
-				case hash("frameRate"):
-					frameRate = stream.parseInt();
-					break;
-
-				case hash("numAnimatedComponents"):
-					numAnimatedComponents = stream.parseInt();
-					break;
-
-				case hash("hierarchy"):
+			// Check that the version matches the one version that we actually support (this should always be the same)
+			case hash("MD5Version"):
+				if ((int)stream.parse() != MD5_VERSION)
 				{
-					if (stream.token() != "{")
-					{
-						throw mt_ex("Invalid hierarchy data");
-					}
+					throw mt_ex("Invalid MD5 version: " + stream.last());
+				}
+				break;
 
-					for (auto &joint : model->joints)
-					{
-						if (joint.name != stream.token())
-						{
-							throw mt_ex(
-									"Invalid joint hierarchy, name does not match: " + joint.name + " != " +
-									stream.last());
-						}
+				// This can be ignored
+			case hash("commandline"):
+				// Skip the rest of the line, we do not care about the command line used
+				stream.skipLine();
+				break;
 
-						if (joint.parentId != stream.parseInt())
-						{
-							throw mt_ex(
-									"Invalid joint hierarchy, parent ID does not match for: " + joint.name);
-						}
+			case hash("numFrames"): numFrames = stream.parseInt(); break;
 
-						joint.flags = stream.parseInt();
-						joint.startIndex = stream.parseInt();
-					}
+			case hash("numJoints"):
+				if (model->joints.size() != stream.parseInt())
+				{
+					throw mt_ex("Invalid number of joints expected: " + stream.last());
+				}
+				break;
 
-					if (stream.token() != "}")
-					{
-						throw mt_ex("Invalid number of joints");
-					}
+			case hash("frameRate"): frameRate = stream.parseInt(); break;
 
-					break;
+			case hash("numAnimatedComponents"): numAnimatedComponents = stream.parseInt(); break;
+
+			case hash("hierarchy"): {
+				if (stream.token() != "{")
+				{
+					throw mt_ex("Invalid hierarchy data");
 				}
 
-				case hash("bounds"):
+				for (auto &joint : model->joints)
 				{
-					if (stream.token() != "{")
+					if (joint.name != stream.token())
 					{
-						throw mt_ex("Invalid bounds data");
+						throw mt_ex("Invalid joint hierarchy, name does not match: " + joint.name + " != " + stream.last());
 					}
 
-					while (stream.peekNext() != "}")
+					if (joint.parentId != stream.parseInt())
 					{
-						Bounds bound{};
-						stream.parse1DMatrix(3, glm::value_ptr(bound.min));
-						stream.parse1DMatrix(3, glm::value_ptr(bound.max));
-						model->bounds.emplace_back(bound);
+						throw mt_ex("Invalid joint hierarchy, parent ID does not match for: " + joint.name);
 					}
-					stream.parse();
-					break;
+
+					joint.flags = stream.parseInt();
+					joint.startIndex = stream.parseInt();
 				}
 
-				case hash("baseframe"):
-					// The model should already have a bind pose, so just skip this section
-					stream.skipSection();
-					break;
-
-				case hash("frame"):
+				if (stream.token() != "}")
 				{
-					int frameNumber = stream.parseInt();
-					std::vector<float> frameValues{};
-
-					if (stream.token() != "{")
-					{
-						throw mt_ex("Invalid frame data for frame: " + std::to_string(frameNumber));
-					}
-
-					while (stream.peekNext() != "}")
-					{
-						frameValues.emplace_back(stream.parseFloat());
-					}
-					stream.parse();
-
-					// calculate the final joint locations per frame
-					for (auto &joint : model->joints)
-					{
-						Point point;
-
-						unsigned int j = 0;
-
-						if (joint.flags & 1) // Pos.x
-						{
-							point.location.x = frameValues[joint.startIndex + j++];
-						}
-						if (joint.flags & 2) // Pos.y
-						{
-							point.location.y = frameValues[joint.startIndex + j++];
-						}
-						if (joint.flags & 4) // Pos.z
-						{
-							point.location.z = frameValues[joint.startIndex + j++];
-						}
-						if (joint.flags & 8) // Orient.x
-						{
-							point.rotation.x = frameValues[joint.startIndex + j++];
-						}
-						if (joint.flags & 16) // Orient.y
-						{
-							point.rotation.y = frameValues[joint.startIndex + j++];
-						}
-						if (joint.flags & 32) // Orient.z
-						{
-							point.rotation.z = frameValues[joint.startIndex + j++];
-						}
-
-						computeQuaternionWComponent(point.rotation);
-
-						// Has a parent joint so we need to calculate the position based on the parent position
-						if (joint.parentId >= 0)
-						{
-							Point &parentJoint = model->joints[joint.parentId].frames.back();
-
-							point.location = parentJoint.location + (parentJoint.rotation * point.location);
-							point.rotation = glm::normalize(parentJoint.rotation * point.rotation);
-						}
-
-						joint.frames.push_back(point);
-					}
-
-					processedFrames++;
-
-					break;
+					throw mt_ex("Invalid number of joints");
 				}
 
-				default:
+				break;
+			}
+
+			case hash("bounds"): {
+				if (stream.token() != "{")
 				{
-					throw mt_ex("Unknown token: " + token);
+					throw mt_ex("Invalid bounds data");
 				}
+
+				while (stream.peekNext() != "}")
+				{
+					Bounds bound{};
+					stream.parse1DMatrix(3, glm::value_ptr(bound.min));
+					stream.parse1DMatrix(3, glm::value_ptr(bound.max));
+					model->bounds.emplace_back(bound);
+				}
+				stream.parse();
+				break;
+			}
+
+			case hash("baseframe"):
+				// The model should already have a bind pose, so just skip this section
+				stream.skipSection();
+				break;
+
+			case hash("frame"): {
+				int frameNumber = stream.parseInt();
+				std::vector<float> frameValues{};
+
+				if (stream.token() != "{")
+				{
+					throw mt_ex("Invalid frame data for frame: " + std::to_string(frameNumber));
+				}
+
+				while (stream.peekNext() != "}")
+				{
+					frameValues.emplace_back(stream.parseFloat());
+				}
+				stream.parse();
+
+				// calculate the final joint locations per frame
+				for (auto &joint : model->joints)
+				{
+					Point point;
+
+					unsigned int j = 0;
+
+					if (joint.flags & 1) // Pos.x
+					{
+						point.location.x = frameValues[joint.startIndex + j++];
+					}
+					if (joint.flags & 2) // Pos.y
+					{
+						point.location.y = frameValues[joint.startIndex + j++];
+					}
+					if (joint.flags & 4) // Pos.z
+					{
+						point.location.z = frameValues[joint.startIndex + j++];
+					}
+					if (joint.flags & 8) // Orient.x
+					{
+						point.rotation.x = frameValues[joint.startIndex + j++];
+					}
+					if (joint.flags & 16) // Orient.y
+					{
+						point.rotation.y = frameValues[joint.startIndex + j++];
+					}
+					if (joint.flags & 32) // Orient.z
+					{
+						point.rotation.z = frameValues[joint.startIndex + j++];
+					}
+
+					computeQuaternionWComponent(point.rotation);
+
+					// Has a parent joint so we need to calculate the position based on the parent position
+					if (joint.parentId >= 0)
+					{
+						Point &parentJoint = model->joints[joint.parentId].frames.back();
+
+						point.location = parentJoint.location + (parentJoint.rotation * point.location);
+						point.rotation = glm::normalize(parentJoint.rotation * point.rotation);
+					}
+
+					joint.frames.push_back(point);
+				}
+
+				processedFrames++;
+
+				break;
+			}
+
+			default: {
+				throw mt_ex("Unknown token: " + token);
+			}
 			}
 		}
 
 		if (numFrames != processedFrames)
 		{
-			throw mt_ex(
-					"Invalid animation data. Framecounts do not match: " + std::to_string(numFrames) + " != " +
-					std::to_string(processedFrames));
+			throw mt_ex("Invalid animation data. Framecounts do not match: " + std::to_string(numFrames)
+						+ " != " + std::to_string(processedFrames));
 		}
 	}
 

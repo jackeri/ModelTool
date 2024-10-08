@@ -37,13 +37,13 @@
 
 namespace mt {
 
-	const int MAX_PATH = 1024; ///< Max path length in the model files (game has a max path length)
+	const int MAX_PATH = 1024;			///< Max path length in the model files (game has a max path length)
 	const std::string MT_LOGGER = "mt"; ///< Used logger name
 
-    inline int to_int(const float &val)
-    {
-        return static_cast<int>(std::round(val));
-    }
+	inline int to_int(const float &val)
+	{
+		return static_cast<int>(std::round(val));
+	}
 
 	/**
 	 * Clears an vector and handles the destruction of the elements
@@ -136,9 +136,9 @@ namespace mt {
 
 	class mt_exception : public std::runtime_error {
 		std::string m_msg;
-	public:
-		explicit mt_exception(const std::string &msg, const std::string &file = "", const int &line = -1) :
-				std::runtime_error(msg)
+
+	  public:
+		explicit mt_exception(const std::string &msg, const std::string &file = "", const int &line = -1) : std::runtime_error(msg)
 		{
 			std::ostringstream stream;
 			if (!file.empty())

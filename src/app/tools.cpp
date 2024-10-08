@@ -3,10 +3,9 @@
 std::string mt::tools::randomString(size_t length)
 {
 	auto randomChar = []() -> char {
-		const char charset[] =
-				"0123456789"
-				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-				"abcdefghijklmnopqrstuvwxyz";
+		const char charset[] = "0123456789"
+							   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+							   "abcdefghijklmnopqrstuvwxyz";
 		const size_t max_index = (sizeof(charset) - 1);
 		return charset[rand() % max_index];
 	};
@@ -15,12 +14,12 @@ std::string mt::tools::randomString(size_t length)
 	return str;
 }
 
-bool mt::tools::endsWith(const std::string& str, const std::string& suffix)
+bool mt::tools::endsWith(const std::string &str, const std::string &suffix)
 {
-	return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+	return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
-bool mt::tools::startsWith(const std::string& str, const std::string& prefix)
+bool mt::tools::startsWith(const std::string &str, const std::string &prefix)
 {
 	return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
@@ -28,7 +27,7 @@ bool mt::tools::startsWith(const std::string& str, const std::string& prefix)
 void mt::tools::printGLErrors()
 {
 	GLenum err;
-	while((err = glGetError()) != GL_NO_ERROR)
+	while ((err = glGetError()) != GL_NO_ERROR)
 	{
 		spdlog::get(MT_LOGGER)->error("OpenGL error: {}", reinterpret_cast<const char *>(gluErrorString(err)));
 	}

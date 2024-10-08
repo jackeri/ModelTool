@@ -3,7 +3,6 @@
 #include "mt.h"
 #include "model.h"
 
-
 namespace mt {
 	class Camera;
 
@@ -115,7 +114,7 @@ namespace mt {
 
 	/*! Renderer baseclass */
 	class Renderer {
-	public:
+	  public:
 		Renderer() = default;
 
 		virtual ~Renderer() = default;
@@ -129,8 +128,7 @@ namespace mt {
 		/**
 		 * Setup mandatory fields, values and context data
 		 */
-		virtual void setup()
-		{}
+		virtual void setup() {}
 
 		/**
 		 * Set the GL view size
@@ -181,7 +179,7 @@ namespace mt {
 
 		Renderer &operator=(Renderer &&other) = delete;
 
-	protected:
+	  protected:
 		RenderBuffer buffer{}; ///< Buffer that holds the drawing data
 	};
 }

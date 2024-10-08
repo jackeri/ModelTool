@@ -9,8 +9,7 @@ namespace mt {
 	class GLWindow;
 
 	class ImGuiView {
-
-	public:
+	  public:
 		ImGuiView();
 
 		~ImGuiView() = default;
@@ -43,14 +42,14 @@ namespace mt {
 		 */
 		void shutdown();
 
-	private:
-
+	  private:
 		/**
 		 * Draw the menu bar
 		 */
 		void drawMenu();
 
-		std::vector<std::function<void()>> m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
+		std::vector<std::function<void()>>
+			m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
 
 		FileBrowser browser{}; ///< File browser instance which is changed by requirements
 

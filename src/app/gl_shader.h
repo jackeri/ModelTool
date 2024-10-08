@@ -6,7 +6,7 @@ namespace mt {
 
 	/*! Opengl GLSL shader application wrapper */
 	class GLShader {
-	public:
+	  public:
 		GLShader();
 
 		~GLShader();
@@ -62,7 +62,6 @@ namespace mt {
 		template<typename T>
 		void setUniform(const std::string &name, T val1, T val2);
 
-
 		/**
 		 * Set uniform value
 		 * @tparam T value type
@@ -74,7 +73,7 @@ namespace mt {
 		template<typename T>
 		void setUniform(const std::string &name, T val1, T val2, T val3);
 
-	private:
+	  private:
 		/**
 		 * Check for shader compilation errors
 		 */
@@ -96,8 +95,8 @@ namespace mt {
 		void link();
 
 		GLint vertId{}, fragId{}, progId{}; ///< Shaders and program ids
-		std::string vertexCode; ///< Vertex shader code
-		std::string fragmentCode; ///< Fragment shader code
-		bool programValid{false}; ///< was the compile and linking process OK
+		std::string vertexCode;				///< Vertex shader code
+		std::string fragmentCode;			///< Fragment shader code
+		bool programValid{false};			///< was the compile and linking process OK
 	};
 }

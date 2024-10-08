@@ -9,13 +9,12 @@ namespace mt {
 
 	/*! State singleton object */
 	class State {
-
 		friend Ref<State> singleton_ref<State>();
 
-	public:
+	  public:
 		std::unique_ptr<Model> model = nullptr; ///< currently loaded model
-		ImColor clearColor{114, 144, 154}; ///< background clear color
-		IO::FileSystem filesystem{}; ///< used filesystem, which will be initialized by the ImGuiView
+		ImColor clearColor{114, 144, 154};		///< background clear color
+		IO::FileSystem filesystem{};			///< used filesystem, which will be initialized by the ImGuiView
 
 		/**
 		 * no copy for singletons
@@ -70,7 +69,8 @@ namespace mt {
 			try
 			{
 				model::ModelLoader::loadAnimation(model.get(), filesystem.loadFile(path));
-			} catch (const std::exception &ex)
+			}
+			catch (const std::exception &ex)
 			{
 				// The model is now possibly broken, so just close it
 				closeModels();
@@ -88,8 +88,7 @@ namespace mt {
 			model = nullptr;
 		}
 
-	private:
-
+	  private:
 		/**
 		 * Hidden constructor for singleton (the friend function handles it)
 		 */
