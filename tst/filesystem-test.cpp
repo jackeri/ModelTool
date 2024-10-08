@@ -5,12 +5,12 @@ using namespace mt;
 
 TEST(FileSystemTest, test1)
 {
-	IO::FileSystem sys;
+	io::FileSystem sys;
 
 	ASSERT_TRUE(sys.addPath("data"));
 	ASSERT_TRUE(sys.hasSources());
 
-	IO::FileList list = sys.getFiles("");
+	io::FileList list = sys.getFiles("");
 
 	ASSERT_EQ(list->size(), 6);
 	ASSERT_EQ(list->at(0).name, "inner");

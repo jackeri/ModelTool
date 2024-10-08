@@ -21,7 +21,7 @@ namespace mt::model {
 		 * @param file file to load from
 		 * @param list vector to load the hitbox definitions into
 		 */
-		static void loadHitboxes(const Ref<IO::MTFile> &file, std::vector<Hitbox> &list);
+		static void loadHitboxes(const Ref<io::MTFile> &file, std::vector<Hitbox> &list);
 
 		/**
 		 * Persist a list of hitbox definitions to a file

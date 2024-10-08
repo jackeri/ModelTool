@@ -8,12 +8,11 @@ using namespace mt::model::Skeletal;
 
 TEST(ModelMD5Test, test1)
 {
-	IO::MTPath path("data");
+	io::MTPath path("data");
 
 	std::unique_ptr<SkeletalModel> model;
-	ASSERT_NO_THROW(model = std::unique_ptr<SkeletalModel>(dynamic_cast<SkeletalModel *>(model::loadMd5Model(
-			path.loadFile("models/md5/bob_lamp_update_export.md5mesh"))));
-	);
+	ASSERT_NO_THROW(model = std::unique_ptr<SkeletalModel>(
+						dynamic_cast<SkeletalModel *>(model::loadMd5Model(path.loadFile("models/md5/bob_lamp_update_export.md5mesh")))););
 
 	ASSERT_TRUE(model);
 

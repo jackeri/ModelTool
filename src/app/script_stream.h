@@ -23,7 +23,7 @@ namespace mt {
 		 * Create and stream and use the input file as the script
 		 * @param file to be parsed
 		 */
-		explicit ScriptStream(const Ref<IO::MTFile> &file);
+		explicit ScriptStream(const Ref<io::MTFile> &file);
 
 		~ScriptStream() = default;
 
@@ -31,7 +31,7 @@ namespace mt {
 		 * use the input file as the script
 		 * @param file data to parse
 		 */
-		void load(const Ref<IO::MTFile> &file);
+		void load(const Ref<io::MTFile> &file);
 
 		/**
 		 * use the input string as the script

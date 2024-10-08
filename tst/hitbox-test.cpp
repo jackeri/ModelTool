@@ -7,7 +7,7 @@ using namespace mt;
 
 TEST(HitboxTest, ReadTest)
 {
-	IO::MTPath path("data");
+	io::MTPath path("data");
 	std::vector<model::Hitbox> hitboxes{};
 
 	ASSERT_NO_THROW(model::Hitbox::loadHitboxes(path.loadFile("test/test.hitbox"), hitboxes););
@@ -39,7 +39,7 @@ TEST(HitboxTest, ReadTest)
 
 TEST(HitboxTest, WriteTest)
 {
-	IO::FileSystem system;
+	io::FileSystem system;
 
 	const auto &tmpPath = std::filesystem::temp_directory_path();
 

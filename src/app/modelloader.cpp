@@ -8,7 +8,7 @@ namespace mt {
 		AnimationLoaderMap ModelLoader::m_animationLoaders{};
 	}
 
-	Model *model::ModelLoader::loadModel(const Ref<IO::MTFile> &file)
+	Model *model::ModelLoader::loadModel(const Ref<io::MTFile> &file)
 	{
 		// Make sure the loader map is initialized
 		init();
@@ -24,12 +24,12 @@ namespace mt {
 		return it->second(file);
 	}
 
-	Ref<Model> model::ModelLoader::loadModel_ref(const Ref<IO::MTFile> &file)
+	Ref<Model> model::ModelLoader::loadModel_ref(const Ref<io::MTFile> &file)
 	{
 		return Ref<Model>(loadModel(file));
 	}
 
-	void model::ModelLoader::loadAnimation(Model *parent, const Ref<IO::MTFile> &file)
+	void model::ModelLoader::loadAnimation(Model *parent, const Ref<io::MTFile> &file)
 	{
 		init();
 
@@ -44,7 +44,7 @@ namespace mt {
 		return it->second(parent, file);
 	}
 
-	void model::ModelLoader::loadAnimation(const Ref<Model> &parent, const Ref<IO::MTFile> &file)
+	void model::ModelLoader::loadAnimation(const Ref<Model> &parent, const Ref<io::MTFile> &file)
 	{
 		loadAnimation(parent.get(), file);
 	}

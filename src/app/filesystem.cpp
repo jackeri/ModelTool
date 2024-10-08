@@ -1,114 +1,14 @@
 #include "filesystem.h"
-#include "io.h"
 #include "tools.h"
 
 #include <filesystem>
 #include <utility>
 
-namespace mt::IO {
+#include "../lib/library.h"
+#include "../lib/io.h"
+#include "../lib/mt_path.h"
 
-	static std::string fixName(std::string name, bool mustEndWithSeparator = false)
-	{
-		while (!name.empty() && name[0] == '/')
-		{
-			name = name.substr(1);
-		}
-
-		if (!name.empty() && mustEndWithSeparator)
-		{
-			if (name[name.length() - 1] != '/')
-			{
-				name += '/';
-			}
-		}
-
-		return name;
-	}
-
-	FileSource::FileSource()
-	{
-		this->identifier = tools::randomString(64);
-	}
-
-	MTPath::MTPath(std::string path) : path(std::move(path))
-	{
-		// We only use '/' internally so sanitize the paths
-		for (char &character : this->path)
-		{
-			if (character == '\\')
-			{
-				character = '/';
-			}
-		}
-	}
-
-	// Nothing to do here really
-	MTPath::~MTPath() = default;
-
-	bool MTPath::findFile(const std::string &name)
-	{
-		return FileExists(this->path + '/' + fixName(name));
-	}
-
-	Ref<MTFile> MTPath::loadFile(const std::string &name)
-	{
-		std::string tmp = fixName(name);
-
-		std::filesystem::path sysPath(path);
-		sysPath /= tmp;
-
-		if (!exists(sysPath))
-		{
-			return nullptr;
-		}
-
-		byte_buffer data = FileRead(this->path + '/' + tmp);
-		if (!data)
-		{
-			return nullptr;
-		}
-
-		auto file = make_ref<MTFile>();
-		file->data = data;
-		file->name = tmp;
-		file->ext = sysPath.extension().string();
-
-		return file;
-	}
-
-	FileList MTPath::getFiles(const std::string &name)
-	{
-		FileList files = make_ref_list<FileRecord>();
-
-		std::filesystem::path sysPath(path);
-		sysPath /= fixName(name);
-
-		for (const auto &entry : std::filesystem::directory_iterator(sysPath))
-		{
-			if (!entry.is_directory() && !entry.is_regular_file())
-			{
-				continue;
-			}
-
-			// skip the pk3dirs
-			if (entry.is_directory() && entry.path().extension().string() == ".pk3dir")
-			{
-				continue;
-			}
-
-			// skip the pk3
-			if (entry.is_regular_file() && entry.path().extension().string() == ".pk3")
-			{
-				continue;
-			}
-
-			auto tmp = relative(entry.path(), {path});
-
-			files->push_back({tmp.string(), tmp.filename().string(), tmp.extension().string(), entry.is_directory(), this});
-		}
-
-		return files;
-	}
+namespace mt::io {
 
 	MTPackage::MTPackage(std::string path) : path(std::move(path))
 	{
@@ -161,12 +61,12 @@ namespace mt::IO {
 
 	bool MTPackage::findFile(const std::string &name)
 	{
-		return (files.find(fixName(name)) != files.end());
+		return (files.find(mt::tools::fixName(name)) != files.end());
 	}
 
 	Ref<MTFile> MTPackage::loadFile(const std::string &name)
 	{
-		std::string tmp = fixName(name);
+		std::string tmp = mt::tools::fixName(name);
 
 		if (!findFile(tmp))
 		{
@@ -215,7 +115,7 @@ namespace mt::IO {
 
 		FileList records = make_ref_list<FileRecord>();
 		unsigned int separators = 0;
-		std::string fixedName = fixName(name, true);
+		std::string fixedName = mt::tools::fixName(name, true);
 
 		if (!fixedName.empty())
 		{
@@ -394,7 +294,7 @@ namespace mt::IO {
 			files->insert(files->end(), found->begin(), found->end());
 		}
 
-		// make sure we dont have duplicates
+		// make sure we don't have duplicates
 		auto unique = std::unique(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
 			return (first.name == second.name && first.isDirectory == second.isDirectory);
 		});

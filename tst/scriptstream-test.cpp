@@ -5,7 +5,7 @@ using namespace mt;
 
 TEST(ScriptStreamTest, test1)
 {
-	auto file = IO::MTPath("data").loadFile("test/test.script");
+	auto file = io::MTPath("data").loadFile("test/test.script");
 
 	ASSERT_TRUE(file->valid());
 

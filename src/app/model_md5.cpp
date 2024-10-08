@@ -254,7 +254,7 @@ namespace mt::model {
 		}
 	}
 
-	Model *loadMd5Model(const Ref<IO::MTFile> &file)
+	Model *loadMd5Model(const Ref<io::MTFile> &file)
 	{
 		// MD5 model file is just a text file
 		ScriptStream stream(file);
@@ -445,7 +445,7 @@ namespace mt::model {
 		}
 	}
 
-	void loadMD5Anim(Model *baseModel, const Ref<IO::MTFile> &file)
+	void loadMD5Anim(Model *baseModel, const Ref<io::MTFile> &file)
 	{
 		auto *model = dynamic_cast<SkeletalModel *>(baseModel);
 

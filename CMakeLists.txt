@@ -210,7 +210,6 @@ include(libs/glew-2.1.0/CMakeLists.txt)
 include_directories(libs/glew-2.1.0/include)
 include_directories(libs/glm)
 
-set(MTLINK_LIBRARIES glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
@@ -219,6 +218,7 @@ add_executable(ModelToolCLI ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 
+set(MTLINK_LIBRARIES ModelToolLib glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 add_dependencies(ModelTool glew glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})

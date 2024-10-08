@@ -1,11 +1,11 @@
-#include "mt.h"
+#include "library.h"
 #include "io.h"
 
 #include <vector>
 #include <fstream>
 #include <filesystem>
 
-namespace mt::IO {
+namespace mt::io {
 	bool FileExists(const std::string &path)
 	{
 		std::filesystem::path file(path);

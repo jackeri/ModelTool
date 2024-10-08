@@ -6,8 +6,8 @@
 #include <unordered_map>
 
 namespace mt::model {
-	using ModelLoaderMap = std::unordered_map<std::string, const std::function<Model *(const Ref<IO::MTFile> &)>>;
-	using AnimationLoaderMap = std::unordered_map<std::string, const std::function<void(Model *, const Ref<IO::MTFile> &)>>;
+	using ModelLoaderMap = std::unordered_map<std::string, const std::function<Model *(const Ref<io::MTFile> &)>>;
+	using AnimationLoaderMap = std::unordered_map<std::string, const std::function<void(Model *, const Ref<io::MTFile> &)>>;
 
 	/*! Static loader class for centralized model and animation loading, multiple loaders can be registered for use */
 	class ModelLoader {
@@ -17,28 +17,28 @@ namespace mt::model {
 		 * @param file file instance to parse
 		 * @return Model instance or nullptr if the loading fails
 		 */
-		static Model *loadModel(const Ref<IO::MTFile> &file);
+		static Model *loadModel(const Ref<io::MTFile> &file);
 
 		/**
 		 * load and parse a model file
 		 * @param file file instance to parse
 		 * @return Model instance of nullptr if the loading fails
 		 */
-		static Ref<Model> loadModel_ref(const Ref<IO::MTFile> &file);
+		static Ref<Model> loadModel_ref(const Ref<io::MTFile> &file);
 
 		/**
 		 * load and parse an animation file
 		 * @param parent parent model to which to load the animation information
 		 * @param file file instance to parse
 		 */
-		static void loadAnimation(Model *parent, const Ref<IO::MTFile> &file);
+		static void loadAnimation(Model *parent, const Ref<io::MTFile> &file);
 
 		/**
 		 * load and parse an animation file
 		 * @param parent parent model to which to load the animation information
 		 * @param file file instance to parse
 		 */
-		static void loadAnimation(const Ref<Model> &parent, const Ref<IO::MTFile> &file);
+		static void loadAnimation(const Ref<Model> &parent, const Ref<io::MTFile> &file);
 
 	  private:
 		ModelLoader() = default;

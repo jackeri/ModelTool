@@ -1,9 +1,8 @@
 #pragma once
 
-#include "mt.h"
-#include <string>
+#include "library.h"
 
-namespace mt::IO {
+namespace mt::io {
 
 	/**
 	 * Checks if a file exists in the local filesystem

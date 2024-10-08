@@ -14,7 +14,7 @@ namespace mt {
 	  public:
 		std::unique_ptr<Model> model = nullptr; ///< currently loaded model
 		ImColor clearColor{114, 144, 154};		///< background clear color
-		IO::FileSystem filesystem{};			///< used filesystem, which will be initialized by the ImGuiView
+		io::FileSystem filesystem{};			///< used filesystem, which will be initialized by the ImGuiView
 
 		/**
 		 * no copy for singletons

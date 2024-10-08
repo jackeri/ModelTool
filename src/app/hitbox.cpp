@@ -18,7 +18,7 @@ namespace mt::model {
 		}
 	}
 
-	void Hitbox::loadHitboxes(const Ref<IO::MTFile> &file, std::vector<Hitbox> &list)
+	void Hitbox::loadHitboxes(const Ref<io::MTFile> &file, std::vector<Hitbox> &list)
 	{
 		ScriptStream stream(file);
 

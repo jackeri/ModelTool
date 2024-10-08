@@ -9,12 +9,12 @@ mt::ScriptStream::ScriptStream(const std::string &value)
 	load(value);
 }
 
-mt::ScriptStream::ScriptStream(const Ref<IO::MTFile> &file)
+mt::ScriptStream::ScriptStream(const Ref<io::MTFile> &file)
 {
 	load(file);
 }
 
-void mt::ScriptStream::load(const Ref<IO::MTFile> &file)
+void mt::ScriptStream::load(const Ref<io::MTFile> &file)
 {
 	load(file->string());
 }
