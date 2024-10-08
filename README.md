@@ -32,13 +32,11 @@ git submodule update --init
 Run CMake, the build should support Win, OSX and Linux.
 
 ```
-mkdir build
-cd build
-cmake ..
+cmake -B build -S .
 cmake --build . --config Release
 ```
 
-To run tests just execute `ctest` in the build directory
+To run tests, just execute `ctest` in the build directory
 
 # License
 
