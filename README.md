@@ -33,7 +33,7 @@ Run CMake, the build should support Win, OSX and Linux.
 
 ```
 cmake -B build -S .
-cmake --build . --config Release
+cmake --build build --config Release
 ```
 
 To run tests, just execute `ctest` in the build directory
