@@ -100,8 +100,8 @@ bool mt::GLWindow::init()
 	const GLubyte *version = glGetString(GL_VERSION);
 
 	auto logger = spdlog::get(MT_LOGGER);
-	logger->info("Renderer: {}", rendererStr);
-	logger->info("OpenGL version supported: {}", version);
+	logger->info("Renderer: {}", reinterpret_cast<const char *>(rendererStr));
+	logger->info("OpenGL version supported: {}", reinterpret_cast<const char *>(version));
 
 	propertyPanel = make_ref<ModelPropertyPanel>();
 	scenePanel = make_ref<ScenePanel>();

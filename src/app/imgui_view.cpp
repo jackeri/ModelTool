@@ -95,15 +95,15 @@ namespace mt {
 		auto &state = singleton<State>();
 
 		// Enable the whole viewport docking
-		ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		ImGuiID dockId = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-		if (ImGui::DockBuilderGetNode(dockspaceId) == nullptr)
+		if (ImGui::DockBuilderGetNode(dockId) == nullptr)
 		{
-			ImGui::DockBuilderRemoveNode(dockspaceId); // Clear out existing layout
-			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
-			ImGui::DockBuilderSetNodeSize(dockspaceId, {500, 500});
+			ImGui::DockBuilderRemoveNode(dockId); // Clear out existing layout
+			ImGui::DockBuilderAddNode(dockId, ImGuiDockNodeFlags_DockSpace); // Add empty node
+			ImGui::DockBuilderSetNodeSize(dockId, {500, 500});
 
-			ImGuiID dock_main_id = dockspaceId; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+			ImGuiID dock_main_id = dockId; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
 			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr,
 															   &dock_main_id);
 			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr,
@@ -116,7 +116,7 @@ namespace mt {
 			ImGui::DockBuilderDockWindow("Mesh", dock_left_id);
 			ImGui::DockBuilderDockWindow("Extra", dock_left_id);
 			ImGui::DockBuilderDockWindow("Scene", dock_id_center);
-			ImGui::DockBuilderFinish(dockspaceId);
+			ImGui::DockBuilderFinish(dockId);
 		}
 
 		drawMenu();

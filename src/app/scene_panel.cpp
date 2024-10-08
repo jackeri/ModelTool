@@ -29,12 +29,12 @@ void mt::ScenePanel::render()
 	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 	size = {viewportPanelSize.x, viewportPanelSize.y};
 
-	fbo->create(size.x, size.y);
+	fbo->create(to_int(size.x), to_int(size.y));
 	fbo->bind();
 
 	renderer->startFrame(camera);
 
-	renderer->setView(size.x, size.y);
+	renderer->setView(to_int(size.x), to_int(size.y));
 
 	renderer->grid();
 
