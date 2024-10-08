@@ -78,11 +78,11 @@ SET(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
-FILE(GLOB MODEL_TOOL_SRC
-        "src/*/*.*"
-        )
+FILE(GLOB MODEL_TOOL_APP_SRC "src/app/*.*")
+FILE(GLOB MODEL_TOOL_LIB_SRC "src/lib/*.*")
+FILE(GLOB MODEL_TOOL_CLI_SRC "src/cli/*.*")
 
-list(APPEND MODEL_TOOL_SRC ${MODEL_TOOL_SHADERS})
+list(APPEND MODEL_TOOL_APP_SRC ${MODEL_TOOL_SHADERS})
 source_group("Shaders\\" FILES ${MODEL_TOOL_SHADERS})
 
 set(ZLIB_LIB "libs/zlib")
@@ -212,7 +212,14 @@ include_directories(libs/glm)
 
 set(MTLINK_LIBRARIES glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 
-add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
+target_include_directories(ModelToolLib PUBLIC "src/lib")
+
+add_executable(ModelToolCLI ${MODEL_TOOL_CLI_SRC})
+set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
+target_link_libraries(ModelToolCLI ModelToolLib)
+
+add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 add_dependencies(ModelTool glew glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
@@ -261,7 +268,7 @@ if (test)
             "tst/*.cpp"
             )
 
-    set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+    set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 
     add_executable(mt_test ${ALL_SOURCES})
     add_dependencies(mt_test ModelTool)

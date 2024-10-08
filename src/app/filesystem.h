@@ -47,7 +47,7 @@ namespace mt::IO {
 		 */
 		[[nodiscard]] std::string string() const
 		{
-			return std::string(c_str());
+			return {c_str()};
 		}
 
 		explicit operator const char *() const
@@ -69,7 +69,7 @@ namespace mt::IO {
 	struct FileRecord;
 	using FileList = RefList<FileRecord>;
 
-	/*! Base class for difference file sources like a local filesystem path, or a zip file */
+	/*! Base class for different file sources like a local filesystem path, or a zip file */
 	class FileSource {
 	public:
 		FileSource();
