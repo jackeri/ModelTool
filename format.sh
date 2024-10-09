@@ -4,3 +4,4 @@
 find src/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i
 find tst/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i
 # find src/ -iname '*.h' -o -iname '*.cpp' | xargs clang-tidy -checks='-*,modernize-concat-nested-namespaces' -fix
+# find tst/ -iname '*.h' -o -iname '*.cpp' | xargs clang-tidy -checks='-*,modernize-concat-nested-namespaces' -fix

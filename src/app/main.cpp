@@ -1,5 +1,5 @@
-#include "app/mt.h"
-#include "app/application.h"
+#include "mt.h"
+#include "application.h"
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 int main(int argc, char *argv[])
