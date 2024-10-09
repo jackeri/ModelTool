@@ -228,7 +228,7 @@ add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
 target_link_libraries(ModelToolLib PUBLIC tinygltf glm)
 
-add_executable(ModelToolCLI "src/lib/main.cpp" ${MODEL_TOOL_CLI_SRC})
+add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 

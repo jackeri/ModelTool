@@ -1,6 +1,7 @@
 #pragma once
 
 #include "library.h"
+#include "mt_path.h"
 
 namespace mt {
 	class Renderer;
@@ -24,9 +25,25 @@ namespace mt {
 		glm::vec3 max{}; ///< maximal point (corner of the quad)
 	};
 
+	// Model forward declaration
+	struct Model;
+
 	// forward declaration
 	namespace model {
 		struct Hitbox;
+
+		struct Animation {
+			std::string name; ///< Name of the animation
+			int startFrame{}; ///< Start frame of the animation
+			int endFrame{};	  ///< End frame of the animation
+			int fps{};		  ///< Frames per second
+			bool loop{};	  ///< Should the animation loop
+		};
+
+		namespace io {
+			Model *loadModel(const Ref<mt::io::MTFile> &file);
+			void loadAnimation(Model *parent, const Ref<mt::io::MTFile> &file);
+		}
 	}
 
 	const int FRAME_BIND_POSE = -1; ///< "Number" of the bind pose frame in the model frames array, which go from 0 -> *
