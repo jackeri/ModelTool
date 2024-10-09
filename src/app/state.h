@@ -3,7 +3,6 @@
 #include "mt.h"
 #include "model.h"
 #include "filesystem.h"
-#include "modelloader.h"
 
 namespace mt {
 
