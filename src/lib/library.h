@@ -11,6 +11,14 @@
 #include <memory>
 #include <functional>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
+
 #ifndef BIT
 #define BIT(x) (1u << (x))
 #endif
@@ -18,6 +26,8 @@
 namespace mt {
 
 	const int MAX_PATH = 1024; ///< Max path length in the model files (game has a max path length)
+
+	typedef int reshandle;
 
 	inline int to_int(const float &val)
 	{
@@ -205,3 +215,11 @@ namespace mt {
 		bool startsWith(const std::string &str, const std::string &prefix);
 	}
 }
+
+#ifdef NDEBUG
+#define mt_ex(arg) mt::mt_exception(arg);
+#else
+#define mt_ex(arg) mt::mt_exception(arg, __FILE__, __LINE__);
+#endif
+
+#define throw_line(arg) throw mt_ex(arg);

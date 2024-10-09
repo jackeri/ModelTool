@@ -1,5 +1,7 @@
 #pragma once
 
+#include "library.h"
+
 namespace mt {
 	class Renderer;
 
@@ -26,14 +28,6 @@ namespace mt {
 	namespace model {
 		struct Hitbox;
 	}
-
-	/**
-	 * Setup the render buffer from the bounds data
-	 * @param renderer renderer which is used
-	 * @param bounds bounds which should be drawn
-	 * @param drawPoints should the corners be highlighted
-	 */
-	void setupBounds(const Ref<mt::Renderer> &renderer, const Bounds &bounds, bool drawPoints = false);
 
 	const int FRAME_BIND_POSE = -1; ///< "Number" of the bind pose frame in the model frames array, which go from 0 -> *
 
@@ -110,12 +104,6 @@ namespace mt {
 		{
 			return false;
 		}
-
-		/**
-		 * Render this model with a renderer
-		 * @param renderer renderer to be used
-		 */
-		virtual void renderModel(Ref<mt::Renderer> renderer) = 0;
 
 		Point origin{};						///< Origin point of this model
 		Point transform{};					///< Transforms applied to this model

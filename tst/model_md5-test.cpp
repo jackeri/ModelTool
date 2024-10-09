@@ -1,10 +1,10 @@
 #include "gtest/gtest.h"
 #include "model_md5.h"
+#include "mt_path.h"
 #include "skeletal_model.h"
-#include "modelloader.h"
 
 using namespace mt;
-using namespace mt::model::Skeletal;
+using namespace mt::model::skeletal;
 
 TEST(ModelMD5Test, test1)
 {

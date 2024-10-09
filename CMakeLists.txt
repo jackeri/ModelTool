@@ -11,6 +11,9 @@ option(test "Enable testing" ON)
 option(opengl3 "Enable opengl3 core backend" OFF)
 option(NATIVE_DIALOG "Use platform native dialog" OFF)
 
+# Enable the generation of compile_commands.json by default
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER ${CMAKE_TARGETS_FOLDER})
 
@@ -193,38 +196,39 @@ include_directories("libs/imgui")
 include_directories("libs/imgui-filebrowser")
 include_directories("libs/stb")
 
+# TinyGLTF
 set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
 set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE BOOL "" FORCE)
-include_directories("libs/tinygltf")
+add_subdirectory("libs/tinygltf")
 
+# GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
 add_subdirectory(libs/glfw)
 
 add_subdirectory(libs/spdlog)
 
-include(libs/glew-2.1.0/CMakeLists.txt)
+add_subdirectory(libs/glew-2.1.0)
 
 # Add this when we need it
 #add_subdirectory(libs/glm)
 
-include_directories(libs/glew-2.1.0/include)
-include_directories(libs/glm)
+add_library(glm INTERFACE)
+target_include_directories(glm INTERFACE libs/glm)
 
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
-target_link_libraries(ModelToolLib PUBLIC tinygltf)
+target_link_libraries(ModelToolLib PUBLIC tinygltf glm)
 
 add_executable(ModelToolCLI ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 
-set(MTLINK_LIBRARIES ModelToolLib glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
+set(MTLINK_LIBRARIES ModelToolLib glm glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 add_dependencies(ModelTool glew glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
@@ -246,10 +250,10 @@ endif ()
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ModelTool)
 
 set_target_properties(ModelTool PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ""
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG ""
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE ""
-        )
+    RUNTIME_OUTPUT_DIRECTORY ""
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ""
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ""
+)
 
 install(TARGETS ModelTool DESTINATION "./")
 install(DIRECTORY "fonts" DESTINATION "./")
@@ -270,9 +274,9 @@ if (test)
     endif ()
 
     file(GLOB_RECURSE TEST_SOURCES LIST_DIRECTORIES false
-            "tst/*.h"
-            "tst/*.cpp"
-            )
+        "tst/*.h"
+        "tst/*.cpp"
+    )
 
     set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 

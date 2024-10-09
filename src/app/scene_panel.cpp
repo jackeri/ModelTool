@@ -37,7 +37,7 @@ void mt::ScenePanel::render()
 
 	if (state.model)
 	{
-		state.model->renderModel(renderer);
+		mt::model::renderModel(renderer, state.model);
 	}
 
 	renderer->endFrame();

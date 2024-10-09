@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
+#include "filesystem.h"
 #include "mt.h"
 #include "hitbox.h"
+#include "mt_path.h"
 #include <filesystem>
 
 using namespace mt;

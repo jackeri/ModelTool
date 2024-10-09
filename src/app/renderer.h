@@ -182,4 +182,16 @@ namespace mt {
 	  protected:
 		RenderBuffer buffer{}; ///< Buffer that holds the drawing data
 	};
+
+	namespace model {
+		void renderModel(const Ref<Renderer> &renderer, const Ref<mt::Model> &model);
+
+		/**
+		 * Setup the render buffer from the bounds data
+		 * @param renderer renderer which is used
+		 * @param bounds bounds which should be drawn
+		 * @param drawPoints should the corners be highlighted
+		 */
+		void setupBounds(const Ref<mt::Renderer> &renderer, const Bounds &bounds, bool drawPoints = false);
+	}
 }

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "mt.h"
+#include "library.h"
 #include "model.h"
-#include "material.h"
 #include "hitbox.h"
 
-namespace mt::model::Skeletal {
+namespace mt::model::skeletal {
 
 	/*! Skeletons joint */
 	struct Joint : public Point {
@@ -126,7 +125,7 @@ namespace mt::model::Skeletal {
 		std::vector<glm::ivec3> tris{};			///< mesh triangles
 		std::vector<Weight> weights{};			///< mesh weights
 		int minLod = 0;							///< lodding level of the mesh
-		Material material{};					///< material instance used in this mesh
+		reshandle material{};					///< material instance used in this mesh
 
 		// FIXME: this will be used by the ET models, implement later
 		std::vector<int> collapseMap; ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
@@ -168,7 +167,5 @@ namespace mt::model::Skeletal {
 
 		// TODO: needed when doing bone scaling in the future
 		int findParentIndex(int boneIndex);
-
-		void renderModel(Ref<mt::Renderer>) override;
 	};
 }

@@ -30,11 +30,3 @@ namespace mt {
 
 	const std::string MT_LOGGER = "mt"; ///< Used logger name
 }
-
-#ifdef NDEBUG
-#define mt_ex(arg) mt::mt_exception(arg);
-#else
-#define mt_ex(arg) mt::mt_exception(arg, __FILE__, __LINE__);
-#endif
-
-#define throw_line(arg) throw mt_ex(arg);

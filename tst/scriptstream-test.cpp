@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "mt_path.h"
 #include "script_stream.h"
 
 using namespace mt;

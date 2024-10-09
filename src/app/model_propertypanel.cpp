@@ -4,7 +4,7 @@
 #include "hitbox.h"
 
 using namespace mt::model;
-using namespace mt::model::Skeletal;
+using namespace mt::model::skeletal;
 
 namespace mt {
 	void ModelPropertyPanel::render()

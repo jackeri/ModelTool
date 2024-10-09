@@ -1,10 +1,12 @@
 #Build the OpenGL extension wrangler
 cmake_minimum_required(VERSION 3.20)
 
-#project(glew)
+project(glew)
+
+option(GLEW_INSTALL "Install glew" OFF)
 
 if(MINGW OR UNIX)
-  	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-attributes")
 
 	# this is required for bundled 64bit glew lib
 	# http://stackoverflow.com/questions/7216244/why-is-fpic-absolutely-necessary-on-64-and-not-on-32bit-platforms
@@ -15,8 +17,6 @@ if(MINGW OR UNIX)
 endif()
 
 set(GLEW_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR})
-set(GLEW_INCLUDE_DIRECTORY ${GLEW_SOURCE_DIR}/include)
-include_directories( ${GLEW_INCLUDE_DIRECTORY})
 source_group(API FILES ${API})
 
 FILE(GLOB GLEW_FILES
@@ -25,14 +25,17 @@ FILE(GLOB GLEW_FILES
 )
 
 add_library(glew STATIC ${GLEW_FILES})
+target_include_directories(glew PUBLIC ${GLEW_SOURCE_DIR}/include)
 set_target_properties(glew PROPERTIES
 	LINKER_LANGUAGE C
 	COMPILE_DEFINITIONS "GLEW_STATIC"
 	#ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
 )
 
-#install(TARGETS glew
-#	EXPORT glew
-#	LIBRARY DESTINATION "${GLEW_SOURCE_DIR}/lib/"
-#	ARCHIVE DESTINATION "${GLEW_SOURCE_DIR}/lib/"
-#)
+if (GLEW_INSTALL)
+	install(TARGETS glew
+		EXPORT glew
+		LIBRARY DESTINATION "${GLEW_SOURCE_DIR}/lib/"
+		ARCHIVE DESTINATION "${GLEW_SOURCE_DIR}/lib/"
+	)
+endif ()

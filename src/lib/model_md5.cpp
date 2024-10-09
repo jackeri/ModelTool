@@ -4,7 +4,7 @@
 #include "glm/gtx/normal.hpp"
 
 namespace mt::model {
-	using namespace Skeletal;
+	using namespace skeletal;
 
 	// There should not be any other versions
 	const int MD5_VERSION = 10;
@@ -41,7 +41,7 @@ namespace mt::model {
 			{
 			case hash("shader"):
 				// A mesh does not have a name per say, but usually the material name is the same as the mesh name
-				mesh.name = mesh.material.name = stream.token();
+				mesh.name = mesh.materialName = stream.token();
 				break;
 
 			case hash("numverts"): numVerts = stream.parseInt(); break;

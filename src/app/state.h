@@ -12,9 +12,9 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	  public:
-		std::unique_ptr<Model> model = nullptr; ///< currently loaded model
-		ImColor clearColor{114, 144, 154};		///< background clear color
-		io::FileSystem filesystem{};			///< used filesystem, which will be initialized by the ImGuiView
+		Ref<Model> model = nullptr;		   ///< currently loaded model
+		ImColor clearColor{114, 144, 154}; ///< background clear color
+		io::FileSystem filesystem{};	   ///< used filesystem, which will be initialized by the ImGuiView
 
 		/**
 		 * no copy for singletons
