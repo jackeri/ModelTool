@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mt.h"
 #include "gl_window.h"
 
 namespace mt {
