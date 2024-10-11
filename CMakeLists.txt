@@ -163,7 +163,7 @@ if (NATIVE_DIALOG)
 		target_link_libraries(bundled_nfd ${GTK3_LIBRARIES})
 	ENDIF ()
 
-    set_target_properties(bundled_nfd PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+        set_target_properties(bundled_nfd PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 else ()
 	# Dummy target for nfd
 	# add_custom_target(bundled_nfd)
@@ -215,7 +215,7 @@ add_subdirectory(libs/glfw)
 
 add_subdirectory(libs/spdlog)
 
-add_subdirectory(libs/glew-2.1.0)
+add_subdirectory(libs/glad)
 
 # Add this when we need it
 # add_subdirectory(libs/glm)
@@ -232,18 +232,16 @@ add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 
-set(MTLINK_LIBRARIES ModelToolLib glm glew ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
+set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/app/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
-add_dependencies(ModelTool glew glfw spdlog)
+add_dependencies(ModelTool glad glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
-set_target_properties(glew PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+set_target_properties(glad PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(glfw PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(spdlog PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
-
-target_compile_definitions(ModelTool PUBLIC GLEW_STATIC)
 
 if (opengl3)
     add_definitions(-DMT_OPENGL_3)

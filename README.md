@@ -38,6 +38,8 @@ cmake --build build --config Release
 
 To run tests, just execute `ctest` in the build directory
 
+To run the binary, execute `./build/ModelTool` in the build directory. On some unix platforms using `LC_CTYPE=en_US.UTF-8 build/ModelTool` might be needed.
+
 # License
 
 ModelTool is licensed under the MIT License, see [LICENSE](./LICENSE.txt) for more information.

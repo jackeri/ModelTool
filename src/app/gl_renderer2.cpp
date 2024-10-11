@@ -2,7 +2,7 @@
 #include "camera.h"
 #include "state.h"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -51,13 +51,28 @@ mt::GLRenderer2::GLRenderer2()
 	glEnable(GL_POLYGON_SMOOTH);
 }
 
+/**
+ * Simple gluPerspective replacement
+ * @param fovY Specifies the field of view angle, in degrees, in the y direction.
+ * @param aspect Specifies the aspect ratio that determines the field of view in the x direction. The aspect ratio is the ratio of x (width) to y (height).
+ * @param zNear Specifies the distance from the viewer to the near clipping plane (always positive).
+ * @param zFar Specifies the distance from the viewer to the far clipping plane (always positive).
+ */
+static void glPerspective(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar)
+{
+	GLdouble fW, fH;
+	fH = tan(fovY / 360 * glm::pi<GLdouble>()) * zNear;
+	fW = fH * aspect;
+	glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+}
+
 void mt::GLRenderer2::setView(int width, int height)
 {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	if (height > 0)
 	{
-		gluPerspective(90.f, (double)width / (double)height, 0.1f, 512);
+		glPerspective(90.f, (double)width / (double)height, 0.1f, 512);
 	}
 	glViewport(0, 0, width, height);
 	glMatrixMode(GL_MODELVIEW);

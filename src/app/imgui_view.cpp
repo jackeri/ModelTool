@@ -7,8 +7,6 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 
-#define IMGUI_IMPL_OPENGL_LOADER_GLEW 1
-
 #if defined(MT_OPENGL_2)
 
 #include "backends/imgui_impl_opengl2.h"

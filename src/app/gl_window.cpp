@@ -50,9 +50,12 @@ void mt::GLWindow::destroy()
 
 bool mt::GLWindow::init()
 {
+	auto logger = spdlog::get(MT_LOGGER);
+
 	glfwSetErrorCallback(glfwAppErrorCallback);
 	if (!glfwInit())
 	{
+		logger->error("Failed to initialize GLFW");
 		return false;
 	}
 
@@ -74,6 +77,7 @@ bool mt::GLWindow::init()
 	GLFWwindow *glfwWindow = glfwCreateWindow(1280, 720, title.c_str(), nullptr, nullptr);
 	if (glfwWindow == nullptr)
 	{
+		logger->error("Failed to create GLFW window");
 		return false;
 	}
 	this->window = glfwWindow;
@@ -86,9 +90,10 @@ bool mt::GLWindow::init()
 	glfwSetScrollCallback(glfwWindow, on_scroll_callback);
 	glfwSetWindowSizeCallback(glfwWindow, on_window_size_callback);
 
-	glewExperimental = GL_TRUE;
-	if (glewInit() != GLEW_OK)
+	int gladVersion = gladLoadGL(glfwGetProcAddress);
+	if (gladVersion == 0)
 	{
+		logger->error("Failed to initialize OpenGL context with Glad");
 		return false;
 	}
 
@@ -96,9 +101,9 @@ bool mt::GLWindow::init()
 	const GLubyte *rendererStr = glGetString(GL_RENDERER);
 	const GLubyte *version = glGetString(GL_VERSION);
 
-	auto logger = spdlog::get(MT_LOGGER);
 	logger->info("Renderer: {}", reinterpret_cast<const char *>(rendererStr));
 	logger->info("OpenGL version supported: {}", reinterpret_cast<const char *>(version));
+	logger->debug("Loaded OpenGL according to Glad {}.{}", GLAD_VERSION_MAJOR(gladVersion), GLAD_VERSION_MINOR(gladVersion));
 
 	propertyPanel = make_ref<ModelPropertyPanel>();
 	scenePanel = make_ref<ScenePanel>();
@@ -108,6 +113,7 @@ bool mt::GLWindow::init()
 	// Init the UI system
 	if (!view->setup(this, "#version 150"))
 	{
+		logger->error("Failed to initialize ImGui");
 		// UI setup failed, cancel the whole ordeal.
 		return false;
 	}
