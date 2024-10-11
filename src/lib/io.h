@@ -1,6 +1,7 @@
 #pragma once
 
 #include "library.h"
+#include <cstdint>
 
 namespace mt::io {
 
@@ -16,7 +17,7 @@ namespace mt::io {
 	 * @param path absolute or relative path to a file
 	 * @return file size or -1 if the file does not exist
 	 */
-	bool FileSize(const std::string &path);
+	long FileSize(const std::string &path);
 
 	/**
 	 * Reads a file to memory

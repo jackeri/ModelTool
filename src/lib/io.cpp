@@ -12,11 +12,17 @@ namespace mt::io {
 		return exists(file);
 	}
 
-	bool FileSize(const std::string &path)
+	long FileSize(const std::string &path)
 	{
-		// std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
-		// return file.tellg();
-		return std::filesystem::file_size(path);
+		std::error_code ec;
+		if (const auto size = std::filesystem::file_size(path, ec); !ec)
+		{
+			return static_cast<long>(size);
+		}
+		else
+		{
+			return -1;
+		}
 	}
 
 	byte_buffer FileRead(const std::string &path)
