@@ -3,7 +3,6 @@
 #include "mt.h"
 #include "model.h"
 #include "filesystem.h"
-#include "modelloader.h"
 
 namespace mt {
 
@@ -48,7 +47,7 @@ namespace mt {
 		{
 			closeModels();
 
-			auto *tmp = model::ModelLoader::loadModel(filesystem.loadFile(path));
+			auto *tmp = model::io::loadModel(filesystem.loadFile(path));
 			if (tmp)
 			{
 				model = std::unique_ptr<Model>(tmp);
@@ -68,7 +67,7 @@ namespace mt {
 
 			try
 			{
-				model::ModelLoader::loadAnimation(model.get(), filesystem.loadFile(path));
+				model::io::loadAnimation(model.get(), filesystem.loadFile(path));
 			}
 			catch (const std::exception &ex)
 			{

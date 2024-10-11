@@ -218,7 +218,7 @@ add_subdirectory(libs/spdlog)
 add_subdirectory(libs/glew-2.1.0)
 
 # Add this when we need it
-#add_subdirectory(libs/glm)
+# add_subdirectory(libs/glm)
 
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE libs/glm)
