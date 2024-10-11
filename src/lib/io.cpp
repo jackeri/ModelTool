@@ -14,8 +14,9 @@ namespace mt::io {
 
 	bool FileSize(const std::string &path)
 	{
-		std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
-		return file.tellg();
+		// std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
+		// return file.tellg();
+		return std::filesystem::file_size(path);
 	}
 
 	byte_buffer FileRead(const std::string &path)
