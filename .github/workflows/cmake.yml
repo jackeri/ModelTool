@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   BUILD_TYPE: Release
@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install xorg-dev libgl1-mesa-dev libglu1-mesa-dev
+          sudo apt install xorg-dev libgl1-mesa-dev libglu1-mesa-dev libwayland-dev
 
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -32,4 +32,3 @@ jobs:
       - name: Test
         working-directory: ${{github.workspace}}/build
         run: ctest -C ${{env.BUILD_TYPE}}
-      
