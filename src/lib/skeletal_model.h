@@ -90,6 +90,7 @@ namespace mt::model::skeletal {
 		}
 	};
 
+	// FIXME: remove this, this is really just a poor mans version of the Joint
 	/*! Tag that is bound to a bone */
 	struct BoneTag : public Point {
 		int parentBone; ///< Parent bone offset

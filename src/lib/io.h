@@ -1,7 +1,7 @@
 #pragma once
 
 #include "library.h"
-#include <cstdint>
+#include "types.h"
 
 namespace mt::io {
 
@@ -25,4 +25,11 @@ namespace mt::io {
 	 * @return file buffer
 	 */
 	byte_buffer FileRead(const std::string &path);
+
+	template<typename T>
+	i32 write(std::ostream &os, const T &data)
+	{
+		os.write(reinterpret_cast<const char *>(&data), sizeof(T));
+		return sizeof(T);
+	}
 }
