@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 include(CheckIncludeFile)
+include(CMakeDependentOption)
 include(ExternalProject)
 
 project(ModelTool VERSION 1.0.0 LANGUAGES C CXX)
@@ -77,6 +78,15 @@ elseif (MINGW AND CMAKE_BUILD_TYPE MATCHES Release)
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS} -static-libgcc -static-libstdc++ -liconv -s -static")
 	add_definitions(-D_WIN32_IE=0x0501)
 endif ()
+
+# Check for endianess
+include (TestBigEndian)
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+if(IS_BIG_ENDIAN)
+	add_definitions(-DMT_LITTLE_ENDIAN=0)
+else()
+	add_definitions(-DMT_LITTLE_ENDIAN=1)
+endif()
 
 # some linux systems provide a wrapper (GLVND) for opengl, but lets stick to the legacy version for now
 SET(OpenGL_GL_PREFERENCE "LEGACY")

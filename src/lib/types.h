@@ -35,12 +35,14 @@ static_assert(sizeof(b32) == 4, "Expected b32 to be 4 bytes.");
 
 typedef u8 byte;
 
+#ifndef MT_LITTLE_ENDIAN
 #if __LITTLE_ENDIAN__
 #define MT_LITTLE_ENDIAN 1
 #elif __BIG_ENDIAN__
 #define MT_LITTLE_ENDIAN 0
 #else
 #error "Unknown endianness."
+#endif
 #endif
 
 template<typename T>
