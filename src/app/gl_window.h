@@ -45,28 +45,6 @@ namespace mt {
 		 */
 		bool screenshot();
 
-		/**
-		 * Callback for key presses
-		 * @param key key code
-		 * @param scancode code
-		 * @param action what actions
-		 * @param mods key modifiers active
-		 */
-		void onKey(int key, int scancode, int action, int mods);
-
-		/**
-		 * Mouse scroll callback
-		 * @param delta delta difference since last call
-		 */
-		void onScroll(double delta);
-
-		/**
-		 * Window resize callback
-		 * @param width width of the window
-		 * @param height height of the window
-		 */
-		void onResize(int width, int height);
-
 	  private:
 		/**
 		 * Load the base paths, the model and its animations from the command line

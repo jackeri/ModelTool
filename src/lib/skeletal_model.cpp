@@ -15,25 +15,6 @@ namespace mt::model::skeletal {
 		return int(joints.empty() ? 0 : joints[0].frames.size());
 	}
 
-	int SkeletalModel::findParentIndex(int boneIndex)
-	{
-		if (boneIndex == -1)
-		{
-			return -1;
-		}
-
-		int foundParent = 0;
-		for (auto i = 0; i < boneIndex; i++)
-		{
-			if (!joints[i].asTag)
-			{
-				foundParent++;
-			}
-		}
-
-		return foundParent;
-	}
-
 	bool SkeletalModel::hasTags() const
 	{
 		if (!tags.empty())

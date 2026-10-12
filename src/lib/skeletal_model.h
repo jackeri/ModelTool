@@ -21,10 +21,6 @@ namespace mt::model::skeletal {
 		float parentDist{};		   ///< distance to the parent bone (MDS/MDX)
 		std::vector<Point> frames; ///< The frame's pre calculated joints
 
-		// FIXME: remove these, these are really only MD5 related
-		int flags{}; ///< bone flags
-		int startIndex{};
-
 		Joint() : Point() {}
 
 		~Joint()
@@ -117,7 +113,6 @@ namespace mt::model::skeletal {
 		int minLod = 0;							///< lodding level of the mesh
 		reshandle material{};					///< material instance used in this mesh
 
-		// FIXME: this will be used by the ET models, implement later
 		std::vector<int> collapseMap;	   ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
 		std::vector<int> boneReferences{}; ///< bones listed in the MDM/MDS file, used when the model has no bones loaded
 
@@ -159,8 +154,5 @@ namespace mt::model::skeletal {
 		}
 
 		bool hasTags() const override;
-
-		// TODO: needed when doing bone scaling in the future
-		int findParentIndex(int boneIndex);
 	};
 }

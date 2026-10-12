@@ -12,24 +12,6 @@ static void glfwAppErrorCallback(int error, const char *description)
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-static void on_key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
-	pWindow->onKey(key, scancode, action, mods);
-}
-
-static void on_scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
-{
-	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
-	pWindow->onScroll(yoffset);
-}
-
-static void on_window_size_callback(GLFWwindow *window, int width, int height)
-{
-	auto pWindow = static_cast<mt::GLWindow *>(glfwGetWindowUserPointer(window));
-	pWindow->onResize(width, height);
-}
-
 mt::GLWindow::GLWindow(std::string title, AppOptions options) : title(std::move(title)), options(std::move(options)) {}
 
 mt::GLWindow::~GLWindow()
@@ -116,11 +98,6 @@ bool mt::GLWindow::init()
 
 	glfwMakeContextCurrent(glfwWindow);
 	glfwSwapInterval(state.settings.vsync ? 1 : 0);
-
-	glfwSetWindowUserPointer(glfwWindow, this);
-	glfwSetKeyCallback(glfwWindow, on_key_callback);
-	glfwSetScrollCallback(glfwWindow, on_scroll_callback);
-	glfwSetWindowSizeCallback(glfwWindow, on_window_size_callback);
 
 	int gladVersion = gladLoadGL(glfwGetProcAddress);
 	if (gladVersion == 0)
@@ -250,21 +227,6 @@ void mt::GLWindow::saveSettings()
 	{
 		logger->error("Could not save the settings: {}", ex.what());
 	}
-}
-
-void mt::GLWindow::onKey(int key, int scancode, int action, int mods)
-{
-	// FIXME: is this needed or not anymore
-}
-
-void mt::GLWindow::onScroll(double delta)
-{
-	// FIXME: is this needed or not anymore
-}
-
-void mt::GLWindow::onResize(int width, int height)
-{
-	// FIXME: is this needed or not anymore
 }
 
 void mt::GLWindow::applyOptions()

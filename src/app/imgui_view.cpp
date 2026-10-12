@@ -416,23 +416,6 @@ namespace mt {
 				ImGui::EndMenu();
 			}
 
-			// FIXME: implement when we have property loading and persisting
-			// if (ImGui::BeginMenu("Options"))
-			// {
-			// 	// Disabling fullscreen would allow the window to be moved to the front of other windows,
-			// 	// which we can't undo at the moment without finer window depth/z control.
-			// 	if (ImGui::MenuItem("Fullscreen", nullptr, false))
-			// 	{
-			//
-			// 	}
-			// 	if (ImGui::MenuItem("Padding", nullptr, false))
-			// 	{
-			//
-			// 	}
-			//
-			// 	ImGui::EndMenu();
-			// }
-
 			ImGui::EndMainMenuBar();
 		}
 	}

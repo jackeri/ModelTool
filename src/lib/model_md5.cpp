@@ -253,6 +253,13 @@ namespace mt::model {
 		int processedFrames = 0;
 		std::vector<Point> baseFrame;
 
+		/*! Hierarchy line of a joint: which components the frames animate and where they start */
+		struct AnimatedJoint {
+			int flags = 0;		///< 1, 2, 4 = position x, y, z; 8, 16, 32 = orientation x, y, z
+			int startIndex = 0; ///< first value of the joint in a frame
+		};
+		std::vector<AnimatedJoint> hierarchy(model->joints.size());
+
 		while (stream.hasNext())
 		{
 			std::string token = stream.token();
@@ -292,8 +299,9 @@ namespace mt::model {
 					throw mt_ex("Invalid hierarchy data");
 				}
 
-				for (auto &joint : model->joints)
+				for (size_t jointIndex = 0; jointIndex < model->joints.size(); jointIndex++)
 				{
+					const auto &joint = model->joints[jointIndex];
 					if (joint.name != stream.token())
 					{
 						throw mt_ex("Invalid joint hierarchy, name does not match: " + joint.name + " != " + stream.last());
@@ -304,8 +312,8 @@ namespace mt::model {
 						throw mt_ex("Invalid joint hierarchy, parent ID does not match for: " + joint.name);
 					}
 
-					joint.flags = stream.parseInt();
-					joint.startIndex = stream.parseInt();
+					hierarchy[jointIndex].flags = stream.parseInt();
+					hierarchy[jointIndex].startIndex = stream.parseInt();
 				}
 
 				if (stream.token() != "}")
@@ -377,6 +385,7 @@ namespace mt::model {
 				for (size_t jointIndex = 0; jointIndex < model->joints.size(); jointIndex++)
 				{
 					auto &joint = model->joints[jointIndex];
+					const AnimatedJoint &animated = hierarchy[jointIndex];
 
 					// Components that are not animated keep their baseframe value
 					Point point;
@@ -387,29 +396,29 @@ namespace mt::model {
 
 					unsigned int j = 0;
 
-					if (joint.flags & 1) // Pos.x
+					if (animated.flags & 1) // Pos.x
 					{
-						point.location.x = frameValues.at(size_t(joint.startIndex) + j++);
+						point.location.x = frameValues.at(size_t(animated.startIndex) + j++);
 					}
-					if (joint.flags & 2) // Pos.y
+					if (animated.flags & 2) // Pos.y
 					{
-						point.location.y = frameValues.at(size_t(joint.startIndex) + j++);
+						point.location.y = frameValues.at(size_t(animated.startIndex) + j++);
 					}
-					if (joint.flags & 4) // Pos.z
+					if (animated.flags & 4) // Pos.z
 					{
-						point.location.z = frameValues.at(size_t(joint.startIndex) + j++);
+						point.location.z = frameValues.at(size_t(animated.startIndex) + j++);
 					}
-					if (joint.flags & 8) // Orient.x
+					if (animated.flags & 8) // Orient.x
 					{
-						point.rotation.x = frameValues.at(size_t(joint.startIndex) + j++);
+						point.rotation.x = frameValues.at(size_t(animated.startIndex) + j++);
 					}
-					if (joint.flags & 16) // Orient.y
+					if (animated.flags & 16) // Orient.y
 					{
-						point.rotation.y = frameValues.at(size_t(joint.startIndex) + j++);
+						point.rotation.y = frameValues.at(size_t(animated.startIndex) + j++);
 					}
-					if (joint.flags & 32) // Orient.z
+					if (animated.flags & 32) // Orient.z
 					{
-						point.rotation.z = frameValues.at(size_t(joint.startIndex) + j++);
+						point.rotation.z = frameValues.at(size_t(animated.startIndex) + j++);
 					}
 
 					computeQuaternionWComponent(point.rotation);
