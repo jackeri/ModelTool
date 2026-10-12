@@ -157,7 +157,7 @@ TEST(PosedModelTest, boneTagsAndHitboxes)
 
 	ASSERT_EQ(posed.hitboxes.size(), 1);
 	expectVec(posed.hitboxes[0].point.location, {0, 0, 11});
-	expectVec(posed.hitboxes[0].bounds.max, {2, 2, 2});
+	expectVec(posed.hitboxes[0].hitbox.max, {2, 2, 2});
 }
 
 TEST(PosedModelTest, morphFramesAndTags)

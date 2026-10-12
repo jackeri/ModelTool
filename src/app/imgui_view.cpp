@@ -1,4 +1,5 @@
 #include "imgui_view.h"
+#include "icons_font_awesome.h"
 #include "gl_window.h"
 #include "state.h"
 #include "hitbox.h"
@@ -59,16 +60,7 @@ namespace mt {
 		}
 		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
-		// Setup Dear ImGui style
-		ImGui::StyleColorsDark();
-
-		// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-		ImGuiStyle &style = ImGui::GetStyle();
-		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			style.WindowRounding = 0.0f;
-			style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-		}
+		// The style and the fonts are set up in updateStyle() before the first frame
 
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(window->system(), true);
@@ -77,8 +69,37 @@ namespace mt {
 		return true;
 	}
 
+	void ImGuiView::updateStyle()
+	{
+		auto &state = singleton<State>();
+
+		if (int(state.theme) != appliedTheme)
+		{
+			ui::applyTheme(state.theme);
+			appliedTheme = int(state.theme);
+		}
+
+		// Fonts are rasterized at the framebuffer's pixel density (2 on Retina screens) so the text is sharp
+		int width = 0, height = 0, fbWidth = 0, fbHeight = 0;
+		glfwGetWindowSize(glfwWindow, &width, &height);
+		glfwGetFramebufferSize(glfwWindow, &fbWidth, &fbHeight);
+		const float pixelScale = width > 0 && fbWidth > 0 ? float(fbWidth) / float(width) : appliedPixelScale;
+
+		if (state.fontSize != appliedFontSize || (pixelScale > 0 && pixelScale != appliedPixelScale))
+		{
+			appliedFontSize = state.fontSize;
+			appliedPixelScale = std::max(pixelScale, 1.0f);
+			if (!ui::loadFonts(appliedFontSize, appliedPixelScale))
+			{
+				logger->warn("The built-in fonts are missing, using the ImGui default font");
+			}
+			ImGui_ImplOpenGL3_DestroyFontsTexture();
+		}
+	}
+
 	void ImGuiView::startFrame()
 	{
+		updateStyle();
 		ImGui_ImplOpenGL3_NewFrame();
 
 		ImGui_ImplGlfw_NewFrame();
@@ -170,18 +191,18 @@ namespace mt {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("Open model...", shortcutLabel("Ctrl+O").c_str()))
+				if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN " Open model...", shortcutLabel("Ctrl+O").c_str()))
 				{
 					openModelFromDisk();
 				}
 
-				if (ImGui::MenuItem("Open from base folders..."))
+				if (ImGui::MenuItem(ICON_FA_ARCHIVE " Open from base folders..."))
 				{
 					baseBrowser.show("Open from base folders", model::io::modelExtensions(),
 									 [this](const std::string &path) { openModel(path); });
 				}
 
-				if (ImGui::BeginMenu("Recent models", !state.settings.recentFiles.empty()))
+				if (ImGui::BeginMenu(ICON_FA_HISTORY " Recent models", !state.settings.recentFiles.empty()))
 				{
 					std::string selected;
 					for (const auto &path : state.settings.recentFiles)
@@ -204,7 +225,7 @@ namespace mt {
 					}
 				}
 
-				if (ImGui::BeginMenu("Base folders"))
+				if (ImGui::BeginMenu(ICON_FA_DATABASE " Base folders"))
 				{
 					if (state.basePaths.empty())
 					{
@@ -233,7 +254,7 @@ namespace mt {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Load animation from base folders...", nullptr, false, !!state.model))
+				if (ImGui::MenuItem(ICON_FA_FILM " Load animation from base folders...", nullptr, false, !!state.model))
 				{
 					baseBrowser.show("Load animation", model::io::animationExtensions(), [this](const std::string &path) {
 						try
@@ -248,7 +269,7 @@ namespace mt {
 					});
 				}
 
-				if (ImGui::MenuItem("Load animation...", nullptr, false, !!state.model))
+				if (ImGui::MenuItem(ICON_FA_FILM " Load animation...", nullptr, false, !!state.model))
 				{
 					browser.show("Load animation", [this](const std::string &animation) {
 						rememberFolder(animation);
@@ -266,7 +287,7 @@ namespace mt {
 					browser.setDirectory(startFolder());
 				}
 
-				if (ImGui::MenuItem("Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
+				if (ImGui::MenuItem(ICON_FA_CUBE " Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
 						logger->info("Selected filename: {}", file);
@@ -283,7 +304,7 @@ namespace mt {
 				}
 
 				auto *skeletal = dynamic_cast<model::skeletal::SkeletalModel *>(state.model.get());
-				if (ImGui::MenuItem("Load tags", nullptr, false, skeletal && !skeletal->joints.empty()))
+				if (ImGui::MenuItem(ICON_FA_TAGS " Load tags", nullptr, false, skeletal && !skeletal->joints.empty()))
 				{
 					browser.show("Load tags", [&](const std::string &file) {
 						logger->info("Selected filename: {}", file);
@@ -303,7 +324,7 @@ namespace mt {
 					browser.setTypeFilters({".tag"});
 				}
 
-				if (ImGui::MenuItem("Save hitboxes", nullptr, false,
+				if (ImGui::MenuItem(ICON_FA_FLOPPY_O " Save hitboxes", nullptr, false,
 									(!!state.model && state.model->skeletalModel() && !state.model->getHitboxes()->empty())))
 				{
 					browser.show("Save hitboxes", [&](const std::string &file) {
@@ -325,14 +346,14 @@ namespace mt {
 				ImGui::Separator();
 
 				// Close the current model
-				if (ImGui::MenuItem("Close", nullptr, false, !!state.model))
+				if (ImGui::MenuItem(ICON_FA_TIMES " Close", nullptr, false, !!state.model))
 				{
 					state.closeModels();
 				}
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Quit", shortcutLabel("Ctrl+Q").c_str()))
+				if (ImGui::MenuItem(ICON_FA_SIGN_OUT " Quit", shortcutLabel("Ctrl+Q").c_str()))
 				{
 					glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
 				}
@@ -377,11 +398,11 @@ namespace mt {
 				{
 					ImGui::SliderFloat("Field of view", &scene->getCamera().fov, 30.0f, 120.0f, "%.0f");
 				}
-				if (ImGui::MenuItem("Reset camera"))
+				if (ImGui::MenuItem(ICON_FA_CAMERA " Reset camera"))
 				{
 					state.resetCamera = true;
 				}
-				if (ImGui::MenuItem("Frame model", "F", false, !!state.model))
+				if (ImGui::MenuItem(ICON_FA_CROSSHAIRS " Frame model", "F", false, !!state.model))
 				{
 					state.frameCamera = true;
 				}
@@ -598,7 +619,7 @@ namespace mt {
 		auto &state = singleton<State>();
 		Model *model = state.model.get();
 
-		if (!ImGui::BeginMenu("Export", model != nullptr))
+		if (!ImGui::BeginMenu(ICON_FA_SHARE_SQUARE_O " Export", model != nullptr))
 		{
 			return;
 		}
@@ -631,7 +652,7 @@ namespace mt {
 		}
 
 		ImGui::Separator();
-		if (ImGui::MenuItem("Export all..."))
+		if (ImGui::MenuItem(ICON_FA_DOWNLOAD " Export all..."))
 		{
 			showExportAll = true;
 			if (exportName.empty())

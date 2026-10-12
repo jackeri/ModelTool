@@ -2,6 +2,7 @@
 
 #include "library.h"
 #include "model.h"
+#include "hitbox.h"
 
 namespace mt::model {
 
@@ -34,8 +35,8 @@ namespace mt::model {
 
 	/*! Hitbox with its object space transform */
 	struct PosedHitbox {
-		Point point{};
-		Bounds bounds{};
+		Point point{};	 ///< object space location and rotation
+		Hitbox hitbox{}; ///< the hitbox (shape and size)
 	};
 
 	/*! Everything that can be drawn of a model in one pose */

@@ -264,7 +264,7 @@ void main()
 
 		lineShader.use();
 		lineShader.setUniform("uMvp", viewProj * modelMatrix());
-		lineShader.setUniform("uPointSize", pointSize);
+		lineShader.setUniform("uPointSize", pointSize * pixelScale);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

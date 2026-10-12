@@ -42,6 +42,9 @@ namespace mt {
 		state.clearColor = ImColor(settings.getFloat("background.r", color.x), settings.getFloat("background.g", color.y),
 								   settings.getFloat("background.b", color.z));
 
+		state.theme = ui::Theme(std::clamp(settings.getInt("ui.theme", int(state.theme)), 0, ui::THEME_COUNT - 1));
+		state.fontSize = std::clamp(settings.getFloat("ui.fontSize", state.fontSize), ui::MIN_FONT_SIZE, ui::MAX_FONT_SIZE);
+
 		state.showLog = settings.showLog;
 	}
 
@@ -64,6 +67,9 @@ namespace mt {
 		settings.set("background.r", state.clearColor.Value.x);
 		settings.set("background.g", state.clearColor.Value.y);
 		settings.set("background.b", state.clearColor.Value.z);
+
+		settings.set("ui.theme", int(state.theme));
+		settings.set("ui.fontSize", state.fontSize);
 
 		settings.showLog = state.showLog;
 		settings.basePaths = state.basePaths;

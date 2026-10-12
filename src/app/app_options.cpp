@@ -29,6 +29,10 @@ namespace mt {
 			{
 				options.animations.push_back(value());
 			}
+			else if (arg == "--hitboxes")
+			{
+				options.hitboxes = value();
+			}
 			else if (arg == "--frame")
 			{
 				options.frame = std::stoi(value());
@@ -79,7 +83,7 @@ namespace mt {
 
 	std::string AppOptions::usage()
 	{
-		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--frame n]\n"
+		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]\n"
 			   "                 [--view wireframe,notextures,alpha,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
 			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}

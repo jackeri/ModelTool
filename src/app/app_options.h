@@ -10,6 +10,7 @@ namespace mt {
 		std::vector<std::string> basePaths{};  ///< --base: folders (or pk3 files) to load files from
 		std::string model{};				   ///< --model: model to open
 		std::vector<std::string> animations{}; ///< --animation: animations to load into the model
+		std::string hitboxes{};				   ///< --hitboxes: hitbox file to load into the model
 		int frame = FRAME_BIND_POSE;		   ///< --frame: frame to show (-1 is the bind pose)
 		std::string screenshot{};			   ///< --screenshot: render the scene to this PNG and exit
 		bool screenshotUi = false;			   ///< --ui: the screenshot has the whole window with the UI

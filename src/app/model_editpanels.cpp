@@ -3,62 +3,14 @@
 #include "skeletal_model.h"
 #include "skeletal_tools.h"
 #include "morph_model.h"
+#include "ui_widgets.h"
+#include "icons_font_awesome.h"
 
 using namespace mt::model;
 using namespace mt::model::skeletal;
+using namespace mt::ui;
 
 namespace mt {
-
-	namespace {
-		/**
-		 * Edit a rotation as euler angles (degrees)
-		 * @return true if the rotation changed
-		 */
-		bool editRotation(const char *label, glm::quat &rotation)
-		{
-			glm::vec3 angles = glm::degrees(glm::eulerAngles(rotation));
-			if (ImGui::DragFloat3(label, glm::value_ptr(angles), 0.5f, -180.0f, 180.0f, "%.1f"))
-			{
-				rotation = glm::normalize(glm::quat(glm::radians(angles)));
-				return true;
-			}
-			return false;
-		}
-
-		/**
-		 * Bone picker
-		 * @param label combo label
-		 * @param joints bones to pick from
-		 * @param index selected bone, -1 for none
-		 * @param allowNone add a "none" entry
-		 * @return true if the selection changed
-		 */
-		bool boneCombo(const char *label, const std::vector<Joint> &joints, int &index, bool allowNone)
-		{
-			const char *preview = index >= 0 && index < int(joints.size()) ? joints[index].name.c_str() : "(none)";
-			bool changed = false;
-			if (ImGui::BeginCombo(label, preview))
-			{
-				if (allowNone && ImGui::Selectable("(none)", index < 0))
-				{
-					index = -1;
-					changed = true;
-				}
-				for (int i = 0; i < int(joints.size()); i++)
-				{
-					ImGui::PushID(i);
-					if (ImGui::Selectable(joints[i].name.c_str(), index == i))
-					{
-						index = i;
-						changed = true;
-					}
-					ImGui::PopID();
-				}
-				ImGui::EndCombo();
-			}
-			return changed;
-		}
-	}
 
 	void ModelPropertyPanel::drawModelBasics()
 	{
@@ -118,7 +70,7 @@ namespace mt {
 
 			if (model.currentFrame >= 0)
 			{
-				if (ImGui::Button("Bake pose"))
+				if (ImGui::Button(ICON_FA_CHECK " Bake pose"))
 				{
 					bakeBindPose(*skeletal, model.currentFrame);
 					spdlog::get(MT_LOGGER)->info("Frame {} is now the bind pose", model.currentFrame);
@@ -139,7 +91,7 @@ namespace mt {
 		editRotation("Rotation", model.transform.rotation);
 		ImGui::DragFloat3("Translation", glm::value_ptr(model.transform.location), 0.1f);
 
-		if (ImGui::Button("Reset transform"))
+		if (ImGui::Button(ICON_FA_UNDO " Reset transform"))
 		{
 			model.scale = 1.0f;
 			model.transform = Point{};
@@ -192,7 +144,7 @@ namespace mt {
 		{
 			ImGui::Text("Tags: %zu", skeletal->tags.size());
 			ImGui::SameLine();
-			if (ImGui::SmallButton("Add") && !skeletal->joints.empty())
+			if (ImGui::SmallButton(ICON_FA_PLUS " Add") && !skeletal->joints.empty())
 			{
 				BoneTag tag;
 				tag.name = "tag_new";
@@ -210,7 +162,7 @@ namespace mt {
 					boneCombo("Bone", skeletal->joints, tag.parentBone, false);
 					ImGui::DragFloat3("Location", glm::value_ptr(tag.location), 0.1f);
 					editRotation("Rotation", tag.rotation);
-					if (ImGui::Button("Remove tag"))
+					if (ImGui::Button(ICON_FA_TRASH " Remove tag"))
 					{
 						skeletal->tags.erase(skeletal->tags.begin() + long(i));
 						ImGui::TreePop();
@@ -231,7 +183,7 @@ namespace mt {
 				ImGui::PushID(int(i));
 				ImGui::InputText("##name", &tag.name);
 				ImGui::SameLine();
-				if (ImGui::SmallButton("Remove"))
+				if (ImGui::SmallButton(ICON_FA_TRASH " Remove"))
 				{
 					morph->tags.erase(morph->tags.begin() + long(i));
 					ImGui::PopID();
@@ -249,7 +201,7 @@ namespace mt {
 		ImGui::Text("Bones: %zu", model->joints.size());
 		boneCombo("Torso parent", model->joints, model->torsoParent, true);
 
-		if (ImGui::Button("Bake tags"))
+		if (ImGui::Button(ICON_FA_CHECK " Bake tags"))
 		{
 			int count = bakeTags(*model);
 			spdlog::get(MT_LOGGER)->info("Baked {} bones into tags", count);
@@ -298,7 +250,7 @@ namespace mt {
 
 		ImGui::Text("Sequences: %zu", model.animations.size());
 		ImGui::SameLine();
-		if (ImGui::SmallButton("Add"))
+		if (ImGui::SmallButton(ICON_FA_PLUS " Add"))
 		{
 			Animation animation;
 			animation.name = "new_animation";
@@ -319,7 +271,7 @@ namespace mt {
 			}
 
 			ImGui::PushID(int(i));
-			if (ImGui::SmallButton("Play"))
+			if (ImGui::SmallButton(ICON_FA_PLAY " Play"))
 			{
 				state.playback.setAnimation(animation);
 				model.currentFrame = state.playback.frame();
@@ -343,7 +295,7 @@ namespace mt {
 				animation.numFrames = std::max(animation.numFrames, 1);
 				animation.fps = std::max(animation.fps, 1);
 
-				if (ImGui::Button("Delete"))
+				if (ImGui::Button(ICON_FA_TRASH " Delete"))
 				{
 					model.animations.erase(model.animations.begin() + long(i));
 					ImGui::TreePop();

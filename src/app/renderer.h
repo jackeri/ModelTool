@@ -78,8 +78,16 @@ namespace mt {
 		/**
 		 * Draw the ground grid and the axis lines
 		 * @param size size of the area to cover, the grid steps are rounded to powers of two
+		 * @param color grid line color
 		 */
-		void grid(float size = 120.0f);
+		void grid(float size = 120.0f, const glm::vec4 &color = {0, 0, 0, 0.35f});
+
+		/**
+		 * Grid line color that shows on a background: dark lines on light backgrounds, light lines on dark ones
+		 * @param background background color
+		 * @return grid color
+		 */
+		static glm::vec4 gridColor(const glm::vec4 &background);
 
 		/**
 		 * Draw the edges of bounds with the current model matrix
@@ -120,6 +128,8 @@ namespace mt {
 		{
 			return viewProj;
 		}
+
+		float pixelScale = 1.0f; ///< framebuffer pixels per window unit (2 on most HiDPI screens), scales point sizes
 
 	  protected:
 		std::vector<glm::mat4> stack{glm::mat4{1.0f}}; ///< model matrix stack

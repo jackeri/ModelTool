@@ -109,10 +109,18 @@ namespace mt {
 
 		if (view.drawHitboxes)
 		{
-			for (const auto &hitbox : posed.hitboxes)
+			for (size_t i = 0; i < posed.hitboxes.size(); i++)
 			{
+				const auto &hitbox = posed.hitboxes[i];
+				const glm::vec4 color = int(i) == view.selectedHitbox ? glm::vec4{1, 1, 0, 1} : glm::vec4{1, 0, 1, 1};
+				std::vector<LineVertex> lines;
+				for (const auto &[from, to] : hitbox.hitbox.lines())
+				{
+					lines.push_back({from, color});
+					lines.push_back({to, color});
+				}
 				renderer.push(glm::translate(hitbox.point.location) * glm::toMat4(hitbox.point.rotation));
-				renderer.bounds(hitbox.bounds, {1, 0, 1, 1});
+				renderer.drawLines(lines, false);
 				renderer.pop();
 			}
 		}

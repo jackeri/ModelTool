@@ -3,6 +3,8 @@
 #include "skeletal_model.h"
 #include "hitbox.h"
 #include "morph_model.h"
+#include "ui_widgets.h"
+#include "icons_font_awesome.h"
 
 using namespace mt::model;
 using namespace mt::model::skeletal;
@@ -74,7 +76,40 @@ namespace mt {
 
 			if (ImGui::CollapsingHeader("App", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::ColorEdit3("background color", (float *)&state.clearColor);
+				int theme = int(state.theme);
+				if (ImGui::Combo("Theme", &theme, "Darker\0Dark\0Light\0"))
+				{
+					// The scene background follows the theme, it can be changed after that
+					state.theme = ui::Theme(theme);
+					glm::vec3 background = ui::sceneBackground(state.theme);
+					state.clearColor = ImColor(background.r, background.g, background.b);
+				}
+
+				// The font atlas is rebuilt when the slider is let go
+				static float fontSize = 0;
+				if (!ImGui::IsAnyItemActive() || fontSize == 0)
+				{
+					fontSize = state.fontSize;
+				}
+				ImGui::SliderFloat("Font size", &fontSize, ui::MIN_FONT_SIZE, ui::MAX_FONT_SIZE, "%.0f");
+				if (ImGui::IsItemDeactivatedAfterEdit())
+				{
+					state.fontSize = std::round(fontSize);
+				}
+
+				// Leave room for the reset button next to the color
+				const float resetWidth = ImGui::CalcTextSize(ICON_FA_UNDO).x + ImGui::GetStyle().FramePadding.x * 2;
+				ImGui::SetNextItemWidth(ImGui::CalcItemWidth() - resetWidth - ImGui::GetStyle().ItemInnerSpacing.x);
+				ImGui::ColorEdit3("##background", (float *)&state.clearColor);
+				ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
+				if (ImGui::Button(ICON_FA_UNDO "##background"))
+				{
+					glm::vec3 background = ui::sceneBackground(state.theme);
+					state.clearColor = ImColor(background.r, background.g, background.b);
+				}
+				ImGui::SetItemTooltip("Theme default");
+				ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
+				ImGui::TextUnformatted("Background");
 
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			}
@@ -88,7 +123,7 @@ namespace mt {
 		auto &playback = state.playback;
 		Model &model = *state.model;
 
-		if (ImGui::Button(playback.isPlaying() ? "Pause" : "Play"))
+		if (ImGui::Button(playback.isPlaying() ? ICON_FA_PAUSE " Pause" : ICON_FA_PLAY " Play"))
 		{
 			if (playback.isPlaying())
 			{
@@ -105,7 +140,7 @@ namespace mt {
 			}
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("All frames"))
+		if (ImGui::Button(ICON_FA_REFRESH " All frames"))
 		{
 			state.resetPlayback();
 		}
@@ -143,97 +178,121 @@ namespace mt {
 	void ModelPropertyPanel::drawHitboxMenu()
 	{
 		auto &state = singleton<State>();
-
 		auto *model = dynamic_cast<SkeletalModel *>(state.model.get());
-
-		ImGui::Text("Number of Hitboxes: %lu", model->hitboxes.size());
-		ImGui::SameLine();
-		if (ImGui::Button("Add"))
+		auto &hitboxes = model->hitboxes;
+		int &selected = state.view.selectedHitbox;
+		if (selected >= int(hitboxes.size()))
 		{
-			Hitbox tmp(10);
-			model->hitboxes.push_back(tmp);
+			selected = int(hitboxes.size()) - 1;
 		}
 
-		for (unsigned int i = 0; i < model->hitboxes.size(); i++)
+		ImGui::Text("Hitboxes: %zu", hitboxes.size());
+		if (ImGui::Button(ICON_FA_PLUS " Add"))
 		{
-			Hitbox &hitbox = model->hitboxes[i];
+			Hitbox hitbox(10);
+			hitbox.name = "hitbox " + std::to_string(hitboxes.size() + 1);
+			hitboxes.push_back(hitbox);
+			selected = int(hitboxes.size()) - 1;
+		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(selected < 0);
+		if (ImGui::Button(ICON_FA_CLONE " Duplicate"))
+		{
+			Hitbox copy = hitboxes[selected];
+			copy.name += " copy";
+			hitboxes.insert(hitboxes.begin() + selected + 1, copy);
+			selected++;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_TRASH " Delete"))
+		{
+			hitboxes.erase(hitboxes.begin() + selected);
+			selected = std::min(selected, int(hitboxes.size()) - 1);
+		}
+		ImGui::EndDisabled();
 
-			ImGui::PushID(BIT(23u) + i);
-			ImGui::Separator();
-			ImGui::InputText("Name", &hitbox.name);
-
-			ImGui::Spacing();
-
-			ImGui::Combo(
-				"Bind bone", &hitbox.parentJoint,
-				[](void *data, int idx, const char **out_text) -> bool {
-					auto *list = (std::vector<Joint> *)data;
-
-					if (idx < 0 || idx >= list->size())
-					{
-						out_text = nullptr;
-					}
-					else
-					{
-						*out_text = list->at(idx).name.c_str();
-					}
-
-					return true;
-				},
-				&model->joints, model->joints.size());
-
-			ImGui::Spacing();
-
-			bool headshot
-				= std::any_of(hitbox.modifiers.begin(), hitbox.modifiers.end(), [](auto &modifier) { return modifier == "headshot"; });
-			ImGui::Checkbox("Head", &headshot);
-
-			if (!headshot)
+		if (ImGui::BeginListBox("##hitboxes",
+								{-FLT_MIN, ImGui::GetTextLineHeightWithSpacing() * float(std::clamp<size_t>(hitboxes.size(), 3, 8))}))
+		{
+			for (int i = 0; i < int(hitboxes.size()); i++)
 			{
-				hitbox.modifiers.erase("headshot");
+				ImGui::PushID(i);
+				std::string label = hitboxes[i].name.empty() ? "(no name)" : hitboxes[i].name;
+				label += std::string("  [") + hitboxShapeName(hitboxes[i].shape) + "]";
+				if (ImGui::Selectable(label.c_str(), selected == i))
+				{
+					selected = selected == i ? -1 : i;
+				}
+				ImGui::PopID();
 			}
-			else
+			ImGui::EndListBox();
+		}
+
+		if (selected < 0)
+		{
+			ImGui::TextDisabled("Select a hitbox to edit it");
+			return;
+		}
+
+		Hitbox &hitbox = hitboxes[selected];
+		ImGui::PushID(selected);
+		ImGui::SeparatorText("Hitbox");
+		ImGui::InputText("Name", &hitbox.name);
+		ui::boneCombo("Bone", model->joints, hitbox.parentJoint, true);
+
+		bool headshot = hitbox.modifiers.count("headshot") > 0;
+		if (ImGui::Checkbox("Head", &headshot))
+		{
+			if (headshot)
 			{
 				hitbox.modifiers.emplace("headshot");
 			}
-
-			ImGui::Spacing();
-
-			if (ImGui::CollapsingHeader("Rotation"))
+			else
 			{
-				// Returns euler angles, pitch as x, yaw as y, roll as z.
-				glm::vec3 angles = glm::degrees(glm::eulerAngles(hitbox.rotation));
-				ImGui::SliderFloat("Roll (X)", &angles.z, -180.f, 180.f);
-				ImGui::SliderFloat("Pitch (Y)", &angles.x, -180.f, 180.f);
-				ImGui::SliderFloat("Yawn (Z)", &angles.y, -180.f, 180.f);
-				hitbox.rotation = {glm::radians(angles)};
+				hitbox.modifiers.erase("headshot");
 			}
-
-			if (ImGui::CollapsingHeader("Translation"))
-			{
-				ImGui::SliderFloat("Trans X", &hitbox.location.x, -180.f, 180.f);
-				ImGui::SliderFloat("Trans Y", &hitbox.location.y, -180.f, 180.f);
-				ImGui::SliderFloat("Trans Z", &hitbox.location.z, -180.f, 180.f);
-			}
-
-			if (ImGui::CollapsingHeader("Size"))
-			{
-				glm::vec3 tmp = hitbox.max - hitbox.min;
-
-				ImGui::SliderFloat("Height", &tmp.x, 1, 180.f);
-				ImGui::SliderFloat("Width", &tmp.z, 1, 180.f);
-				ImGui::SliderFloat("Depth", &tmp.y, 1, 180.f);
-
-				hitbox.min = {-(tmp.x / 2), -(tmp.y / 2), -(tmp.z / 2)};
-				hitbox.max = {tmp.x / 2, tmp.y / 2, tmp.z / 2};
-			}
-
-			if (ImGui::Button("Delete"))
-			{
-				model->hitboxes.erase(model->hitboxes.begin() + i);
-			}
-
-			ImGui::PopID();
 		}
+
+		int shape = int(hitbox.shape);
+		const char *shapes[] = {"Box", "Sphere", "Cylinder", "Capsule"};
+		if (ImGui::Combo("Shape", &shape, shapes, IM_ARRAYSIZE(shapes)))
+		{
+			hitbox.setShape(HitboxShape(shape));
+		}
+
+		ImGui::DragFloat3("Location", glm::value_ptr(hitbox.location), 0.1f, 0, 0, "%.2f");
+		ui::editRotation("Rotation", hitbox.rotation);
+
+		if (hitbox.shape == HitboxShape::Box)
+		{
+			// The size keeps the centre of the box where it is
+			glm::vec3 size = hitbox.max - hitbox.min;
+			glm::vec3 center = (hitbox.max + hitbox.min) * 0.5f;
+			bool changed = ImGui::DragFloat3("Size", glm::value_ptr(size), 0.1f, 0.0f, FLT_MAX, "%.2f");
+			changed |= ImGui::DragFloat3("Center", glm::value_ptr(center), 0.1f, 0, 0, "%.2f");
+			if (changed)
+			{
+				size = glm::max(size, glm::vec3(0));
+				hitbox.min = center - size * 0.5f;
+				hitbox.max = center + size * 0.5f;
+			}
+		}
+		else
+		{
+			bool changed = ImGui::DragFloat("Radius", &hitbox.radius, 0.1f, 0.0f, FLT_MAX, "%.2f");
+			if (hitbox.shape != HitboxShape::Sphere)
+			{
+				changed |= ImGui::DragFloat("Height", &hitbox.height, 0.1f, 0.0f, FLT_MAX, "%.2f");
+				if (hitbox.shape == HitboxShape::Capsule)
+				{
+					ImGui::TextDisabled("The height includes the end caps");
+				}
+			}
+			if (changed)
+			{
+				hitbox.clampSize();
+			}
+		}
+		ImGui::PopID();
 	}
 }

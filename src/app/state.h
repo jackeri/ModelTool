@@ -8,6 +8,7 @@
 #include "playback.h"
 #include "texture_cache.h"
 #include "settings.h"
+#include "ui_theme.h"
 
 #include <filesystem>
 
@@ -21,6 +22,7 @@ namespace mt {
 		bool drawGrid = true;		///< ground grid and origin axis
 		bool drawBounds = false;	///< frame bounding box
 		bool drawHitboxes = true;	///< hitboxes of skeletal models
+		int selectedHitbox = -1;	///< hitbox drawn highlighted (open in the hitbox panel)
 		bool drawTags = false;		///< tag axis
 		bool drawTagNames = true;	///< names next to the tags
 		bool drawSkeleton = false;	///< bones and joints
@@ -38,19 +40,21 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	  public:
-		Ref<Model> model = nullptr;			  ///< currently loaded model
-		ImColor clearColor{114, 144, 154};	  ///< background clear color
-		io::FileSystem filesystem{};		  ///< used filesystem, which will be initialized by the ImGuiView
-		std::string modelPath{};			  ///< path of the loaded model, textures are also looked up next to it
-		ViewSettings view{};				  ///< scene drawing settings
-		model::Playback playback{};			  ///< animation playback
-		TextureCache textures{};			  ///< loaded textures
-		bool frameCamera = false;			  ///< the scene panel should point the camera at the model
-		bool resetCamera = false;			  ///< the scene panel should reset the camera
-		AppSettings settings{};				  ///< settings kept between runs
-		bool persistSettings = false;		  ///< load and save the settings (off for screenshots)
-		std::vector<std::string> basePaths{}; ///< base folders added by the user
-		bool showLog = true;				  ///< the log panel is open
+		Ref<Model> model = nullptr;				 ///< currently loaded model
+		ImColor clearColor{0.15f, 0.16f, 0.18f}; ///< scene background color
+		ui::Theme theme = ui::Theme::Darker;	 ///< user interface colors
+		float fontSize = ui::DEFAULT_FONT_SIZE;	 ///< user interface font size
+		io::FileSystem filesystem{};			 ///< used filesystem, which will be initialized by the ImGuiView
+		std::string modelPath{};				 ///< path of the loaded model, textures are also looked up next to it
+		ViewSettings view{};					 ///< scene drawing settings
+		model::Playback playback{};				 ///< animation playback
+		TextureCache textures{};				 ///< loaded textures
+		bool frameCamera = false;				 ///< the scene panel should point the camera at the model
+		bool resetCamera = false;				 ///< the scene panel should reset the camera
+		AppSettings settings{};					 ///< settings kept between runs
+		bool persistSettings = false;			 ///< load and save the settings (off for screenshots)
+		std::vector<std::string> basePaths{};	 ///< base folders added by the user
+		bool showLog = true;					 ///< the log panel is open
 
 		/**
 		 * no copy for singletons
@@ -99,6 +103,7 @@ namespace mt {
 			modelPath = path;
 			settings.addRecentFile(path);
 			view.lodLevel = 0;
+			view.selectedHitbox = -1;
 			frameCamera = true;
 			resetPlayback();
 		}

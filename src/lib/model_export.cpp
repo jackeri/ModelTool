@@ -115,6 +115,8 @@ namespace mt::model {
 			{
 				hitbox.min *= transform.scale;
 				hitbox.max *= transform.scale;
+				hitbox.radius *= transform.scale;
+				hitbox.height *= transform.scale;
 				if (hitbox.parentJoint >= 0)
 				{
 					hitbox.location *= transform.scale;

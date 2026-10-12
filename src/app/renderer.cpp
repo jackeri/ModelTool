@@ -15,14 +15,19 @@ namespace mt {
 		}
 	}
 
-	void Renderer::grid(float size)
+	glm::vec4 Renderer::gridColor(const glm::vec4 &background)
+	{
+		const float luminance = glm::dot(glm::vec3(background), glm::vec3(0.2126f, 0.7152f, 0.0722f));
+		return luminance < 0.35f ? glm::vec4{1, 1, 1, 0.12f} : glm::vec4{0, 0, 0, 0.35f};
+	}
+
+	void Renderer::grid(float size, const glm::vec4 &gridColor)
 	{
 		// About 30 - 60 lines over the area, on a power of two step like the game's grid
 		const float GRID_STEP = std::exp2(std::round(std::log2(std::max(size, 1.0f) / 40.0f)));
 		const float ORIGIN_LINE_LEN = std::ceil(size * 0.5f / GRID_STEP) * GRID_STEP;
 
 		std::vector<LineVertex> lines;
-		const glm::vec4 gridColor{0, 0, 0, 0.35f};
 		for (float i = -ORIGIN_LINE_LEN; i <= ORIGIN_LINE_LEN; i += GRID_STEP)
 		{
 			lines.push_back({{i, -ORIGIN_LINE_LEN, 0}, gridColor});

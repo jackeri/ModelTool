@@ -59,7 +59,8 @@ namespace mt {
 		 */
 		void drawLabels(const ImVec2 &origin);
 
-		glm::ivec2 size{};			 ///< Viewport size
+		glm::ivec2 size{};			 ///< Framebuffer size in pixels
+		glm::vec2 viewSize{};		 ///< Size of the scene image in the window (smaller than size on HiDPI screens)
 		Camera camera;				 ///< Camera instance which is used in the scene panel
 		Ref<Framebuffer> fbo;		 ///< Frame buffer for 3d view drawing
 		Ref<Renderer> renderer;		 ///< Renderer which is used for the 3d view

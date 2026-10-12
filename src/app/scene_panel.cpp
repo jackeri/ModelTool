@@ -22,6 +22,11 @@ namespace mt {
 	{
 		auto &state = singleton<State>();
 		size = {std::max(width, 1), std::max(height, 1)};
+		if (viewSize.x <= 0 || viewSize.y <= 0)
+		{
+			viewSize = size;
+		}
+		renderer->pixelScale = float(size.y) / viewSize.y;
 
 		state.textures.setOptions(state.view.picmip, state.view.textureFilter);
 
@@ -72,7 +77,8 @@ namespace mt {
 		{
 			renderer->grid(std::max(std::max(std::abs(sceneBounds.min.x), std::abs(sceneBounds.max.x)),
 									std::max(std::abs(sceneBounds.min.y), std::abs(sceneBounds.max.y)))
-						   * 2.5f);
+							   * 2.5f,
+						   Renderer::gridColor({color.x, color.y, color.z, 1}));
 		}
 
 		if (state.model)
@@ -111,12 +117,15 @@ namespace mt {
 		ImGuiWindowFlags sceneFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoDecoration;
 		ImGui::Begin("Scene", nullptr, sceneFlags);
 
+		// The framebuffer has the screen's pixels, on HiDPI screens more than the window size
 		ImVec2 available = ImGui::GetContentRegionAvail();
-		renderScene(to_int(available.x), to_int(available.y));
+		const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
+		viewSize = {std::max(available.x, 1.0f), std::max(available.y, 1.0f)};
+		renderScene(to_int(viewSize.x * scale.x), to_int(viewSize.y * scale.y));
 
 		ImVec2 origin = ImGui::GetCursorScreenPos();
 		auto textureId = reinterpret_cast<ImTextureID>(intptr_t(fbo->texture()));
-		ImGui::Image(textureId, ImVec2{float(size.x), float(size.y)}, ImVec2{0, 1}, ImVec2{1, 0});
+		ImGui::Image(textureId, ImVec2{viewSize.x, viewSize.y}, ImVec2{0, 1}, ImVec2{1, 0});
 		sceneHovered = ImGui::IsItemHovered();
 
 		drawLabels(origin);
@@ -141,7 +150,7 @@ namespace mt {
 		}
 		else if ((ImGui::IsMouseDragging(ImGuiMouseButton_Right) || ImGui::IsMouseDragging(ImGuiMouseButton_Middle)) && sceneHovered)
 		{
-			camera.pan(io.MouseDelta.x, io.MouseDelta.y, float(size.y));
+			camera.pan(io.MouseDelta.x, io.MouseDelta.y, viewSize.y);
 		}
 	}
 
@@ -165,7 +174,7 @@ namespace mt {
 			}
 
 			glm::vec3 ndc = glm::vec3(clip) / clip.w;
-			ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * float(size.x) + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * float(size.y) - 6.0f};
+			ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y - 6.0f};
 			drawList->AddText(screen, IM_COL32(255, 0, 255, 255), tag.name.c_str());
 		}
 	}

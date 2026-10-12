@@ -1,6 +1,14 @@
 #pragma once
 
 #include "mt.h"
+#include "icons_font_awesome.h"
+
+// FontAwesome icons instead of the browser's "[D]" / "[F]" text (the fork of imgui-filebrowser reads these)
+#define IMGUI_FILEBROWSER_DIR_PREFIX ICON_FA_FOLDER " "
+#define IMGUI_FILEBROWSER_FILE_PREFIX ICON_FA_FILE_O " "
+#define IMGUI_FILEBROWSER_REFRESH_LABEL ICON_FA_REFRESH
+#define IMGUI_FILEBROWSER_NEW_DIR_LABEL ICON_FA_PLUS
+#define IMGUI_FILEBROWSER_EDIT_PATH_LABEL ICON_FA_PENCIL
 #include <imfilebrowser.h>
 
 namespace mt {

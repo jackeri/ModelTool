@@ -115,6 +115,11 @@ namespace mt {
 		void showBaseFolderBrowser(bool add);
 
 		/**
+		 * Apply a changed theme, font size or screen pixel density (before the frame starts)
+		 */
+		void updateStyle();
+
+		/**
 		 * Shortcut text for menus, Ctrl is shown as Cmd on macOS
 		 */
 		static std::string shortcutLabel(const std::string &label);
@@ -137,5 +142,8 @@ namespace mt {
 		std::string exportFolder{};			///< export all: output folder
 		std::string exportName{};			///< export all: file name without the extension
 		std::vector<bool> exportSelected{}; ///< export all: selected formats
+		int appliedTheme = -1;				///< theme the style was set up with
+		float appliedFontSize = 0;			///< font size the font atlas was built with
+		float appliedPixelScale = 0;		///< screen pixel density the font atlas was built with
 	};
 }

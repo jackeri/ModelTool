@@ -1,4 +1,5 @@
 #include "gl_window.h"
+#include "hitbox.h"
 #include "imgui_view.h"
 #include "state.h"
 #include "app_settings.h"
@@ -287,6 +288,10 @@ void mt::GLWindow::applyOptions()
 			for (const auto &animation : options.animations)
 			{
 				state.loadAnimation(animation);
+			}
+			if (!options.hitboxes.empty() && state.model && state.model->getHitboxes())
+			{
+				model::Hitbox::loadHitboxes(state.filesystem.loadFile(options.hitboxes), *state.model->getHitboxes());
 			}
 
 			if (state.model && (options.frame >= 0 || !state.model->skeletalModel()))

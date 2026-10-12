@@ -89,6 +89,20 @@ list(FILTER MODEL_TOOL_APP_SRC EXCLUDE REGEX ".*/main.cpp$")
 list(FILTER MODEL_TOOL_LIB_SRC EXCLUDE REGEX ".*/main.cpp$")
 
 list(APPEND MODEL_TOOL_APP_SRC ${MODEL_TOOL_SHADERS})
+
+# The UI fonts are built into the program (src/app/embedded_files.h)
+set(MODEL_TOOL_FONTS "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Hack-Regular.ttf" "${CMAKE_CURRENT_SOURCE_DIR}/fonts/fontawesome-webfont.ttf")
+set(MODEL_TOOL_EMBEDDED "${CMAKE_BINARY_DIR}/generated/embedded_files.cpp")
+string(REPLACE ";" "|" MODEL_TOOL_FONTS_ARG "${MODEL_TOOL_FONTS}")
+add_custom_command(
+        OUTPUT ${MODEL_TOOL_EMBEDDED}
+        COMMAND ${CMAKE_COMMAND} "-DOUTPUT=${MODEL_TOOL_EMBEDDED}" "-DFILES=${MODEL_TOOL_FONTS_ARG}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_files.cmake"
+        DEPENDS ${MODEL_TOOL_FONTS} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_files.cmake"
+        COMMENT "Embedding the fonts"
+        VERBATIM)
+add_custom_target(embedded_files DEPENDS ${MODEL_TOOL_EMBEDDED})
+set_source_files_properties(${MODEL_TOOL_EMBEDDED} PROPERTIES GENERATED TRUE INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src/app")
+list(APPEND MODEL_TOOL_APP_SRC ${MODEL_TOOL_EMBEDDED})
 source_group("Shaders\\" FILES ${MODEL_TOOL_SHADERS})
 
 set(ZLIB_LIB "libs/zlib")
@@ -252,7 +266,11 @@ elseif (WIN32)
 endif ()
 
 add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/app/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS} ${MODEL_TOOL_RESOURCES})
-add_dependencies(ModelTool glad glfw spdlog)
+add_dependencies(ModelTool glad glfw spdlog embedded_files)
+if (APPLE)
+    # CMake's default template plus NSHighResolutionCapable for sharp text on Retina screens
+    set_target_properties(ModelTool PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/res/Info.plist.in")
+endif ()
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
 set_target_properties(glad PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
@@ -273,7 +291,6 @@ set_target_properties(ModelTool PROPERTIES
 install(TARGETS ModelTool BUNDLE DESTINATION "." RUNTIME DESTINATION ".")
 install(FILES "LICENSE.txt" DESTINATION ".")
 
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/fonts DESTINATION ${CMAKE_BINARY_DIR})
 
 if (test)
 
