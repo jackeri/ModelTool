@@ -48,3 +48,8 @@
 	url = https://github.com/madler/zlib.git
 	ignore = dirty
 	shallow = true
+[submodule "libs/openfbx"]
+	path = libs/openfbx
+	url = https://github.com/nem0/OpenFBX.git
+	ignore = dirty
+	shallow = true
