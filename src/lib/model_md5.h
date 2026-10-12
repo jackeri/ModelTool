@@ -9,7 +9,8 @@ namespace mt::model {
 	/**
 	 * load and parse an MD5mesh file
 	 * @param file file instance to parse
-	 * @return loaded Model instance or nullptr if the loading fails
+	 * @return loaded Model instance, owned by the caller
+	 * @throws mt::mt_exception if the data is invalid
 	 */
 	Model *loadMd5Model(const Ref<mt::io::MTFile> &file);
 

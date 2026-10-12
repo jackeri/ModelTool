@@ -11,7 +11,9 @@ namespace mt::model::skeletal {
 		std::string name{}; ///< name of the bone
 		int parentId{};		///< parent bone offset
 
-		bool asTag{};			   ///< can this bone be used as a tag
+		bool asTag{};			   ///< can this bone be used as a tag (MDS/MDX BONEFLAG_TAG)
+		float torsoWeight{};	   ///< how much the torso rotation (around the model's torso parent) affects this bone
+		float parentDist{};		   ///< distance to the parent bone (MDS/MDX)
 		std::vector<Point> frames; ///< The frame's pre calculated joints
 
 		// FIXME: remove these, these are really only MD5 related
@@ -54,21 +56,6 @@ namespace mt::model::skeletal {
 		int weightCount{};		///< weight count
 		glm::vec3 bindNormal{}; ///< bind pose normal for this vertex
 
-		SkeletalVertex() : Vertex() {}
-
-		SkeletalVertex(const SkeletalVertex &other) : Vertex(other)
-		{
-			startWeight = other.startWeight;
-			weightCount = other.weightCount;
-			bindNormal = other.bindNormal;
-			*this = other;
-		}
-
-		SkeletalVertex &operator=(const SkeletalVertex &other)
-		{
-			return *this;
-		}
-
 		bool operator==(const SkeletalVertex &rhs) const
 		{
 			if (pos != rhs.pos)
@@ -90,14 +77,11 @@ namespace mt::model::skeletal {
 		}
 	};
 
-	/*! Tag that is bound to a bone */
+	/*! Tag that is bound to a bone, location and rotation are relative to the parent bone */
 	struct BoneTag : public Point {
-		int parentBone; ///< Parent bone offset
-
-		BoneTag() : Point()
-		{
-			this->parentBone = -1;
-		}
+		std::string name{};	 ///< name of the tag
+		int parentBone = -1; ///< Parent bone offset
+		float torsoWeight{}; ///< torso rotation weight (MDS tags)
 	};
 
 	/*! Bone weight */
@@ -148,6 +132,9 @@ namespace mt::model::skeletal {
 		std::vector<Bounds> bounds{};	///< models bounds
 		std::vector<Hitbox> hitboxes{}; ///< models hitboxes which can be bound to tags or bones
 		bool hasBindPose = false;		///< defines if the loaded model has a bind pose setup
+		int torsoParent = -1;			///< bone which is the parent of the torso (MDS/MDX), -1 if not set
+		float lodScale = 1.0f;			///< level of detail scale (MDS/MDM)
+		float lodBias = 0.0f;			///< level of detail bias (MDS/MDM)
 
 		~SkeletalModel() override;
 

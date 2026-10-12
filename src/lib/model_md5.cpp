@@ -1,7 +1,7 @@
 #include "model_md5.h"
 #include "skeletal_model.h"
 #include "script_stream.h"
-#include "glm/gtx/normal.hpp"
+#include "normals.h"
 
 namespace mt::model {
 	using namespace skeletal;
@@ -121,17 +121,26 @@ namespace mt::model {
 			throw mt_ex("Invalid amount of weights: " + std::to_string(numWeights));
 		}
 
-		// Compute vertex positions
+		// Compute the bind pose vertex positions
 		for (auto &vert : mesh.vertices)
 		{
-			// Make sure the position and the normal values are zeroed
 			vert.pos = {0, 0, 0};
-			vert.normal = {0, 0, 0};
+
+			if (vert.startWeight + vert.weightCount > int(mesh.weights.size()))
+			{
+				throw mt_ex("Vertex points to an invalid weight");
+			}
 
 			// Sum the position of the weights
 			for (int i = 0; i < vert.weightCount; i++)
 			{
 				auto &weight = mesh.weights[vert.startWeight + i];
+
+				if (weight.jointId < 0 || weight.jointId >= int(model->joints.size()))
+				{
+					throw mt_ex("Weight points to an invalid joint: " + std::to_string(weight.jointId));
+				}
+
 				auto &joint = model->joints[weight.jointId];
 
 				// Convert the weight positions from joint local space to object space
@@ -140,44 +149,7 @@ namespace mt::model {
 			}
 		}
 
-		// Calculate triangle normals
-		for (auto &tri : mesh.tris)
-		{
-			auto &v1 = mesh.vertices[tri[0]];
-			auto &v2 = mesh.vertices[tri[1]];
-			auto &v3 = mesh.vertices[tri[2]];
-
-			glm::vec3 normal = glm::triangleNormal(v1.pos, v2.pos, v3.pos);
-
-			v1.normal += normal;
-			v2.normal += normal;
-			v3.normal += normal;
-		}
-
-		// normalize
-		for (auto &vert : mesh.vertices)
-		{
-			vert.normal = glm::normalize(vert.normal);
-			glm::vec3 normal = vert.normal;
-			vert.bindNormal = vert.normal;
-
-			// Reset the current normal
-			vert.normal = {0, 0, 0};
-
-			// Put the bind-pose normal into joint-local space
-			// so the animated normal can be computed faster later
-			for (int i = 0; i < vert.weightCount; i++)
-			{
-				auto &weight = mesh.weights[vert.startWeight + i];
-				auto &joint = model->joints[weight.jointId];
-
-				glm::vec3 tmp = normal * joint.rotation;
-				tmp = tmp + (tmp * weight.bias);
-				vert.normal += tmp;
-			}
-
-			vert.normal = glm::normalize(vert.normal);
-		}
+		calculateNormals(*model, mesh, FRAME_BIND_POSE);
 
 		model->meshes.emplace_back(mesh);
 	}
@@ -258,19 +230,11 @@ namespace mt::model {
 	{
 		// MD5 model file is just a text file
 		ScriptStream stream(file);
-		auto *model = new SkeletalModel;
+		auto model = std::make_unique<SkeletalModel>();
 
-		try
-		{
-			parseMeshRoot(stream, model);
-		}
-		catch (const std::exception &exception)
-		{
-			delete model;
-			return nullptr;
-		}
+		parseMeshRoot(stream, model.get());
 
-		return model;
+		return model.release();
 	}
 
 	static void parseAnimRoot(ScriptStream &stream, SkeletalModel *model)
@@ -448,6 +412,10 @@ namespace mt::model {
 	void loadMD5Anim(Model *baseModel, const Ref<mt::io::MTFile> &file)
 	{
 		auto *model = dynamic_cast<SkeletalModel *>(baseModel);
+		if (!model)
+		{
+			throw mt_ex("MD5 animations can only be loaded into a skeletal model");
+		}
 
 		// MD5 model file is just a text file
 		ScriptStream stream(file);

@@ -169,7 +169,7 @@ namespace mt {
 							logger->error("Failed to load model: {}", ex.what());
 						}
 					});
-					browser.setTypeFilters({".md5mesh"});
+					browser.setTypeFilters(model::io::modelExtensions());
 				}
 
 				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
@@ -185,7 +185,7 @@ namespace mt {
 							logger->error("Failed to load animation: {}", ex.what());
 						}
 					});
-					browser.setTypeFilters({".md5anim"});
+					browser.setTypeFilters(model::io::animationExtensions());
 				}
 
 				if (ImGui::MenuItem("Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
@@ -207,7 +207,7 @@ namespace mt {
 				if (ImGui::MenuItem("Save hitboxes", nullptr, false,
 									(!!state.model && state.model->skeletalModel() && !state.model->getHitboxes()->empty())))
 				{
-					browser.show("Load hitboxes", [&](const std::string &file) {
+					browser.show("Save hitboxes", [&](const std::string &file) {
 						logger->info("Selected filename: {}", file);
 						try
 						{
