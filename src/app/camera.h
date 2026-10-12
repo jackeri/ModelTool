@@ -51,6 +51,18 @@ namespace mt {
 		[[nodiscard]] glm::mat4 view() const;
 
 		/**
+		 * @return rotation from the world to the view (the view looks along -Z, Y is up on the screen)
+		 */
+		[[nodiscard]] glm::mat3 rotation() const;
+
+		/**
+		 * Look at the target from one of the axis directions, keeping the target and the distance
+		 * @param axis 0 = X, 1 = Y, 2 = Z
+		 * @param negative from the negative side of the axis
+		 */
+		void viewFrom(int axis, bool negative);
+
+		/**
 		 * @return distance of the far clipping plane
 		 */
 		[[nodiscard]] float farPlane() const

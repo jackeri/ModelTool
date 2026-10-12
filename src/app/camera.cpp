@@ -55,3 +55,20 @@ glm::mat4 mt::Camera::projection(float aspect) const
 	float nearPlane = std::max(distance * 0.01f, 0.01f);
 	return glm::perspective(glm::radians(fov), std::max(aspect, 0.01f), nearPlane, farPlane());
 }
+
+glm::mat3 mt::Camera::rotation() const
+{
+	return glm::mat3(glm::orientate4(glm::radians(angles)));
+}
+
+void mt::Camera::viewFrom(int axis, bool negative)
+{
+	// Angles without roll (mouse orbiting keeps working), Z up on the screen for the side views, +X up for the top and
+	// bottom views
+	static const glm::vec3 views[3][2] = {
+		{{-90, -90, 0}, {-90, 90, 0}}, // +X (front), -X (back)
+		{{-90, -180, 0}, {-90, 0, 0}}, // +Y (left), -Y (right)
+		{{0, 90, 0}, {-180, -90, 0}},  // +Z (top), -Z (bottom)
+	};
+	angles = views[std::clamp(axis, 0, 2)][negative ? 1 : 0];
+}

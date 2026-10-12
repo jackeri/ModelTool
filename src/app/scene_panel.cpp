@@ -168,6 +168,10 @@ namespace mt {
 		sceneHovered = ImGui::IsItemHovered();
 
 		drawLabels(origin);
+		if (singleton<State>().view.drawGizmo)
+		{
+			drawGizmo(origin);
+		}
 		handleInput();
 
 		ImGui::End();
@@ -215,6 +219,115 @@ namespace mt {
 			glm::vec3 ndc = glm::vec3(clip) / clip.w;
 			ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y - 6.0f};
 			drawList->AddText(screen, IM_COL32(255, 0, 255, 255), tag.name.c_str());
+		}
+	}
+
+	void ScenePanel::drawGizmo(const ImVec2 &origin)
+	{
+		struct Axis {
+			int axis;
+			bool negative;
+			const char *label;
+			const char *direction; ///< idTech direction of the axis
+			const char *side;	   ///< what the view from this side shows
+			ImU32 color;
+		};
+		static const Axis axes[6] = {
+			{0, false, "X", "+X forward", "front", IM_COL32(230, 70, 70, 255)},
+			{0, true, "", "-X back", "back", IM_COL32(230, 70, 70, 255)},
+			{1, false, "Y", "+Y left", "left", IM_COL32(90, 200, 90, 255)},
+			{1, true, "", "-Y right", "right", IM_COL32(90, 200, 90, 255)},
+			{2, false, "Z", "+Z up", "top", IM_COL32(80, 130, 240, 255)},
+			{2, true, "", "-Z down", "bottom", IM_COL32(80, 130, 240, 255)},
+		};
+
+		const float fontSize = ImGui::GetFontSize();
+		const float radius = fontSize * 2.8f;
+		const float knob = fontSize * 0.62f;
+		const float margin = fontSize * 0.8f;
+		const ImVec2 center{origin.x + viewSize.x - margin - radius - knob, origin.y + margin + radius + knob};
+		if (viewSize.x < (radius + knob + margin) * 3 || viewSize.y < (radius + knob + margin) * 3)
+		{
+			return;
+		}
+
+		// Axis ends on the screen, the farthest drawn first
+		const glm::mat3 rotation = camera.rotation();
+		struct Placed {
+			const Axis *axis;
+			ImVec2 position;
+			float depth;
+		};
+		std::vector<Placed> placed;
+		for (const auto &axis : axes)
+		{
+			glm::vec3 direction{0.0f};
+			direction[axis.axis] = axis.negative ? -1.0f : 1.0f;
+			const glm::vec3 view = rotation * direction;
+			placed.push_back({&axis, {center.x + view.x * radius, center.y - view.y * radius}, view.z});
+		}
+		std::sort(placed.begin(), placed.end(), [](const Placed &a, const Placed &b) { return a.depth < b.depth; });
+
+		const ImVec2 mouse = ImGui::GetMousePos();
+		const Placed *hovered = nullptr;
+		if (ImGui::IsWindowHovered())
+		{
+			// The nearest knob under the mouse
+			for (const auto &item : placed)
+			{
+				const float dx = mouse.x - item.position.x, dy = mouse.y - item.position.y;
+				if (dx * dx + dy * dy <= knob * knob)
+				{
+					hovered = &item;
+				}
+			}
+		}
+
+		ImDrawList *drawList = ImGui::GetWindowDrawList();
+		const bool overGizmo = ImGui::IsWindowHovered()
+							   && (mouse.x - center.x) * (mouse.x - center.x) + (mouse.y - center.y) * (mouse.y - center.y)
+									  <= (radius + knob) * (radius + knob);
+		drawList->AddCircleFilled(center, radius + knob, IM_COL32(255, 255, 255, overGizmo ? 28 : 12));
+
+		auto withAlpha = [](ImU32 color, int alpha) { return (color & ~IM_COL32_A_MASK) | (ImU32(alpha) << IM_COL32_A_SHIFT); };
+		for (const auto &item : placed)
+		{
+			const Axis &axis = *item.axis;
+			const bool isHovered = hovered == &item;
+			if (axis.negative)
+			{
+				drawList->AddCircleFilled(item.position, knob * 0.8f, withAlpha(axis.color, isHovered ? 200 : 70));
+				drawList->AddCircle(item.position, knob * 0.8f, withAlpha(axis.color, 220), 0, 1.5f);
+				continue;
+			}
+
+			drawList->AddLine(center, item.position, axis.color, 2.0f);
+			drawList->AddCircleFilled(item.position, knob, isHovered ? IM_COL32(255, 255, 255, 255) : axis.color);
+			const ImVec2 text = ImGui::CalcTextSize(axis.label);
+			drawList->AddText({item.position.x - text.x * 0.5f, item.position.y - text.y * 0.5f}, IM_COL32(20, 20, 20, 255), axis.label);
+		}
+
+		// Legend under the gizmo, one colored line per axis, aligned to the right edge of the scene
+		float legendY = center.y + radius + knob + fontSize * 0.3f;
+		for (const auto &axis : axes)
+		{
+			if (axis.negative)
+			{
+				continue;
+			}
+			const ImVec2 size = ImGui::CalcTextSize(axis.direction);
+			drawList->AddText({origin.x + viewSize.x - margin - size.x, legendY}, withAlpha(axis.color, 210), axis.direction);
+			legendY += fontSize * 1.1f;
+		}
+
+		if (hovered)
+		{
+			ImGui::SetTooltip("%s\nClick to look from the %s", hovered->axis->direction, hovered->axis->side);
+			// A click, not the end of a drag that orbits the camera
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::GetIO().MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0f)
+			{
+				camera.viewFrom(hovered->axis->axis, hovered->axis->negative);
+			}
 		}
 	}
 }

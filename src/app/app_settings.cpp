@@ -14,7 +14,7 @@ namespace mt {
 				{"view.bounds", &ViewSettings::drawBounds},		{"view.hitboxes", &ViewSettings::drawHitboxes},
 				{"view.tags", &ViewSettings::drawTags},			{"view.tagNames", &ViewSettings::drawTagNames},
 				{"view.skeleton", &ViewSettings::drawSkeleton}, {"view.normals", &ViewSettings::drawNormals},
-				{"view.dynamicLod", &ViewSettings::dynamicLod},
+				{"view.dynamicLod", &ViewSettings::dynamicLod}, {"view.gizmo", &ViewSettings::drawGizmo},
 			};
 		}
 	}

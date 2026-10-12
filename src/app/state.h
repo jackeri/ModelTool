@@ -25,6 +25,7 @@ namespace mt {
 		bool drawGrid = true;		///< ground grid and origin axis
 		bool drawBounds = false;	///< frame bounding box
 		bool drawHitboxes = true;	///< hitboxes of skeletal models
+		bool drawGizmo = true;		///< orientation gizmo in the corner of the scene
 		int selectedHitbox = -1;	///< hitbox drawn highlighted (open in the hitbox panel)
 		bool drawTags = false;		///< tag axis
 		bool drawTagNames = true;	///< names next to the tags

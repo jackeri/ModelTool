@@ -386,6 +386,7 @@ namespace mt {
 				ImGui::MenuItem("Tag names", nullptr, &view.drawTagNames, view.drawTags);
 				ImGui::MenuItem("Skeleton", "Alt+S", &view.drawSkeleton);
 				ImGui::MenuItem("Normals", "Alt+N", &view.drawNormals);
+				ImGui::MenuItem("Orientation gizmo", nullptr, &view.drawGizmo);
 				if (view.drawNormals)
 				{
 					ImGui::SliderFloat("Normal length", &view.normalLength, 0.005f, 0.2f, "%.3f");

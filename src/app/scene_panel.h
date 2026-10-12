@@ -59,6 +59,13 @@ namespace mt {
 		 */
 		void drawLabels(const ImVec2 &origin);
 
+		/**
+		 * Draw the orientation gizmo in the top right corner of the scene: the world axes as the camera sees them
+		 * (idTech: +X forward, +Y left, +Z up). Clicking an axis looks from that side
+		 * @param origin screen position of the scene image
+		 */
+		void drawGizmo(const ImVec2 &origin);
+
 		glm::ivec2 size{};								   ///< Framebuffer size in pixels
 		glm::vec2 viewSize{};							   ///< Size of the scene image in the window (smaller than size on HiDPI screens)
 		Camera camera;									   ///< Camera instance which is used in the scene panel
