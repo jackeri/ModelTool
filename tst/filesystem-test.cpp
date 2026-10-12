@@ -1,6 +1,9 @@
 #include "gtest/gtest.h"
 #include "filesystem.h"
 
+#include <filesystem>
+#include <fstream>
+
 using namespace mt;
 
 TEST(FileSystemTest, test1)
@@ -116,4 +119,64 @@ TEST(FileSystemTest, searchOrder)
 	EXPECT_TRUE(tools::endsWith(sources[1], "a.pk3dir"));
 	EXPECT_TRUE(tools::endsWith(sources[2], "zz.pk3"));
 	EXPECT_TRUE(tools::endsWith(sources[3], "aa.pk3"));
+}
+
+TEST(FileSystemTest, caseInsensitive)
+{
+	// The default ignores the case like the game: loose files, pk3dir folders and pk3 files
+	io::FileSystem sys;
+	ASSERT_TRUE(sys.addPath("data"));
+	EXPECT_TRUE(sys.isCaseInsensitive());
+
+	EXPECT_TRUE(sys.findFile("Models/MD3/PF.md3"));
+	EXPECT_TRUE(sys.findFile("PK3INNER/Pk3File.CFG"));
+	EXPECT_TRUE(sys.findFile("Inner/TEST.cfg"));
+	auto file = sys.loadFile("MODELS/md3/pf.MD3");
+	ASSERT_TRUE(file);
+	EXPECT_GT(file->len, 0);
+	ASSERT_TRUE(sys.loadFile("pk3inner/PK3FILE.cfg"));
+
+	auto listing = sys.listFolder("MODELS/Md3");
+	ASSERT_EQ(listing.size(), 1);
+	EXPECT_EQ(listing[0].name, "pf.md3");
+	EXPECT_EQ(sys.listFolder("PK3INNER").size(), 1);
+
+	// Exact names only, also on systems where the disk ignores the case (macOS)
+	sys.setCaseInsensitive(false);
+	EXPECT_FALSE(sys.findFile("Models/MD3/PF.md3"));
+	EXPECT_FALSE(sys.findFile("PK3INNER/Pk3File.CFG"));
+	EXPECT_FALSE(sys.findFile("Inner/TEST.cfg"));
+	EXPECT_FALSE(sys.loadFile("MODELS/md3/pf.MD3"));
+	EXPECT_TRUE(sys.listFolder("MODELS/Md3").empty());
+	EXPECT_TRUE(sys.findFile("models/md3/pf.md3"));
+	EXPECT_TRUE(sys.findFile("pk3inner/pk3file.cfg"));
+	EXPECT_EQ(sys.listFolder("models/md3").size(), 1);
+
+	// Sources added later follow the setting
+	ASSERT_TRUE(sys.addPath("data/test/nodirs.pk3"));
+	EXPECT_FALSE(sys.findFile("README.cfg"));
+	sys.setCaseInsensitive(true);
+	EXPECT_TRUE(sys.findFile("README.cfg"));
+}
+
+TEST(FileSystemTest, caseInsensitiveListingMerges)
+{
+	// Folders that only differ by case are one folder when the case is ignored
+	std::filesystem::create_directories("tmp/case/Models");
+	std::filesystem::create_directories("tmp/case/other.pk3dir/models");
+	std::ofstream("tmp/case/Models/a.md3") << "a";
+	std::ofstream("tmp/case/other.pk3dir/models/b.md3") << "b";
+
+	io::FileSystem sys;
+	ASSERT_TRUE(sys.addPath("tmp/case"));
+	auto root = sys.listFolder("");
+	ASSERT_EQ(root.size(), 1);
+	EXPECT_EQ(root[0].name, "Models");
+	EXPECT_EQ(root[0].sources.size(), 2);
+	EXPECT_EQ(sys.listFolder("models").size(), 2);
+
+	sys.setCaseInsensitive(false);
+	EXPECT_EQ(sys.listFolder("").size(), 2);
+
+	std::filesystem::remove_all("tmp");
 }

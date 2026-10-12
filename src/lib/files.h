@@ -121,6 +121,23 @@ namespace mt::io {
 			return identifier;
 		}
 
+		/**
+		 * Find files regardless of the case of their names (like the game), or only with the exact names
+		 * @param value true to ignore the case
+		 */
+		virtual void setCaseInsensitive(bool value)
+		{
+			caseInsensitive = value;
+		}
+
+		[[nodiscard]] bool isCaseInsensitive() const
+		{
+			return caseInsensitive;
+		}
+
+	  protected:
+		bool caseInsensitive = true; ///< names are matched regardless of their case
+
 	  private:
 		std::string identifier; ///< Unique generated identifier for this file source
 	};

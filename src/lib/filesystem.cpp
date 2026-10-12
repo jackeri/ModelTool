@@ -50,6 +50,7 @@ namespace mt::io {
 					else
 					{
 						files.insert(fileName);
+						lowercaseFiles.emplace(tools::lowercase(fileName), fileName);
 					}
 
 					// Many pk3 tools do not store folder entries, the folders of the files are there anyway
@@ -66,21 +67,39 @@ namespace mt::io {
 		}
 	}
 
+	std::string MTPackage::resolve(const std::string &name) const
+	{
+		std::string fixed = mt::tools::fixName(name);
+		if (files.find(fixed) != files.end())
+		{
+			return fixed;
+		}
+		if (caseInsensitive)
+		{
+			auto found = lowercaseFiles.find(tools::lowercase(fixed));
+			if (found != lowercaseFiles.end())
+			{
+				return found->second;
+			}
+		}
+		return {};
+	}
+
 	bool MTPackage::findFile(const std::string &name)
 	{
-		return (files.find(mt::tools::fixName(name)) != files.end());
+		return !resolve(name).empty();
 	}
 
 	Ref<MTFile> MTPackage::loadFile(const std::string &name)
 	{
-		std::string tmp = mt::tools::fixName(name);
-
-		if (!findFile(tmp))
+		std::string tmp = resolve(name);
+		if (tmp.empty())
 		{
 			return nullptr;
 		}
 
-		if (UNZ_OK != unzLocateFile(zipFile, tmp.c_str(), false))
+		// 1 = case sensitive, tmp is the name in the package
+		if (UNZ_OK != unzLocateFile(zipFile, tmp.c_str(), 1))
 		{
 			return nullptr;
 		}
@@ -125,6 +144,10 @@ namespace mt::io {
 		FileList records = make_ref_list<FileRecord>();
 		unsigned int separators = 0;
 		std::string fixedName = mt::tools::fixName(name, true);
+		auto startsWith = [&](const std::string &path) {
+			return caseInsensitive ? tools::startsWith(tools::lowercase(path), tools::lowercase(fixedName))
+								   : tools::startsWith(path, fixedName);
+		};
 
 		if (!fixedName.empty())
 		{
@@ -140,7 +163,7 @@ namespace mt::io {
 				continue;
 			}
 
-			if (!tools::startsWith(folder, fixedName))
+			if (!startsWith(folder))
 			{
 				continue;
 			}
@@ -160,7 +183,7 @@ namespace mt::io {
 				continue;
 			}
 
-			if (!tools::startsWith(file, fixedName))
+			if (!startsWith(file))
 			{
 				continue;
 			}
@@ -235,6 +258,11 @@ namespace mt::io {
 			sources.push_back(std::make_shared<MTPackage>(absolute(sysPath).string()));
 		}
 
+		for (auto &source : sources)
+		{
+			source->setCaseInsensitive(caseInsensitive);
+		}
+
 		return true;
 	}
 
@@ -248,6 +276,7 @@ namespace mt::io {
 	template<typename F>
 	void FileSystem::addSource(std::shared_ptr<F> &source)
 	{
+		source->setCaseInsensitive(caseInsensitive);
 		sources.emplace_back(source);
 	}
 
@@ -346,6 +375,15 @@ namespace mt::io {
 		return files;
 	}
 
+	void FileSystem::setCaseInsensitive(bool value)
+	{
+		FileSource::setCaseInsensitive(value);
+		for (auto &source : sources)
+		{
+			source->setCaseInsensitive(value);
+		}
+	}
+
 	std::vector<VirtualEntry> FileSystem::listFolder(const std::string &folder)
 	{
 		std::vector<VirtualEntry> entries;
@@ -361,7 +399,8 @@ namespace mt::io {
 				{
 					continue;
 				}
-				auto key = std::make_pair(record.isDirectory, record.name);
+				// Names that only differ by case are the same file when the case is ignored
+				auto key = std::make_pair(record.isDirectory, caseInsensitive ? tools::lowercase(record.name) : record.name);
 				auto existing = index.find(key);
 				if (existing == index.end())
 				{

@@ -213,6 +213,12 @@ namespace mt {
 		 * @return true if the string starts with the prefix
 		 */
 		bool startsWith(const std::string &str, const std::string &prefix);
+
+		/**
+		 * @param text text to convert
+		 * @return the text in lowercase (ASCII)
+		 */
+		std::string lowercase(std::string text);
 	}
 }
 

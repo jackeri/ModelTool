@@ -45,3 +45,9 @@ bool mt::tools::startsWith(const std::string &str, const std::string &prefix)
 {
 	return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
 }
+
+std::string mt::tools::lowercase(std::string text)
+{
+	std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+	return text;
+}

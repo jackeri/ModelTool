@@ -4,6 +4,7 @@
 #include "files.h"
 
 #include <map>
+#include <unordered_map>
 
 #include "unzip.h"
 
@@ -29,10 +30,17 @@ namespace mt::io {
 		}
 
 	  private:
-		std::string path;						 ///< Path to the zip file
-		unzFile zipFile = nullptr;				 ///< minizip zip instance
-		std::unordered_set<std::string> files;	 ///< Files in the package (scanned for faster finds)
-		std::unordered_set<std::string> folders; ///< Folders in the package (scanned for faster finds)
+		std::string path;											   ///< Path to the zip file
+		unzFile zipFile = nullptr;									   ///< minizip zip instance
+		std::unordered_set<std::string> files;						   ///< Files in the package (scanned for faster finds)
+		std::unordered_set<std::string> folders;					   ///< Folders in the package (scanned for faster finds)
+		std::unordered_map<std::string, std::string> lowercaseFiles{}; ///< lowercase name -> name in the package
+
+		/**
+		 * @param name file name to look for
+		 * @return the name of the file in the package, empty if it is not there
+		 */
+		[[nodiscard]] std::string resolve(const std::string &name) const;
 	};
 
 	/*! File or folder of the virtual file system (base folders, pk3 files and pk3dir folders merged together) */
@@ -93,6 +101,12 @@ namespace mt::io {
 		Ref<MTFile> loadFile(const std::string &name) override;
 
 		FileList getFiles(const std::string &name) override;
+
+		/**
+		 * Ignore the case of the names in every source (also the ones added later)
+		 * @param value true to ignore the case
+		 */
+		void setCaseInsensitive(bool value) override;
 
 		/**
 		 * The files and folders of a folder of the virtual file system: every base folder, pk3 file and pk3dir folder

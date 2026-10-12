@@ -42,6 +42,7 @@ namespace mt::cli {
 			float scale = 1.0f;					   ///< --scale
 			std::string normals{};				   ///< --normals smooth|flat
 			bool optimize = false;				   ///< --optimize
+			bool caseSensitive = false;			   ///< --case-sensitive
 			bool lod = false;					   ///< --lod
 			bool help = false;					   ///< --help
 			bool version = false;				   ///< --version
@@ -149,6 +150,10 @@ namespace mt::cli {
 						throw UsageError("Invalid normals mode, expected smooth or flat: " + options.normals);
 					}
 				}
+				else if (arg == "--case-sensitive")
+				{
+					options.caseSensitive = true;
+				}
 				else if (arg == "--optimize")
 				{
 					options.optimize = true;
@@ -176,8 +181,9 @@ namespace mt::cli {
 		/*! Files from the base folders and pk3 files, or from the disk */
 		class Files {
 		  public:
-			explicit Files(const std::vector<std::string> &basePaths)
+			explicit Files(const std::vector<std::string> &basePaths, bool caseSensitive = false)
 			{
+				system.setCaseInsensitive(!caseSensitive);
 				for (const auto &path : basePaths)
 				{
 					if (!system.addPath(path))
@@ -358,7 +364,7 @@ namespace mt::cli {
 
 		int infoCommand(const Options &options, std::ostream &out, std::ostream &err)
 		{
-			Files files(options.basePaths);
+			Files files(options.basePaths, options.caseSensitive);
 			if (!options.arguments.empty() && model::io::normalizeExtension(options.arguments[0]) == ".cfg")
 			{
 				return playerInfo(files, options.arguments[0], out);
@@ -430,7 +436,7 @@ namespace mt::cli {
 				throw UsageError("Missing the output file");
 			}
 
-			Files files(options.basePaths);
+			Files files(options.basePaths, options.caseSensitive);
 			auto loaded = loadModel(files, options, err);
 			Model &model = *loaded;
 
@@ -529,7 +535,7 @@ namespace mt::cli {
 			{
 				throw UsageError("list needs at least one --base folder or pk3 file");
 			}
-			Files files(options.basePaths);
+			Files files(options.basePaths, options.caseSensitive);
 
 			std::string folder = options.arguments.empty() ? "" : options.arguments[0];
 			while (!folder.empty() && folder.back() == '/')
@@ -564,6 +570,7 @@ namespace mt::cli {
 			   "  --optimize            convert: merge duplicate vertices (skeletal models)\n"
 			   "  --lod                 convert: calculate the level of detail collapse maps\n"
 			   "  --save-hitboxes file  convert: write the hitboxes\n"
+			   "  --case-sensitive      only find files with the exact case of their names (the game ignores the case)\n"
 			   "  --help, --version\n";
 	}
 

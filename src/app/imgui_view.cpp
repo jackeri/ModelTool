@@ -561,6 +561,16 @@ namespace mt {
 		}
 		ImGui::SetItemTooltip("Limit the frame rate to the screen's refresh rate");
 
+		ImGui::SeparatorText("Files");
+		bool caseInsensitive = state.filesystem.isCaseInsensitive();
+		if (ImGui::Checkbox("Ignore the case of file names", &caseInsensitive))
+		{
+			state.filesystem.setCaseInsensitive(caseInsensitive);
+			// Textures that were not found before can be found now (and the other way around)
+			state.textures.clear();
+		}
+		ImGui::SetItemTooltip("Find Models/Head.MD3 when models/head.md3 is asked for, like the game does");
+
 		ImGui::SeparatorText("Scene");
 		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
 		ImGui::ColorEdit3("Background", (float *)&state.clearColor);

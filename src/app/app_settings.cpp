@@ -45,6 +45,8 @@ namespace mt {
 		state.theme = ui::Theme(std::clamp(settings.getInt("ui.theme", int(state.theme)), 0, ui::THEME_COUNT - 1));
 		state.fontSize = std::clamp(settings.getFloat("ui.fontSize", state.fontSize), ui::MIN_FONT_SIZE, ui::MAX_FONT_SIZE);
 
+		state.filesystem.setCaseInsensitive(settings.getBool("files.caseInsensitive", true));
+
 		state.showLog = settings.showLog;
 	}
 
@@ -70,6 +72,8 @@ namespace mt {
 
 		settings.set("ui.theme", int(state.theme));
 		settings.set("ui.fontSize", state.fontSize);
+
+		settings.set("files.caseInsensitive", state.filesystem.isCaseInsensitive());
 
 		settings.showLog = state.showLog;
 		settings.basePaths = state.basePaths;

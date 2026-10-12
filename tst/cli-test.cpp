@@ -149,3 +149,12 @@ TEST(CliTest, List)
 
 	EXPECT_EQ(run({"--base", "data/missing", "list"}).code, cli::EXIT_FAILED);
 }
+
+TEST(CliTest, CaseSensitive)
+{
+	auto any = run({"--base", "data", "info", "MODELS/MD3/PF.md3"});
+	EXPECT_EQ(any.code, cli::EXIT_OK) << any.err;
+
+	auto exact = run({"--base", "data", "--case-sensitive", "info", "MODELS/MD3/PF.md3"});
+	EXPECT_EQ(exact.code, cli::EXIT_FAILED);
+}
