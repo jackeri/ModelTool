@@ -18,6 +18,8 @@ namespace mt::io {
 
 		FileList getFiles(const std::string &name) override;
 
+		std::vector<std::string> allFiles() override;
+
 		[[nodiscard]] std::string getSource() const override
 		{
 			return path;

@@ -164,4 +164,27 @@ namespace mt::io {
 
 		return files;
 	}
+
+	std::vector<std::string> MTPath::allFiles()
+	{
+		std::vector<std::string> list;
+		std::error_code error;
+		std::filesystem::recursive_directory_iterator it(path, std::filesystem::directory_options::skip_permission_denied, error);
+		for (; !error && it != std::filesystem::recursive_directory_iterator(); it.increment(error))
+		{
+			const auto &entry = *it;
+			// pk3dir folders and pk3 files are sources of their own
+			if (entry.is_directory(error) && entry.path().extension().string() == ".pk3dir")
+			{
+				it.disable_recursion_pending();
+				continue;
+			}
+			if (!entry.is_regular_file(error) || entry.path().extension().string() == ".pk3")
+			{
+				continue;
+			}
+			list.push_back(std::filesystem::relative(entry.path(), path, error).generic_string());
+		}
+		return list;
+	}
 }

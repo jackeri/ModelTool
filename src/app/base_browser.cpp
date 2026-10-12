@@ -2,6 +2,7 @@
 #include "icons_font_awesome.h"
 #include "model.h"
 #include "state.h"
+#include "fuzzy.h"
 
 #include <filesystem>
 
@@ -38,7 +39,10 @@ namespace mt {
 		extensions = std::move(fileExtensions);
 		callback = std::move(onSelect);
 		allTypes = extensions.empty();
-		filter.clear();
+		search.clear();
+		searchedText.clear();
+		allFilesRead = false;
+		focusSearch = true;
 		open = true;
 		openPopup = true;
 
@@ -73,6 +77,184 @@ namespace mt {
 	void BaseBrowser::refresh()
 	{
 		entries = singleton<State>().filesystem.listFolder(folder);
+		allFilesRead = false;
+		searchedText.clear();
+	}
+
+	void BaseBrowser::updateSearch()
+	{
+		if (search == searchedText && allTypes == searchedAllTypes && allFilesRead)
+		{
+			return;
+		}
+
+		if (!allFilesRead)
+		{
+			allFiles = singleton<State>().filesystem.listAllFiles();
+			allFilesRead = true;
+			searchedText.clear();
+		}
+
+		// The type filter limits the files that are searched
+		if (allTypes != searchedAllTypes || searchedText.empty() || candidates.empty())
+		{
+			candidates.clear();
+			for (size_t i = 0; i < allFiles.size(); i++)
+			{
+				if (typeShown(allFiles[i].path))
+				{
+					candidates.push_back(i);
+				}
+			}
+		}
+
+		std::vector<std::string> paths;
+		paths.reserve(candidates.size());
+		for (size_t index : candidates)
+		{
+			paths.push_back(allFiles[index].path);
+		}
+
+		// Only the best ones are drawn, the count tells how many there are
+		results = fuzzyFind(search, paths);
+		matchCount = results.size();
+		constexpr size_t MAX_SHOWN = 500;
+		if (results.size() > MAX_SHOWN)
+		{
+			results.resize(MAX_SHOWN);
+		}
+
+		searchedText = search;
+		searchedAllTypes = allTypes;
+		selectedResult = 0;
+		scrollToResult = true;
+		pathInput = results.empty() ? std::string() : allFiles[candidates[results.front().index]].path;
+	}
+
+	std::string BaseBrowser::drawSearchResults()
+	{
+		updateSearch();
+
+		// Up and down move the selection while typing
+		const int count = int(results.size());
+		if (count > 0 && ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+		{
+			selectedResult = std::min(selectedResult + 1, count - 1);
+			scrollToResult = true;
+		}
+		if (count > 0 && ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+		{
+			selectedResult = std::max(selectedResult - 1, 0);
+			scrollToResult = true;
+		}
+		if (count > 0)
+		{
+			pathInput = allFiles[candidates[results[size_t(selectedResult)].index]].path;
+		}
+
+		std::string openFile;
+		const ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
+									  | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable;
+		const float bottom
+			= ImGui::GetFrameHeightWithSpacing() * 2 + ImGui::GetStyle().ItemSpacing.y + ImGui::GetTextLineHeightWithSpacing();
+		if (ImGui::BeginTable("results", 3, flags, {0, -bottom}))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch, 4.0f);
+			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthStretch, 0.8f);
+			ImGui::TableSetupColumn("Source", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+			ImGui::TableHeadersRow();
+
+			const ImVec4 highlight = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+			for (int row = 0; row < count; row++)
+			{
+				const auto &result = results[size_t(row)];
+				const io::VirtualFile &file = allFiles[candidates[result.index]];
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::PushID(row);
+				const bool isSelected = row == selectedResult;
+				if (ImGui::Selectable("##result", isSelected,
+									  ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick
+										  | ImGuiSelectableFlags_AllowOverlap))
+				{
+					selectedResult = row;
+					if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+					{
+						openFile = file.path;
+					}
+				}
+				if (isSelected && scrollToResult)
+				{
+					ImGui::SetScrollHereY();
+					scrollToResult = false;
+				}
+
+				// The path with the matched characters highlighted
+				ImGui::SameLine(0, 0);
+				ImGui::TextUnformatted(ICON_FA_FILE_O " ");
+				size_t next = 0;
+				const auto &positions = result.match.positions;
+				size_t start = 0;
+				while (start < file.path.size())
+				{
+					const bool matched = next < positions.size() && positions[next] == start;
+					size_t end = start;
+					if (matched)
+					{
+						while (next < positions.size() && positions[next] == end)
+						{
+							next++;
+							end++;
+						}
+					}
+					else
+					{
+						end = next < positions.size() ? positions[next] : file.path.size();
+					}
+					ImGui::SameLine(0, 0);
+					const std::string part = file.path.substr(start, end - start);
+					if (matched)
+					{
+						ImGui::TextColored(highlight, "%s", part.c_str());
+					}
+					else
+					{
+						ImGui::TextUnformatted(part.c_str());
+					}
+					start = end;
+				}
+
+				ImGui::TableNextColumn();
+				std::string ext = model::io::normalizeExtension(file.path);
+				std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return char(std::toupper(c)); });
+				ImGui::TextUnformatted(ext.empty() ? "File" : ext.substr(1).c_str());
+
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(sourceName(file.source).c_str());
+				ImGui::SetItemTooltip("%s", file.source.c_str());
+				ImGui::PopID();
+			}
+
+			if (count == 0)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::TextDisabled("No file matches");
+			}
+			ImGui::EndTable();
+		}
+
+		if (matchCount > results.size())
+		{
+			ImGui::TextDisabled("Showing the best %zu of %zu matches in %zu files", results.size(), matchCount, candidates.size());
+		}
+		else
+		{
+			ImGui::TextDisabled("%zu matches in %zu files", matchCount, candidates.size());
+		}
+		return openFile;
 	}
 
 	std::string BaseBrowser::pathOf(const std::string &name) const
@@ -173,14 +355,20 @@ namespace mt {
 		}
 
 		ImGui::SetNextItemWidth(-FLT_MIN);
-		ImGui::InputTextWithHint("##filter", ICON_FA_SEARCH " Filter by name", &filter);
+		if (focusSearch)
+		{
+			ImGui::SetKeyboardFocusHere();
+			focusSearch = false;
+		}
+		searchSubmitted = ImGui::InputTextWithHint("##search", ICON_FA_SEARCH " Search all files (fuzzy), like grunt head md3", &search,
+												   ImGuiInputTextFlags_EnterReturnsTrue);
+		ImGui::SetItemTooltip("Searches every folder, pk3 and pk3dir from the root. Up / Down pick a result, Enter opens it");
 	}
 
 	std::string BaseBrowser::drawTable()
 	{
 		std::string openFile;
 		std::string openFolder;
-		const std::string search = lowercase(filter);
 
 		const ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
 									  | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable;
@@ -199,10 +387,6 @@ namespace mt {
 		for (const auto &entry : entries)
 		{
 			if (!entry.isDirectory && !typeShown(entry.name))
-			{
-				continue;
-			}
-			if (!search.empty() && lowercase(entry.name).find(search) == std::string::npos)
 			{
 				continue;
 			}
@@ -266,7 +450,7 @@ namespace mt {
 		{
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
-			ImGui::TextDisabled(entries.empty() ? "Empty folder" : "Nothing matches the filter");
+			ImGui::TextDisabled(entries.empty() ? "Empty folder" : "No files of this type");
 		}
 		ImGui::EndTable();
 
@@ -313,7 +497,15 @@ namespace mt {
 		}
 
 		drawPathBar();
-		std::string openFile = drawTable();
+		const bool searching = !search.empty();
+		if (!searching && !searchedText.empty())
+		{
+			// Back to browsing the folders
+			searchedText.clear();
+			pathInput.clear();
+			selected.clear();
+		}
+		std::string openFile = searching ? drawSearchResults() : drawTable();
 
 		// Selected file (can be typed), the type filter and the buttons
 		const float buttons = ImGui::CalcTextSize("Cancel").x + ImGui::CalcTextSize("Open").x + ImGui::GetStyle().FramePadding.x * 4
@@ -371,6 +563,10 @@ namespace mt {
 		else if (!openFile.empty())
 		{
 			accept(openFile);
+		}
+		else if (searchSubmitted && searching)
+		{
+			accept(pathInput);
 		}
 		else if (openClicked || enter || enterKey)
 		{

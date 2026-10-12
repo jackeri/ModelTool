@@ -2,6 +2,7 @@
 
 #include "mt.h"
 #include "filesystem.h"
+#include "fuzzy.h"
 
 namespace mt {
 
@@ -48,6 +49,17 @@ namespace mt {
 		std::string drawTable();
 
 		/**
+		 * Draw the fuzzy search results over every file of the virtual file system
+		 * @return the file to open when one was double clicked
+		 */
+		std::string drawSearchResults();
+
+		/**
+		 * Run the search again when the text or the type filter changed
+		 */
+		void updateSearch();
+
+		/**
 		 * Is a file shown with the current type filter
 		 */
 		[[nodiscard]] bool typeShown(const std::string &name) const;
@@ -65,16 +77,27 @@ namespace mt {
 		 */
 		bool accept(const std::string &path);
 
-		bool open = false;		 ///< the picker is shown
-		bool openPopup = false;	 ///< the modal has to be opened on the next frame
-		std::string title{};	 ///< window title
-		std::string folder{};	 ///< current folder, empty for the root
-		std::string filter{};	 ///< name filter
-		std::string selected{};	 ///< selected entry name in the current folder
-		std::string pathInput{}; ///< the path field (selected file relative to the root)
-		bool allTypes = false;	 ///< show every file instead of the given extensions
+		bool open = false;			  ///< the picker is shown
+		bool openPopup = false;		  ///< the modal has to be opened on the next frame
+		std::string title{};		  ///< window title
+		std::string folder{};		  ///< current folder, empty for the root
+		std::string search{};		  ///< fuzzy search over every file, empty to browse the folders
+		bool focusSearch = false;	  ///< put the keyboard focus on the search field
+		bool searchSubmitted = false; ///< Enter was pressed in the search field
+		std::string selected{};		  ///< selected entry name in the current folder
+		std::string pathInput{};	  ///< the path field (selected file relative to the root)
+		bool allTypes = false;		  ///< show every file instead of the given extensions
 		std::vector<std::string> extensions{};
 		std::vector<io::VirtualEntry> entries{}; ///< listing of the current folder
+		std::vector<io::VirtualFile> allFiles{}; ///< every file, read on the first search
+		bool allFilesRead = false;				 ///< allFiles is up to date
+		std::vector<size_t> candidates{};		 ///< allFiles shown with the type filter
+		std::vector<FuzzyResult> results{};		 ///< search results (indexes into candidates), best first
+		size_t matchCount = 0;					 ///< all matches (only the best ones are shown)
+		std::string searchedText{};				 ///< search text of the results
+		bool searchedAllTypes = false;			 ///< type filter of the results
+		int selectedResult = 0;					 ///< selected search result
+		bool scrollToResult = false;			 ///< keep the selected result visible
 		std::function<void(const std::string &)> callback{};
 	};
 }

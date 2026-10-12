@@ -107,6 +107,15 @@ namespace mt::io {
 		virtual FileList getFiles(const std::string &name) = 0;
 
 		/**
+		 * Every file of the source, in all folders
+		 * @return file paths relative to the source
+		 */
+		virtual std::vector<std::string> allFiles()
+		{
+			return {};
+		}
+
+		/**
 		 * Get the path of the source (folder or a zip file for example)
 		 * @return path of the source
 		 */

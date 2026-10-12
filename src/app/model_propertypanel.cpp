@@ -16,72 +16,56 @@ namespace mt {
 
 		if (ImGui::Begin("Properties", nullptr, 0))
 		{
-			if (!state.model)
+			// Every section has its own ID scope, so the same labels (like "Add") can be used in several sections
+			auto section = [](const char *label, ImGuiTreeNodeFlags flags, const std::function<void()> &draw) {
+				if (ImGui::CollapsingHeader(label, flags))
+				{
+					ImGui::PushID(label);
+					draw();
+					ImGui::PopID();
+				}
+			};
+			const bool model = !!state.model;
+			const bool skeletal = model && state.model->skeletalModel();
+
+			if (!model)
 			{
 				ImGui::Text("No model loaded");
 			}
-			else if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
+			else
 			{
-				drawModelBasics();
+				section("Model", ImGuiTreeNodeFlags_DefaultOpen, [&] { drawModelBasics(); });
 			}
-
-			if (state.isPlayer && ImGui::CollapsingHeader("Player", ImGuiTreeNodeFlags_DefaultOpen))
+			if (state.isPlayer)
 			{
-				drawPlayerMenu();
+				section("Player", ImGuiTreeNodeFlags_DefaultOpen, [&] { drawPlayerMenu(); });
 			}
-
-			if (state.model && ImGui::CollapsingHeader("Transform"))
+			if (model)
 			{
-				drawTransformMenu();
+				section("Transform", 0, [&] { drawTransformMenu(); });
 			}
-
-			if (state.model && state.model->hasFrames())
+			if (model && state.model->hasFrames())
 			{
-				if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen))
-				{
-					drawAnimationMenu();
-				}
+				section("Animation", ImGuiTreeNodeFlags_DefaultOpen, [&] { drawAnimationMenu(); });
 			}
-
-			if (state.model && ImGui::CollapsingHeader("Animation sequences"))
+			if (model)
 			{
-				drawSequencesMenu();
+				section("Animation sequences", 0, [&] { drawSequencesMenu(); });
+				section("Meshes", 0, [&] { drawMeshesMenu(); });
+				section("Tags", 0, [&] { drawTagsMenu(); });
+				section("Attachments", 0, [&] { drawAttachmentsMenu(); });
 			}
-
-			if (state.model && ImGui::CollapsingHeader("Meshes"))
+			if (skeletal)
 			{
-				drawMeshesMenu();
+				section("Bones", 0, [&] { drawBonesMenu(); });
 			}
-
-			if (state.model && ImGui::CollapsingHeader("Tags"))
+			if (model)
 			{
-				drawTagsMenu();
+				section("Level of detail", 0, [&] { drawLodMenu(); });
 			}
-
-			if (state.model && ImGui::CollapsingHeader("Attachments"))
+			if (skeletal)
 			{
-				drawAttachmentsMenu();
-			}
-
-			if (state.model && state.model->skeletalModel() && ImGui::CollapsingHeader("Bones"))
-			{
-				drawBonesMenu();
-			}
-
-			if (state.model)
-			{
-				if (ImGui::CollapsingHeader("Level of detail"))
-				{
-					drawLodMenu();
-				}
-			}
-
-			if (state.model && state.model->skeletalModel())
-			{
-				if (ImGui::CollapsingHeader("Hitboxes"))
-				{
-					drawHitboxMenu();
-				}
+				section("Hitboxes", 0, [&] { drawHitboxMenu(); });
 			}
 		}
 		ImGui::End();

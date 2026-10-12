@@ -1,6 +1,7 @@
 #include "filesystem.h"
 
 #include <filesystem>
+#include <unordered_set>
 #include <utility>
 
 #include "library.h"
@@ -195,6 +196,11 @@ namespace mt::io {
 		}
 
 		return records;
+	}
+
+	std::vector<std::string> MTPackage::allFiles()
+	{
+		return {files.begin(), files.end()};
 	}
 
 	FileSystem::FileSystem() : FileSource() {}
@@ -422,6 +428,27 @@ namespace mt::io {
 			return first.name < second.name;
 		});
 		return entries;
+	}
+
+	std::vector<VirtualFile> FileSystem::listAllFiles()
+	{
+		std::vector<VirtualFile> list;
+		std::unordered_set<std::string> seen;
+
+		// The first source of a file is the one it is loaded from
+		for (auto &source : sources)
+		{
+			for (auto &file : source->allFiles())
+			{
+				if (seen.insert(caseInsensitive ? tools::lowercase(file) : file).second)
+				{
+					list.push_back({std::move(file), source->getSource()});
+				}
+			}
+		}
+
+		std::sort(list.begin(), list.end(), [](const VirtualFile &first, const VirtualFile &second) { return first.path < second.path; });
+		return list;
 	}
 
 	std::string FileSystem::getSource() const

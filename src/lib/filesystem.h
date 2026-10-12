@@ -24,6 +24,8 @@ namespace mt::io {
 
 		FileList getFiles(const std::string &name) override;
 
+		std::vector<std::string> allFiles() override;
+
 		[[nodiscard]] std::string getSource() const override
 		{
 			return path;
@@ -48,6 +50,12 @@ namespace mt::io {
 		std::string name{};					///< file or folder name
 		bool isDirectory = false;			///< it is a folder
 		std::vector<std::string> sources{}; ///< folders / pk3 files that have it, the file is loaded from the first one
+	};
+
+	/*! File of the virtual file system with the source it is loaded from */
+	struct VirtualFile {
+		std::string path{};	  ///< path relative to the root
+		std::string source{}; ///< folder / pk3 file the file is loaded from
 	};
 
 	/*! Class that wraps multiple other FileSources and unifies their usage to a single point of access */
@@ -115,6 +123,12 @@ namespace mt::io {
 		 * @return entries with the sources that have them
 		 */
 		std::vector<VirtualEntry> listFolder(const std::string &folder);
+
+		/**
+		 * Every file of the virtual file system (all base folders, pk3 files and pk3dir folders), each once
+		 * @return files sorted by path
+		 */
+		std::vector<VirtualFile> listAllFiles();
 
 		[[nodiscard]] std::string getSource() const override;
 
