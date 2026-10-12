@@ -316,7 +316,11 @@ namespace mt {
 		if (selected >= int(hitboxes.size()))
 		{
 			selected = int(hitboxes.size()) - 1;
-			state.view.editTarget = EditTarget::Hitbox;
+		}
+		// No hitbox left to edit (deleted, or another model)
+		if (selected < 0 && state.view.editTarget == EditTarget::Hitbox)
+		{
+			state.view.editTarget = EditTarget::None;
 		}
 
 		ImGui::Text("Hitboxes: %zu", hitboxes.size());
@@ -326,6 +330,7 @@ namespace mt {
 			hitbox.name = "hitbox " + std::to_string(hitboxes.size() + 1);
 			hitboxes.push_back(hitbox);
 			selected = int(hitboxes.size()) - 1;
+			state.view.editTarget = EditTarget::Hitbox;
 		}
 		ImGui::SameLine();
 		ImGui::BeginDisabled(selected < 0);
