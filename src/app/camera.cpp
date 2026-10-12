@@ -53,6 +53,5 @@ glm::mat4 mt::Camera::view() const
 glm::mat4 mt::Camera::projection(float aspect) const
 {
 	float nearPlane = std::max(distance * 0.01f, 0.01f);
-	float farPlane = distance * 20.0f + 1000.0f;
-	return glm::perspective(glm::radians(fov), std::max(aspect, 0.01f), nearPlane, farPlane);
+	return glm::perspective(glm::radians(fov), std::max(aspect, 0.01f), nearPlane, farPlane());
 }

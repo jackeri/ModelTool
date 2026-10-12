@@ -78,6 +78,68 @@ void main()
 }
 )";
 
+		const char *GRID_VERTEX_SHADER = R"(#version 410 core
+layout (location = 0) in vec3 aPosition;
+
+uniform mat4 uMvp;
+
+out vec3 vWorld;
+
+void main()
+{
+	vWorld = aPosition;
+	gl_Position = uMvp * vec4(aPosition, 1.0);
+}
+)";
+
+		// Grid lines from the ground position, about a pixel wide at every distance (fwidth), so the plane can reach the
+		// horizon. Lines that get closer than a few pixels fade out instead of turning into noise
+		const char *GRID_FRAGMENT_SHADER = R"(#version 410 core
+in vec3 vWorld;
+
+uniform float uStep;
+uniform vec4 uColor;
+uniform vec2 uCenter;
+uniform float uFade;
+
+out vec4 fragColor;
+
+float gridLines(vec2 position, float step)
+{
+	vec2 coord = position / step;
+	vec2 width = max(fwidth(coord), vec2(1e-6));
+	vec2 distance = abs(fract(coord - 0.5) - 0.5) / width;
+	float line = 1.0 - min(min(distance.x, distance.y), 1.0);
+	return line * (1.0 - smoothstep(0.15, 0.5, max(width.x, width.y)));
+}
+
+float axisLine(float value)
+{
+	return 1.0 - min(abs(value) / max(fwidth(value), 1e-6), 1.0);
+}
+
+void main()
+{
+	vec2 position = vWorld.xy;
+	float minor = gridLines(position, uStep);
+	float major = gridLines(position, uStep * 8.0);
+	vec4 color = vec4(uColor.rgb, max(minor * uColor.a, major * min(uColor.a * 2.0, 1.0)));
+
+	// The X axis runs along y = 0 (red), the Y axis along x = 0 (green)
+	float xAxis = axisLine(position.y);
+	float yAxis = axisLine(position.x);
+	color = vec4(mix(color.rgb, vec3(1.0, 0.0, 0.0), xAxis), max(color.a, xAxis));
+	color = vec4(mix(color.rgb, vec3(0.0, 1.0, 0.0), yAxis), max(color.a, yAxis));
+
+	color.a *= 1.0 - smoothstep(uFade * 0.2, uFade, length(position - uCenter));
+	if (color.a < 0.003)
+	{
+		discard;
+	}
+	fragColor = color;
+}
+)";
+
 		const char *LINE_FRAGMENT_SHADER = R"(#version 410 core
 in vec4 vColor;
 out vec4 fragColor;
@@ -93,8 +155,9 @@ void main()
 	{
 		meshShader.init(MESH_VERTEX_SHADER, MESH_FRAGMENT_SHADER);
 		lineShader.init(LINE_VERTEX_SHADER, LINE_FRAGMENT_SHADER);
+		gridShader.init(GRID_VERTEX_SHADER, GRID_FRAGMENT_SHADER);
 
-		if (!meshShader.valid() || !lineShader.valid())
+		if (!meshShader.valid() || !lineShader.valid() || !gridShader.valid())
 		{
 			throw mt_ex("Failed to build the shaders");
 		}
@@ -122,6 +185,13 @@ void main()
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void *>(offsetof(LineVertex, color)));
 
+		glGenVertexArrays(1, &gridVao);
+		glGenBuffers(1, &gridVbo);
+		glBindVertexArray(gridVao);
+		glBindBuffer(GL_ARRAY_BUFFER, gridVbo);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), reinterpret_cast<void *>(0));
+
 		glBindVertexArray(0);
 
 		const byte white[4] = {255, 255, 255, 255};
@@ -139,6 +209,8 @@ void main()
 		glDeleteBuffers(1, &meshVbo);
 		glDeleteBuffers(1, &meshIbo);
 		glDeleteBuffers(1, &lineVbo);
+		glDeleteBuffers(1, &gridVbo);
+		glDeleteVertexArrays(1, &gridVao);
 		glDeleteVertexArrays(1, &meshVao);
 		glDeleteVertexArrays(1, &lineVao);
 	}
@@ -155,7 +227,50 @@ void main()
 		glEnable(GL_PROGRAM_POINT_SIZE);
 
 		viewProj = camera.projection(height > 0 ? float(width) / float(height) : 1.0f) * camera.view();
+		cameraTarget = camera.target;
+		cameraDistance = camera.distance;
+		cameraFar = camera.farPlane();
 		stack.assign(1, glm::mat4{1.0f});
+	}
+
+	void GLRenderer::grid(float size, const glm::vec4 &color)
+	{
+		// Power of two steps like the game's grid, about 40 over the model
+		const float step = std::exp2(std::round(std::log2(std::max(size, 1.0f) / 40.0f)));
+
+		// The plane reaches as far as the grid is visible: it fades out a few camera distances from the target
+		const float fade = std::min(std::max(cameraDistance * 6.0f, size * 3.0f), cameraFar * 0.9f);
+		const glm::vec2 center{cameraTarget.x, cameraTarget.y};
+		const std::vector<glm::vec3> quad = {{center.x - fade, center.y - fade, 0},
+											 {center.x + fade, center.y - fade, 0},
+											 {center.x - fade, center.y + fade, 0},
+											 {center.x + fade, center.y + fade, 0}};
+
+		glBindVertexArray(gridVao);
+		glBindBuffer(GL_ARRAY_BUFFER, gridVbo);
+		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(quad.size() * sizeof(glm::vec3)), quad.data(), GL_STREAM_DRAW);
+
+		gridShader.use();
+		gridShader.setUniform("uMvp", viewProj * modelMatrix());
+		gridShader.setUniform("uStep", step);
+		gridShader.setUniform("uColor", color);
+		gridShader.setUniform("uCenter", center.x, center.y);
+		gridShader.setUniform("uFade", fade);
+
+		// Transparent and behind everything else: the meshes drawn later cover it, it does not hide anything
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDepthMask(GL_TRUE);
+		glBindVertexArray(0);
+
+		// The Z axis is a normal line through the origin
+		const float length = std::ceil(size * 0.5f / step) * step;
+		const glm::vec4 blue{0, 0, 1, 1};
+		drawLines({{{0, 0, length}, blue}, {{0, 0, -length}, blue}}, true);
 	}
 
 	void GLRenderer::endFrame()

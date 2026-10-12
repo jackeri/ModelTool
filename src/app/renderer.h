@@ -76,11 +76,12 @@ namespace mt {
 		virtual void drawPoints(const std::vector<LineVertex> &vertices, float size, bool depthTest = false) = 0;
 
 		/**
-		 * Draw the ground grid and the axis lines
-		 * @param size size of the area to cover, the grid steps are rounded to powers of two
+		 * Draw the ground grid with the X and Y axis to the edges of the view, fading out with the distance, and the Z
+		 * axis line
+		 * @param size size of the model, the grid steps are powers of two (about 40 steps over the model)
 		 * @param color grid line color
 		 */
-		void grid(float size = 120.0f, const glm::vec4 &color = {0, 0, 0, 0.35f});
+		virtual void grid(float size, const glm::vec4 &color) = 0;
 
 		/**
 		 * Grid line color that shows on a background: dark lines on light backgrounds, light lines on dark ones

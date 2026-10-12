@@ -23,15 +23,22 @@ namespace mt {
 
 		void drawPoints(const std::vector<LineVertex> &vertices, float size, bool depthTest) override;
 
+		void grid(float size, const glm::vec4 &color) override;
+
 	  private:
 		void drawLineVertices(const std::vector<LineVertex> &vertices, GLenum mode, float pointSize, bool depthTest);
 
 		GLShader meshShader{};
 		GLShader lineShader{};
+		GLShader gridShader{};
 
 		GLuint meshVao = 0, meshVbo = 0, meshIbo = 0;
 		GLuint lineVao = 0, lineVbo = 0;
-		GLuint whiteTexture = 0; ///< bound when a mesh has no texture, so the sampler always has a valid texture
+		GLuint gridVao = 0, gridVbo = 0;
+		glm::vec3 cameraTarget{};	 ///< point the camera looks at (the grid fades out around it)
+		float cameraDistance = 1.0f; ///< distance of the camera from its target
+		float cameraFar = 1000.0f;	 ///< far clipping plane
+		GLuint whiteTexture = 0;	 ///< bound when a mesh has no texture, so the sampler always has a valid texture
 
 		std::vector<float> meshVertices{};
 		std::vector<uint32_t> meshIndices{};

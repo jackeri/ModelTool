@@ -21,32 +21,6 @@ namespace mt {
 		return luminance < 0.35f ? glm::vec4{1, 1, 1, 0.12f} : glm::vec4{0, 0, 0, 0.35f};
 	}
 
-	void Renderer::grid(float size, const glm::vec4 &gridColor)
-	{
-		// About 30 - 60 lines over the area, on a power of two step like the game's grid
-		const float GRID_STEP = std::exp2(std::round(std::log2(std::max(size, 1.0f) / 40.0f)));
-		const float ORIGIN_LINE_LEN = std::ceil(size * 0.5f / GRID_STEP) * GRID_STEP;
-
-		std::vector<LineVertex> lines;
-		for (float i = -ORIGIN_LINE_LEN; i <= ORIGIN_LINE_LEN; i += GRID_STEP)
-		{
-			lines.push_back({{i, -ORIGIN_LINE_LEN, 0}, gridColor});
-			lines.push_back({{i, ORIGIN_LINE_LEN, 0}, gridColor});
-			lines.push_back({{-ORIGIN_LINE_LEN, i, 0}, gridColor});
-			lines.push_back({{ORIGIN_LINE_LEN, i, 0}, gridColor});
-		}
-		drawLines(lines, true);
-
-		const glm::vec4 x{1, 0, 0, 1}, y{0, 1, 0, 1}, z{0, 0, 1, 1};
-		drawLines({{{ORIGIN_LINE_LEN, 0, 0}, x},
-				   {{-ORIGIN_LINE_LEN, 0, 0}, x},
-				   {{0, ORIGIN_LINE_LEN, 0}, y},
-				   {{0, -ORIGIN_LINE_LEN, 0}, y},
-				   {{0, 0, ORIGIN_LINE_LEN}, z},
-				   {{0, 0, -ORIGIN_LINE_LEN}, z}},
-				  true);
-	}
-
 	void Renderer::bounds(const Bounds &box, const glm::vec4 &color)
 	{
 		const glm::vec3 &a = box.min, &b = box.max;

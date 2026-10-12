@@ -51,6 +51,14 @@ namespace mt {
 		[[nodiscard]] glm::mat4 view() const;
 
 		/**
+		 * @return distance of the far clipping plane
+		 */
+		[[nodiscard]] float farPlane() const
+		{
+			return distance * 20.0f + 1000.0f;
+		}
+
+		/**
 		 * @param aspect width / height of the view
 		 * @return projection matrix
 		 */
