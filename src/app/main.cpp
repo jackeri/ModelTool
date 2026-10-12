@@ -1,11 +1,14 @@
 #include "mt.h"
 #include "application.h"
+#include "log_panel.h"
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 int main(int argc, char *argv[])
 {
-	// Register the application logger
-	auto logger = spdlog::stdout_color_mt(mt::MT_LOGGER);
+	// Register the application logger, it writes to the console and to the log panel
+	auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	auto logger = std::make_shared<spdlog::logger>(mt::MT_LOGGER, spdlog::sinks_init_list{console, mt::LogBuffer::instance()});
+	spdlog::register_logger(logger);
 #ifdef NDEBUG
 	logger->set_level(spdlog::level::info);
 #else

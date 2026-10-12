@@ -253,7 +253,15 @@ namespace mt::io {
 
 	bool FileSystem::findFile(const std::string &name)
 	{
-		return std::any_of(sources.begin(), sources.end(), [&](auto &source) { return source->findFile(name); });
+		if (std::any_of(sources.begin(), sources.end(), [&](auto &source) { return source->findFile(name); }))
+		{
+			return true;
+		}
+
+		// Files opened from anywhere on the disk (and their textures and levels of detail) use absolute paths
+		std::error_code error;
+		std::filesystem::path path(name);
+		return path.is_absolute() && std::filesystem::is_regular_file(path, error);
 	}
 
 	Ref<MTFile> FileSystem::loadFile(const std::string &name)
@@ -296,13 +304,6 @@ namespace mt::io {
 			files->insert(files->end(), found->begin(), found->end());
 		}
 
-		// make sure we don't have duplicates
-		auto unique = std::unique(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
-			return (first.name == second.name && first.isDirectory == second.isDirectory);
-		});
-
-		files->erase(unique, files->end());
-
 		// Sort items by name but directories first
 		std::sort(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
 			if (first.isDirectory == second.isDirectory)
@@ -311,6 +312,13 @@ namespace mt::io {
 			}
 			return first.isDirectory > second.isDirectory;
 		});
+
+		// make sure we don't have duplicates (the same file or folder in several sources), needs the sorted list
+		auto unique = std::unique(files->begin(), files->end(), [](const FileRecord &first, const FileRecord &second) {
+			return (first.name == second.name && first.isDirectory == second.isDirectory);
+		});
+
+		files->erase(unique, files->end());
 
 		return files;
 	}

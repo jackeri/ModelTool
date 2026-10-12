@@ -73,8 +73,14 @@ namespace mt {
 		 */
 		void applyOptions();
 
+		/**
+		 * Store the window, view and file settings for the next run
+		 */
+		void saveSettings();
+
 		std::string title;								 ///< Window title
 		AppOptions options;								 ///< command line options
+		std::string settingsPath{};						 ///< settings file, empty when the settings are not used
 		GLFWwindow *window{};							 ///< GLFW window instance
 		Ref<ImGuiView> view;							 ///< UI instance
 		Ref<ModelPropertyPanel> propertyPanel = nullptr; ///< Model property panels instance to be drawn

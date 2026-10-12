@@ -2,6 +2,8 @@
 
 #include "mt.h"
 #include "file_browser.h"
+#include "base_browser.h"
+#include "log_panel.h"
 #include <unordered_map>
 
 namespace mt {
@@ -78,6 +80,33 @@ namespace mt {
 		 */
 		void drawExportAllWindow();
 
+		/**
+		 * Handle the keyboard shortcuts (not while typing into a text field)
+		 */
+		void handleShortcuts();
+
+		/**
+		 * Load a model and log the result
+		 * @param path model path (relative to the base folders or a path on the disk)
+		 */
+		void openModel(const std::string &path);
+
+		/**
+		 * Show the file browser for opening a model from the disk
+		 */
+		void openModelFromDisk();
+
+		/**
+		 * Show the folder browser for the base folder
+		 * @param add add the folder to the current ones instead of replacing them
+		 */
+		void showBaseFolderBrowser(bool add);
+
+		/**
+		 * Shortcut text for menus, Ctrl is shown as Cmd on macOS
+		 */
+		static std::string shortcutLabel(const std::string &label);
+
 		std::vector<std::function<void()>>
 			m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
 
@@ -85,8 +114,13 @@ namespace mt {
 
 		std::shared_ptr<spdlog::logger> logger; ///< shared logger
 
-		ScenePanel *scene = nullptr;		///< scene panel for the camera settings
-		bool showScaleBounds = false;		///< the bounding box scaling window is open
+		ScenePanel *scene = nullptr;  ///< scene panel for the camera settings
+		bool showScaleBounds = false; ///< the bounding box scaling window is open
+		BaseBrowser baseBrowser{};	  ///< browser for the base folders and pk3 files
+		LogPanel logPanel{};		  ///< log window
+		GLFWwindow *glfwWindow = nullptr;
+		std::string iniPath{};				///< ImGui layout file, kept alive for ImGuiIO::IniFilename
+		bool askedBaseFolder = false;		///< the base folder was asked for once
 		bool showExportAll = false;			///< the export all window is open
 		std::string exportFolder{};			///< export all: output folder
 		std::string exportName{};			///< export all: file name without the extension

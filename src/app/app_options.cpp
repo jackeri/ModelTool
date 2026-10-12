@@ -41,6 +41,10 @@ namespace mt {
 			{
 				options.exports.push_back(value());
 			}
+			else if (arg == "--frames")
+			{
+				options.frames = std::stoi(value());
+			}
 			else if (arg == "--ui")
 			{
 				options.screenshotUi = true;
@@ -77,6 +81,6 @@ namespace mt {
 	{
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--frame n]\n"
 			   "                 [--view wireframe,notextures,alpha,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
-			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH]";
+			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}
 }

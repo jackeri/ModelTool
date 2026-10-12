@@ -17,6 +17,7 @@ namespace mt {
 		int height = 720;
 		std::vector<std::string> view{};	///< --view: comma separated view toggles, like wireframe,skeleton,tags
 		std::vector<std::string> exports{}; ///< --export: write the loaded model to these files (format by extension)
+		int frames = 0;						///< --frames: close the window after this many frames (for automated runs), 0 runs until closed
 
 		/**
 		 * Parse the command line

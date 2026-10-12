@@ -236,7 +236,22 @@ set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 
 set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
-add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/app/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+# Application icon
+set(MODEL_TOOL_RESOURCES "")
+if (APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE "icon.icns")
+    set(MACOSX_BUNDLE_BUNDLE_NAME "ModelTool")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.jackeri.ModelTool")
+    set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
+    set(MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}")
+    set(MODEL_TOOL_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/icon.icns")
+    set_source_files_properties(${MODEL_TOOL_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+    list(APPEND MODEL_TOOL_RESOURCES ${MODEL_TOOL_ICON})
+elseif (WIN32)
+    list(APPEND MODEL_TOOL_RESOURCES "res/modeltool.rc")
+endif ()
+
+add_executable(ModelTool WIN32 MACOSX_BUNDLE "src/app/main.cpp" ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS} ${MODEL_TOOL_RESOURCES})
 add_dependencies(ModelTool glad glfw spdlog)
 target_link_libraries(ModelTool ${MTLINK_LIBRARIES})
 
@@ -255,9 +270,8 @@ set_target_properties(ModelTool PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ""
 )
 
-install(TARGETS ModelTool DESTINATION "./")
-install(DIRECTORY "fonts" DESTINATION "./")
-install(DIRECTORY "shaders" DESTINATION "./")
+install(TARGETS ModelTool BUNDLE DESTINATION "." RUNTIME DESTINATION ".")
+install(FILES "LICENSE.txt" DESTINATION ".")
 
 file(COPY ${CMAKE_CURRENT_LIST_DIR}/fonts DESTINATION ${CMAKE_BINARY_DIR})
 
@@ -270,6 +284,8 @@ if (test)
     find_package(GTest)
 
     if (NOT GTest_FOUND)
+        # Only needed for the tests, keep it out of the install and the packages
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
         add_subdirectory(libs/googletest)
     endif ()
 
@@ -295,5 +311,29 @@ if (test)
     gtest_discover_tests(mt_test WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 endif ()
 
-# TODO: setup CPack
+# Packaging: cpack -G ZIP (or DragNDrop on macOS, WIX on Windows, TGZ on Linux)
+set(CPACK_PACKAGE_NAME "ModelTool")
+set(CPACK_PACKAGE_VENDOR "ModelTool contributors")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Model viewer and editor for Enemy Territory: Legacy")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "ModelTool-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "ModelTool")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_PACKAGE_EXECUTABLES "ModelTool" "Model Tool")
+
+if (APPLE)
+    set(CPACK_GENERATOR "DragNDrop" "ZIP")
+    set(CPACK_DMG_VOLUME_NAME "ModelTool")
+elseif (WIN32)
+    set(CPACK_GENERATOR "WIX" "ZIP")
+    set(CPACK_WIX_UPGRADE_GUID "64F192A3-D882-4ADA-AC89-BA27002D8DD0")
+    set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/res/icon.ico")
+    set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/res/cpack_wix_ui_banner.jpg") # 493x58 px
+    set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/res/cpack_wix_ui_dialog.jpg") # 493x312 px
+    set(CPACK_CREATE_DESKTOP_LINKS "ModelTool")
+else ()
+    set(CPACK_GENERATOR "TGZ")
+endif ()
+
+include(CPack)
 

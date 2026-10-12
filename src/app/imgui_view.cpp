@@ -15,6 +15,7 @@
 #include "model_md5.h"
 #include "model_scripts.h"
 #include "model_stl.h"
+#include "settings.h"
 
 #include <filesystem>
 #include "model_scripts.h"
@@ -44,6 +45,18 @@ namespace mt {
 		(void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	  // Enable Docking
+
+		// The layout is kept with the settings, screenshots do not read or write it
+		glfwWindow = window->system();
+		if (singleton<State>().persistSettings && !settingsFolder().empty())
+		{
+			iniPath = settingsFolder() + "/imgui.ini";
+			io.IniFilename = iniPath.c_str();
+		}
+		else
+		{
+			io.IniFilename = nullptr;
+		}
 		// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
 		// Setup Dear ImGui style
@@ -106,8 +119,11 @@ namespace mt {
 			ImGuiID sceneId = dockId;
 			ImGuiID leftId = ImGui::DockBuilderSplitNode(sceneId, ImGuiDir_Left, 0.25f, nullptr, &sceneId);
 
+			ImGuiID logId = ImGui::DockBuilderSplitNode(sceneId, ImGuiDir_Down, 0.22f, nullptr, &sceneId);
+
 			ImGui::DockBuilderDockWindow("Properties", leftId);
 			ImGui::DockBuilderDockWindow("Scene", sceneId);
+			ImGui::DockBuilderDockWindow("Log", logId);
 			ImGui::DockBuilderFinish(dockId);
 		}
 
@@ -125,13 +141,17 @@ namespace mt {
 			m_lateExecution.clear();
 		}
 
-		// Setup the base path
-		if (!state.filesystem.hasSources() && !browser.isOpen())
+		// Ask for the base folder the first time
+		if (!state.filesystem.hasSources() && !browser.isOpen() && !askedBaseFolder)
 		{
-			browser.show("Select the base folder", [&](const std::string &path) { state.filesystem.addPath(path); }, true);
+			askedBaseFolder = true;
+			showBaseFolderBrowser(false);
 		}
 
 		browser.handle();
+		baseBrowser.render();
+		logPanel.render(state.showLog);
+		handleShortcuts();
 	}
 
 	void ImGuiView::shutdown()
@@ -150,23 +170,85 @@ namespace mt {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("Open model"))
+				if (ImGui::MenuItem("Open model...", shortcutLabel("Ctrl+O").c_str()))
 				{
-					browser.show("Load model", [&](const std::string &model) {
-						logger->info("Selected filename: {}", model);
+					openModelFromDisk();
+				}
+
+				if (ImGui::MenuItem("Open from base folders..."))
+				{
+					baseBrowser.show("Open from base folders", model::io::modelExtensions(),
+									 [this](const std::string &path) { openModel(path); });
+				}
+
+				if (ImGui::BeginMenu("Recent models", !state.settings.recentFiles.empty()))
+				{
+					std::string selected;
+					for (const auto &path : state.settings.recentFiles)
+					{
+						if (ImGui::MenuItem(path.c_str()))
+						{
+							selected = path;
+						}
+					}
+					ImGui::Separator();
+					if (ImGui::MenuItem("Clear"))
+					{
+						state.settings.recentFiles.clear();
+					}
+					ImGui::EndMenu();
+
+					if (!selected.empty())
+					{
+						openModel(selected);
+					}
+				}
+
+				if (ImGui::BeginMenu("Base folders"))
+				{
+					if (state.basePaths.empty())
+					{
+						ImGui::TextDisabled("No base folders");
+					}
+					for (const auto &path : state.basePaths)
+					{
+						ImGui::TextDisabled("%s", path.c_str());
+					}
+					ImGui::Separator();
+					if (ImGui::MenuItem("Add base folder..."))
+					{
+						showBaseFolderBrowser(true);
+					}
+					if (ImGui::MenuItem("Change base folder..."))
+					{
+						showBaseFolderBrowser(false);
+					}
+					if (ImGui::MenuItem("Clear base folders", nullptr, false, !state.basePaths.empty()))
+					{
+						state.clearBasePaths();
+						logger->info("Cleared the base folders");
+					}
+					ImGui::EndMenu();
+				}
+
+				ImGui::Separator();
+
+				if (ImGui::MenuItem("Load animation from base folders...", nullptr, false, !!state.model))
+				{
+					baseBrowser.show("Load animation", model::io::animationExtensions(), [this](const std::string &path) {
 						try
 						{
-							state.loadModel(model);
+							singleton<State>().loadAnimation(path);
+							logger->info("Loaded animation {}", path);
 						}
 						catch (const std::exception &ex)
 						{
-							logger->error("Failed to load model: {}", ex.what());
+							logger->error("Failed to load animation: {}", ex.what());
 						}
 					});
-					browser.setTypeFilters(model::io::modelExtensions());
 				}
 
-				if (ImGui::MenuItem("Load animation", nullptr, false, !!state.model))
+				if (ImGui::MenuItem("Load animation...", nullptr, false, !!state.model))
 				{
 					browser.show("Load animation", [&](const std::string &animation) {
 						logger->info("Selected filename: {}", animation);
@@ -248,9 +330,9 @@ namespace mt {
 
 				ImGui::Separator();
 
-				if (ImGui::MenuItem("Quit", "Cmd+Q", false, true))
+				if (ImGui::MenuItem("Quit", shortcutLabel("Ctrl+Q").c_str()))
 				{
-					std::exit(0);
+					glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
 				}
 
 				ImGui::EndMenu();
@@ -261,17 +343,19 @@ namespace mt {
 			if (ImGui::BeginMenu("View"))
 			{
 				auto &view = state.view;
-				ImGui::MenuItem("Wireframe", nullptr, &view.wireframe);
-				ImGui::MenuItem("Textures", nullptr, &view.textures);
+				ImGui::MenuItem("Wireframe", "W", &view.wireframe);
+				ImGui::MenuItem("Textures", "T", &view.textures);
 				ImGui::MenuItem("Alpha", nullptr, &view.alpha);
+				ImGui::MenuItem("Interpolation", "N", &state.playback.interpolate);
+				ImGui::MenuItem("Dynamic LOD", "L", &view.dynamicLod);
 				ImGui::Separator();
-				ImGui::MenuItem("Grid and origin", nullptr, &view.drawGrid);
-				ImGui::MenuItem("Bounding box", nullptr, &view.drawBounds);
+				ImGui::MenuItem("Grid and origin", "Alt+O", &view.drawGrid);
+				ImGui::MenuItem("Bounding box", shortcutLabel("Ctrl+B").c_str(), &view.drawBounds);
 				ImGui::MenuItem("Hitboxes", nullptr, &view.drawHitboxes);
-				ImGui::MenuItem("Tags", nullptr, &view.drawTags);
+				ImGui::MenuItem("Tags", "Alt+T", &view.drawTags);
 				ImGui::MenuItem("Tag names", nullptr, &view.drawTagNames, view.drawTags);
-				ImGui::MenuItem("Skeleton", nullptr, &view.drawSkeleton);
-				ImGui::MenuItem("Normals", nullptr, &view.drawNormals);
+				ImGui::MenuItem("Skeleton", "Alt+S", &view.drawSkeleton);
+				ImGui::MenuItem("Normals", "Alt+N", &view.drawNormals);
 				if (view.drawNormals)
 				{
 					ImGui::SliderFloat("Normal length", &view.normalLength, 0.005f, 0.2f, "%.3f");
@@ -295,9 +379,15 @@ namespace mt {
 				{
 					state.resetCamera = true;
 				}
-				if (ImGui::MenuItem("Frame model", nullptr, false, !!state.model))
+				if (ImGui::MenuItem("Frame model", "F", false, !!state.model))
 				{
 					state.frameCamera = true;
+				}
+				ImGui::Separator();
+				ImGui::MenuItem("Log", "Shift+Esc", &state.showLog);
+				if (ImGui::MenuItem("Vertical sync", nullptr, &state.settings.vsync))
+				{
+					glfwSwapInterval(state.settings.vsync ? 1 : 0);
 				}
 
 				ImGui::EndMenu();
@@ -646,5 +736,143 @@ namespace mt {
 			}
 		}
 		ImGui::End();
+	}
+
+	std::string ImGuiView::shortcutLabel(const std::string &label)
+	{
+#ifdef __APPLE__
+		// ImGui maps Cmd to its Ctrl modifier on macOS
+		if (label.rfind("Ctrl+", 0) == 0)
+		{
+			return "Cmd+" + label.substr(5);
+		}
+#endif
+		return label;
+	}
+
+	void ImGuiView::openModel(const std::string &path)
+	{
+		try
+		{
+			singleton<State>().loadModel(path);
+			logger->info("Loaded model {}", path);
+		}
+		catch (const std::exception &ex)
+		{
+			logger->error("Failed to load model {}: {}", path, ex.what());
+		}
+	}
+
+	void ImGuiView::openModelFromDisk()
+	{
+		browser.show("Open model", [this](const std::string &path) { openModel(path); });
+		browser.setTypeFilters(model::io::modelExtensions());
+	}
+
+	void ImGuiView::showBaseFolderBrowser(bool add)
+	{
+		browser.show(
+			add ? "Add base folder" : "Select the base folder (the game's mod folder, like etmain)",
+			[this, add](const std::string &path) {
+				auto &state = singleton<State>();
+				if (!add)
+				{
+					state.clearBasePaths();
+				}
+				if (state.addBasePath(path))
+				{
+					logger->info("Base folder: {}", path);
+				}
+				else
+				{
+					logger->error("Invalid base folder: {}", path);
+				}
+			},
+			true);
+	}
+
+	void ImGuiView::handleShortcuts()
+	{
+		auto &io = ImGui::GetIO();
+		if (io.WantTextInput)
+		{
+			return;
+		}
+
+		auto &state = singleton<State>();
+		auto &view = state.view;
+		auto pressed = [](ImGuiKeyChord chord) { return ImGui::IsKeyChordPressed(chord); };
+
+		if (pressed(ImGuiMod_Ctrl | ImGuiKey_O))
+		{
+			openModelFromDisk();
+		}
+		if (pressed(ImGuiMod_Ctrl | ImGuiKey_Q))
+		{
+			glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
+		}
+		if (pressed(ImGuiMod_Shift | ImGuiKey_Escape))
+		{
+			state.showLog = !state.showLog;
+		}
+
+		// The view toggles of LegacyModelView
+		if (pressed(ImGuiKey_W))
+		{
+			view.wireframe = !view.wireframe;
+		}
+		if (pressed(ImGuiKey_T))
+		{
+			view.textures = !view.textures;
+		}
+		if (pressed(ImGuiKey_L))
+		{
+			view.dynamicLod = !view.dynamicLod;
+		}
+		if (pressed(ImGuiKey_N))
+		{
+			state.playback.interpolate = !state.playback.interpolate;
+		}
+		if (pressed(ImGuiMod_Ctrl | ImGuiKey_B))
+		{
+			view.drawBounds = !view.drawBounds;
+		}
+		if (pressed(ImGuiMod_Alt | ImGuiKey_O))
+		{
+			view.drawGrid = !view.drawGrid;
+		}
+		if (pressed(ImGuiMod_Alt | ImGuiKey_T))
+		{
+			view.drawTags = !view.drawTags;
+		}
+		if (pressed(ImGuiMod_Alt | ImGuiKey_S))
+		{
+			view.drawSkeleton = !view.drawSkeleton;
+		}
+		if (pressed(ImGuiMod_Alt | ImGuiKey_N))
+		{
+			view.drawNormals = !view.drawNormals;
+		}
+
+		if (pressed(ImGuiKey_F) && state.model)
+		{
+			state.frameCamera = true;
+		}
+		if (pressed(ImGuiKey_Space) && state.model && state.model->hasFrames())
+		{
+			if (state.playback.isPlaying())
+			{
+				state.playback.pause();
+			}
+			else
+			{
+				if (state.model->currentFrame < 0)
+				{
+					state.model->currentFrame = state.playback.first();
+				}
+				state.playback.seek(state.model->currentFrame);
+				state.playback.play();
+			}
+		}
 	}
 }

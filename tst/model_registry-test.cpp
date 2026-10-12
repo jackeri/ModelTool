@@ -4,6 +4,8 @@
 #include "mt_path.h"
 #include "filesystem.h"
 
+#include <filesystem>
+
 using namespace mt;
 using namespace mt::model;
 
@@ -93,4 +95,19 @@ TEST(ModelRegistryTest, packageFilesHaveExtensionAndTerminator)
 	ASSERT_EQ(file->data->size(), file->len + 1);
 	ASSERT_EQ(file->data->back(), 0);
 	ASSERT_EQ(file->string().size(), file->len);
+}
+
+TEST(ModelRegistryTest, fileSystemFindsAbsolutePaths)
+{
+	mt::io::FileSystem sys;
+	ASSERT_TRUE(sys.addPath("data"));
+
+	// Models opened from outside the base folders use absolute paths, their textures are found next to them
+	std::string absolute = std::filesystem::absolute("data/models/md5/bob_body.tga").string();
+	ASSERT_TRUE(sys.findFile(absolute));
+	ASSERT_TRUE(sys.loadFile(absolute));
+
+	// Relative paths only come from the sources
+	ASSERT_FALSE(sys.findFile("data/models/md5/bob_body.tga"));
+	ASSERT_FALSE(sys.findFile(std::filesystem::absolute("data/models/md5/missing.tga").string()));
 }

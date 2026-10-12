@@ -7,6 +7,9 @@
 #include "filesystem.h"
 #include "playback.h"
 #include "texture_cache.h"
+#include "settings.h"
+
+#include <filesystem>
 
 namespace mt {
 
@@ -35,15 +38,19 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	  public:
-		Ref<Model> model = nullptr;		   ///< currently loaded model
-		ImColor clearColor{114, 144, 154}; ///< background clear color
-		io::FileSystem filesystem{};	   ///< used filesystem, which will be initialized by the ImGuiView
-		std::string modelPath{};		   ///< path of the loaded model, textures are also looked up next to it
-		ViewSettings view{};			   ///< scene drawing settings
-		model::Playback playback{};		   ///< animation playback
-		TextureCache textures{};		   ///< loaded textures
-		bool frameCamera = false;		   ///< the scene panel should point the camera at the model
-		bool resetCamera = false;		   ///< the scene panel should reset the camera
+		Ref<Model> model = nullptr;			  ///< currently loaded model
+		ImColor clearColor{114, 144, 154};	  ///< background clear color
+		io::FileSystem filesystem{};		  ///< used filesystem, which will be initialized by the ImGuiView
+		std::string modelPath{};			  ///< path of the loaded model, textures are also looked up next to it
+		ViewSettings view{};				  ///< scene drawing settings
+		model::Playback playback{};			  ///< animation playback
+		TextureCache textures{};			  ///< loaded textures
+		bool frameCamera = false;			  ///< the scene panel should point the camera at the model
+		bool resetCamera = false;			  ///< the scene panel should reset the camera
+		AppSettings settings{};				  ///< settings kept between runs
+		bool persistSettings = false;		  ///< load and save the settings (off for screenshots)
+		std::vector<std::string> basePaths{}; ///< base folders added by the user
+		bool showLog = true;				  ///< the log panel is open
 
 		/**
 		 * no copy for singletons
@@ -90,9 +97,46 @@ namespace mt {
 			}
 
 			modelPath = path;
+			settings.addRecentFile(path);
 			view.lodLevel = 0;
 			frameCamera = true;
 			resetPlayback();
+		}
+
+		/**
+		 * Add a base folder (or a pk3 file) to load the models and textures from
+		 * @param path folder or pk3 path
+		 * @return false if the path does not exist
+		 */
+		bool addBasePath(const std::string &path)
+		{
+			if (!filesystem.addPath(path))
+			{
+				return false;
+			}
+			// Absolute, so the settings work from any working folder
+			std::error_code error;
+			std::string absolute = std::filesystem::absolute(path, error).lexically_normal().string();
+			if (error)
+			{
+				absolute = path;
+			}
+			if (std::find(basePaths.begin(), basePaths.end(), absolute) == basePaths.end())
+			{
+				basePaths.push_back(absolute);
+			}
+			textures.clear();
+			return true;
+		}
+
+		/**
+		 * Remove every base folder
+		 */
+		void clearBasePaths()
+		{
+			filesystem.clear();
+			basePaths.clear();
+			textures.clear();
 		}
 
 		/**

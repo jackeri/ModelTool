@@ -1,6 +1,8 @@
 #include "gl_window.h"
 #include "imgui_view.h"
 #include "state.h"
+#include "app_settings.h"
+#include "settings.h"
 #include <map>
 #include <utility>
 
@@ -55,6 +57,11 @@ bool mt::GLWindow::init()
 	auto logger = spdlog::get(MT_LOGGER);
 
 	glfwSetErrorCallback(glfwAppErrorCallback);
+
+	// Keep the working folder: GLFW moves into the bundle's Resources folder by default, which breaks relative paths
+	// given on the command line
+	glfwInitHint(GLFW_COCOA_CHDIR_RESOURCES, GLFW_FALSE);
+
 	if (!glfwInit())
 	{
 		logger->error("Failed to initialize GLFW");
@@ -69,12 +76,24 @@ bool mt::GLWindow::init()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	// Screenshots are rendered off screen
+	// Screenshots are rendered off screen and do not use the settings
 	glfwWindowHint(GLFW_VISIBLE, options.screenshot.empty() ? GLFW_TRUE : GLFW_FALSE);
 
-	const bool sizeFromOptions = !options.screenshot.empty() && options.screenshotUi;
-	GLFWwindow *glfwWindow
-		= glfwCreateWindow(sizeFromOptions ? options.width : 1280, sizeFromOptions ? options.height : 720, title.c_str(), nullptr, nullptr);
+	auto &state = singleton<State>();
+	state.persistSettings = options.screenshot.empty() && !settingsFolder().empty();
+	if (state.persistSettings)
+	{
+		settingsPath = settingsFolder() + "/settings.cfg";
+		state.settings = AppSettings::load(settingsPath);
+		logger->info("Settings: {}", settingsPath);
+	}
+
+	glm::ivec2 windowSize = state.persistSettings ? state.settings.windowSize : glm::ivec2{1280, 720};
+	if (!options.screenshot.empty() && options.screenshotUi)
+	{
+		windowSize = {options.width, options.height};
+	}
+	GLFWwindow *glfwWindow = glfwCreateWindow(windowSize.x, windowSize.y, title.c_str(), nullptr, nullptr);
 	if (glfwWindow == nullptr)
 	{
 		logger->error("Failed to create GLFW window");
@@ -82,8 +101,20 @@ bool mt::GLWindow::init()
 	}
 	this->window = glfwWindow;
 
+	if (state.persistSettings)
+	{
+		if (state.settings.windowPosition.x >= 0 && state.settings.windowPosition.y >= 0)
+		{
+			glfwSetWindowPos(glfwWindow, state.settings.windowPosition.x, state.settings.windowPosition.y);
+		}
+		if (state.settings.windowMaximized)
+		{
+			glfwMaximizeWindow(glfwWindow);
+		}
+	}
+
 	glfwMakeContextCurrent(glfwWindow);
-	glfwSwapInterval(1);
+	glfwSwapInterval(state.settings.vsync ? 1 : 0);
 
 	glfwSetWindowUserPointer(glfwWindow, this);
 	glfwSetKeyCallback(glfwWindow, on_key_callback);
@@ -127,6 +158,24 @@ bool mt::GLWindow::init()
 	}
 
 	view->setScene(scenePanel.get());
+
+	if (state.persistSettings)
+	{
+		applySettings(state, scenePanel->getCamera());
+
+		// The base folders of the last run, unless the command line gives them
+		if (options.basePaths.empty())
+		{
+			for (const auto &path : state.settings.basePaths)
+			{
+				if (!state.addBasePath(path))
+				{
+					logger->warn("Base folder not found: {}", path);
+				}
+			}
+		}
+	}
+
 	applyOptions();
 
 	return true;
@@ -140,15 +189,15 @@ GLFWwindow *mt::GLWindow::system()
 void mt::GLWindow::loop()
 {
 	auto *glfwWindow = static_cast<GLFWwindow *>(this->window);
+	int frame = 0;
 	while (!glfwWindowShouldClose(glfwWindow))
 	{
-		glfwPollEvents();
-
-		// Close the window on escape for now (faster dev)
-		if (glfwGetKey(glfwWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		if (options.frames > 0 && ++frame > options.frames)
 		{
-			glfwSetWindowShouldClose(glfwWindow, true);
+			glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
 		}
+
+		glfwPollEvents();
 
 		// Clear the screen for now
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -167,6 +216,38 @@ void mt::GLWindow::loop()
 		view->endFrame();
 
 		glfwSwapBuffers(glfwWindow);
+	}
+
+	saveSettings();
+}
+
+void mt::GLWindow::saveSettings()
+{
+	auto &state = singleton<State>();
+	if (!state.persistSettings || !window)
+	{
+		return;
+	}
+
+	state.settings.windowMaximized = glfwGetWindowAttrib(window, GLFW_MAXIMIZED) == GLFW_TRUE;
+	if (!state.settings.windowMaximized)
+	{
+		glfwGetWindowPos(window, &state.settings.windowPosition.x, &state.settings.windowPosition.y);
+		glfwGetWindowSize(window, &state.settings.windowSize.x, &state.settings.windowSize.y);
+	}
+	collectSettings(state, scenePanel->getCamera());
+
+	auto logger = spdlog::get(MT_LOGGER);
+	try
+	{
+		if (!state.settings.save(settingsPath))
+		{
+			logger->error("Could not save the settings: {}", settingsPath);
+		}
+	}
+	catch (const std::exception &ex)
+	{
+		logger->error("Could not save the settings: {}", ex.what());
 	}
 }
 
@@ -192,7 +273,7 @@ void mt::GLWindow::applyOptions()
 
 	for (const auto &path : options.basePaths)
 	{
-		if (!state.filesystem.addPath(path))
+		if (!state.addBasePath(path))
 		{
 			logger->error("Invalid base path: {}", path);
 		}

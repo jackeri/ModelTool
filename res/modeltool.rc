@@ -1,0 +1,2 @@
+// Windows resources: the application icon (GLFW_ICON is also used by GLFW for the window icon)
+GLFW_ICON ICON "icon.ico"
