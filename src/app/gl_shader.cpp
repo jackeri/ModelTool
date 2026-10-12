@@ -110,6 +110,26 @@ void mt::GLShader::setUniform<float *>(const std::string &name, float *val)
 	glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, val);
 }
 
+void mt::GLShader::setUniform(const std::string &name, const glm::mat4 &matrix)
+{
+	glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix));
+}
+
+void mt::GLShader::setUniform(const std::string &name, const glm::mat3 &matrix)
+{
+	glUniformMatrix3fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(matrix));
+}
+
+void mt::GLShader::setUniform(const std::string &name, const glm::vec4 &vec)
+{
+	glUniform4fv(getUniformLocation(name), 1, glm::value_ptr(vec));
+}
+
+void mt::GLShader::setUniform(const std::string &name, const glm::vec3 &vec)
+{
+	glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(vec));
+}
+
 void mt::GLShader::checkCompileErr() const
 {
 	int success;
@@ -128,11 +148,12 @@ void mt::GLShader::checkCompileErr() const
 	}
 }
 
-void mt::GLShader::checkLinkingErr() const
+void mt::GLShader::checkLinkingErr()
 {
 	int success;
 	char infoLog[1024];
 	glGetProgramiv(progId, GL_LINK_STATUS, &success);
+	programValid = success != 0;
 	if (!success)
 	{
 		glGetProgramInfoLog(progId, 1024, nullptr, infoLog);

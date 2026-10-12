@@ -6,13 +6,14 @@
 #include "model_propertypanel.h"
 #include "scene_panel.h"
 #include "imgui_view.h"
+#include "app_options.h"
 
 namespace mt {
 
 	/*! Main window with the OpenGL context */
 	class GLWindow {
 	  public:
-		explicit GLWindow(std::string title);
+		explicit GLWindow(std::string title, AppOptions options = {});
 
 		~GLWindow();
 
@@ -39,6 +40,12 @@ namespace mt {
 		void loop();
 
 		/**
+		 * Render the scene once without the UI and save it as an image (--screenshot)
+		 * @return true if the image was written
+		 */
+		bool screenshot();
+
+		/**
 		 * Callback for key presses
 		 * @param key key code
 		 * @param scancode code
@@ -62,11 +69,12 @@ namespace mt {
 
 	  private:
 		/**
-		 * Handle window input
+		 * Load the base paths, the model and its animations from the command line
 		 */
-		void handleInput();
+		void applyOptions();
 
 		std::string title;								 ///< Window title
+		AppOptions options;								 ///< command line options
 		GLFWwindow *window{};							 ///< GLFW window instance
 		Ref<ImGuiView> view;							 ///< UI instance
 		Ref<ModelPropertyPanel> propertyPanel = nullptr; ///< Model property panels instance to be drawn

@@ -15,7 +15,18 @@ int main(int argc, char *argv[])
 
 	logger->info("Starting application");
 
-	auto app = std::make_unique<mt::Application>("Model Tool");
+	mt::AppOptions options;
+	try
+	{
+		options = mt::AppOptions::parse(argc, argv);
+	}
+	catch (const std::exception &ex)
+	{
+		logger->error("{}", ex.what());
+		return EXIT_FAILURE;
+	}
+
+	auto app = std::make_unique<mt::Application>("Model Tool", options);
 
 	// Init windowing and other requirements
 	if (!app->init())
@@ -24,10 +35,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	// Loop until app is ready to close
-	app->loop();
-
-	return EXIT_SUCCESS;
+	// Loop until app is ready to close (or render the screenshot)
+	return app->run();
 }
 
 #ifdef _WIN32

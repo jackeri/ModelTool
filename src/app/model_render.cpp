@@ -1,145 +1,125 @@
-#include "renderer.h"
-#include "skeletal_model.h"
-#include "model.h"
+#include "model_render.h"
+#include "state.h"
 
-using namespace mt;
-using namespace mt::model;
+namespace mt {
 
-static void renderSkeletalModel(const Ref<mt::Renderer> &renderer, const Ref<mt::model::skeletal::SkeletalModel> &model)
-{
-	auto &buffer = renderer->getBuffer();
-
-	bool drawBindPose = false;
-
-	if (!model->hasFrames() || model->currentFrame == FRAME_BIND_POSE)
+	model::PoseOptions poseOptions(Model &model, const ViewSettings &view, const model::Playback &playback)
 	{
-		drawBindPose = true;
+		model::PoseOptions options;
+		options.bindPose = model.skeletalModel() && model.currentFrame == FRAME_BIND_POSE;
+		options.frame = std::max(model.currentFrame, 0);
+		options.nextFrame = options.frame;
 
-		if (!model->hasBindPose)
+		if (playback.isPlaying() && model.hasFrames() && playback.frame() == model.currentFrame)
 		{
-			// FIXME: output an error or a log message? We have nothing to draw..
-			return;
+			options.nextFrame = std::clamp(playback.nextFrame(), 0, model.numFrames() - 1);
+			options.blend = playback.blend();
 		}
+
+		options.lodLevel = view.lodLevel;
+		options.dynamicLod = view.dynamicLod;
+		options.lodRatio = view.lodRatio;
+		return options;
 	}
 
-	// model isn't particularly fast, but it doesn't really matter in model case
-	for (auto &mesh : model->meshes)
+	glm::mat4 modelTransform(const Model &model)
 	{
-		buffer.clear();
-		buffer.color = {1, 1, 1, 1};
+		return glm::translate(model.transform.location) * glm::toMat4(model.transform.rotation) * glm::scale(glm::vec3(model.scale));
+	}
 
-		for (auto &vert : mesh.vertices)
+	bool posedBounds(const model::PosedModel &posed, Bounds &out)
+	{
+		bool any = false;
+		auto add = [&](const glm::vec3 &pos) {
+			out.min = any ? glm::min(out.min, pos) : pos;
+			out.max = any ? glm::max(out.max, pos) : pos;
+			any = true;
+		};
+
+		for (const auto &mesh : posed.meshes)
 		{
-			if (drawBindPose)
+			std::for_each(mesh.positions.begin(), mesh.positions.end(), add);
+		}
+		std::for_each(posed.joints.begin(), posed.joints.end(), add);
+		return any;
+	}
+
+	void drawModel(Renderer &renderer, const model::PosedModel &posed, const ViewSettings &view, TextureCache &textures,
+				   io::FileSource &source, const std::string &modelPath, float size)
+	{
+		for (const auto &mesh : posed.meshes)
+		{
+			MeshData data{mesh.positions, mesh.normals, mesh.texCoords, mesh.tris};
+
+			MeshStyle style;
+			style.wireframe = view.wireframe;
+			style.alpha = view.alpha;
+			if (view.wireframe)
 			{
-				buffer.addXyz(vert.pos);
-				buffer.addNormal(vert.bindNormal);
+				style.color = {1, 1, 1, 1};
 			}
-			else
+			else if (view.textures)
 			{
-				glm::fvec3 pos(0), normal(0);
-				for (int i = 0; i < vert.weightCount; i++)
+				style.texture = textures.get(source, mesh.material, modelPath);
+			}
+			if (!view.wireframe && !style.texture)
+			{
+				style.color = {0.8f, 0.8f, 0.8f, 1};
+			}
+
+			renderer.drawMesh(data, style);
+
+			if (view.drawNormals)
+			{
+				std::vector<LineVertex> lines;
+				for (size_t v = 0; v < mesh.positions.size() && v < mesh.normals.size(); v++)
 				{
-					const skeletal::Weight &weight = mesh.weights[vert.startWeight + i];
-					const Point &point = model->joints[weight.jointId].frames[model->currentFrame];
-
-					glm::vec3 rotatedPos = point.rotation * weight.pos;
-					pos += (point.location + rotatedPos) * weight.bias;
-
-					rotatedPos = point.rotation * vert.normal;
-					normal += rotatedPos * weight.bias;
+					lines.push_back({mesh.positions[v], {1, 1, 0, 1}});
+					lines.push_back({mesh.positions[v] + mesh.normals[v] * view.normalLength * size, {1, 1, 0, 1}});
 				}
-				buffer.addXyz(pos);
-				buffer.addNormal(normal);
+				renderer.drawLines(lines, true);
 			}
 		}
 
-		for (auto &tri : mesh.tris)
+		if (view.drawSkeleton)
 		{
-			buffer.addIndex(tri);
+			std::vector<LineVertex> lines, points;
+			for (const auto &[from, to] : posed.bones)
+			{
+				lines.push_back({from, {0, 1, 0, 1}});
+				lines.push_back({to, {0, 1, 0, 1}});
+			}
+			for (const auto &joint : posed.joints)
+			{
+				points.push_back({joint, {1, 0, 0, 1}});
+			}
+			renderer.drawLines(lines, false);
+			renderer.drawPoints(points, 5.0f, false);
 		}
 
-		renderer->renderBuffer();
-	}
-
-	for (auto &hitbox : model->hitboxes)
-	{
-		glm::mat4x4 matrix{0};
-
-		if (hitbox.parentJoint >= 0)
+		if (view.drawTags)
 		{
-			const Point &joint
-				= (drawBindPose ? model->joints[hitbox.parentJoint] : model->joints[hitbox.parentJoint].frames[model->currentFrame]);
-			glm::vec3 rotPoint = joint.location + (joint.rotation * hitbox.location);
-			matrix = glm::translate(rotPoint) * glm::toMat4(joint.rotation * hitbox.rotation);
-		}
-		else
-		{
-			matrix = glm::translate(hitbox.location) * glm::toMat4(hitbox.rotation);
+			for (const auto &tag : posed.tags)
+			{
+				renderer.push(glm::translate(tag.point.location) * glm::toMat4(tag.point.rotation));
+				renderer.axis(size * 0.05f);
+				renderer.pop();
+			}
 		}
 
-		setupBounds(renderer, hitbox);
+		if (view.drawHitboxes)
+		{
+			for (const auto &hitbox : posed.hitboxes)
+			{
+				renderer.push(glm::translate(hitbox.point.location) * glm::toMat4(hitbox.point.rotation));
+				renderer.bounds(hitbox.bounds, {1, 0, 1, 1});
+				renderer.pop();
+			}
+		}
 
-		// Push the hitbox matrix to the renderer
-		renderer->push(matrix);
-		renderer->renderBuffer();
-		renderer->pop();
+		if (view.drawBounds && posed.hasBounds)
+		{
+			renderer.bounds(posed.bounds, {1, 1, 1, 1});
+		}
 	}
-}
-
-void mt::model::renderModel(const Ref<mt::Renderer> &renderer, const Ref<mt::Model> &model)
-{
-	if (model->skeletalModel())
-	{
-		auto skeletalModel = std::dynamic_pointer_cast<mt::model::skeletal::SkeletalModel>(model);
-		renderSkeletalModel(renderer, skeletalModel);
-	}
-}
-
-void mt::model::setupBounds(const Ref<mt::Renderer> &renderer, const mt::Bounds &bounds, bool drawPoints)
-{
-	auto &buffer = renderer->getBuffer();
-	buffer.clear(false);
-
-	// Green boxes
-	buffer.color = {0, 1, 0, 1};
-	buffer.lineWidth = 2;
-
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.max.z}); // 2
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.max.z}); // 3
-
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.max.z}); // 3
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.min.z}); // 0
-
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.max.z}); // 3
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.max.z}); // 4
-
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.max.z}); // 4
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.min.z}); // 7
-
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.max.z}); // 4
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.max.z}); // 5
-
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.max.z}); // 5
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.max.z}); // 2
-
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.max.z}); // 5
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.min.z}); // 6
-
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.min.z}); // 6
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.min.z}); // 1
-
-	buffer.addXyz({bounds.max.x, bounds.max.y, bounds.min.z}); // 6
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.min.z}); // 7
-
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.min.z}); // 0
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.min.z}); // 1
-
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.min.z}); // 1
-	buffer.addXyz({bounds.max.x, bounds.min.y, bounds.max.z}); // 2
-
-	buffer.addXyz({bounds.min.x, bounds.max.y, bounds.min.z}); // 7
-	buffer.addXyz({bounds.min.x, bounds.min.y, bounds.min.z}); // 0
-
-	// FIXME: implement point drawing
 }

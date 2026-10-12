@@ -1,5 +1,7 @@
 #include "gl_window.h"
 #include "imgui_view.h"
+#include "state.h"
+#include <map>
 #include <utility>
 
 static void glfwAppErrorCallback(int error, const char *description)
@@ -25,7 +27,7 @@ static void on_window_size_callback(GLFWwindow *window, int width, int height)
 	pWindow->onResize(width, height);
 }
 
-mt::GLWindow::GLWindow(std::string title) : title(std::move(title)) {}
+mt::GLWindow::GLWindow(std::string title, AppOptions options) : title(std::move(title)), options(std::move(options)) {}
 
 mt::GLWindow::~GLWindow()
 {
@@ -61,20 +63,18 @@ bool mt::GLWindow::init()
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
-#if defined(MT_OPENGL_2)
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	// OpenGL 4.1 core, the newest version macOS supports
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-#elif defined(MT_OPENGL_3)
-	// Let's use OpenGL 3.3 for now, maybe upgrade in the future
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#else
-#error What GL version are we supposed to use?
-#endif
 
-	GLFWwindow *glfwWindow = glfwCreateWindow(1280, 720, title.c_str(), nullptr, nullptr);
+	// Screenshots are rendered off screen
+	glfwWindowHint(GLFW_VISIBLE, options.screenshot.empty() ? GLFW_TRUE : GLFW_FALSE);
+
+	const bool sizeFromOptions = !options.screenshot.empty() && options.screenshotUi;
+	GLFWwindow *glfwWindow
+		= glfwCreateWindow(sizeFromOptions ? options.width : 1280, sizeFromOptions ? options.height : 720, title.c_str(), nullptr, nullptr);
 	if (glfwWindow == nullptr)
 	{
 		logger->error("Failed to create GLFW window");
@@ -106,17 +106,28 @@ bool mt::GLWindow::init()
 	logger->debug("Loaded OpenGL according to Glad {}.{}", GLAD_VERSION_MAJOR(gladVersion), GLAD_VERSION_MINOR(gladVersion));
 
 	propertyPanel = make_ref<ModelPropertyPanel>();
-	scenePanel = make_ref<ScenePanel>();
+	try
+	{
+		scenePanel = make_ref<ScenePanel>();
+	}
+	catch (const std::exception &ex)
+	{
+		logger->error("Failed to create the renderer: {}", ex.what());
+		return false;
+	}
 
 	view = make_ref<ImGuiView>();
 
 	// Init the UI system
-	if (!view->setup(this, "#version 150"))
+	if (!view->setup(this, "#version 410"))
 	{
 		logger->error("Failed to initialize ImGui");
 		// UI setup failed, cancel the whole ordeal.
 		return false;
 	}
+
+	view->setScene(scenePanel.get());
+	applyOptions();
 
 	return true;
 }
@@ -143,6 +154,8 @@ void mt::GLWindow::loop()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		singleton<State>().update(ImGui::GetIO().DeltaTime);
+
 		view->startFrame();
 
 		view->draw();
@@ -152,8 +165,6 @@ void mt::GLWindow::loop()
 		scenePanel->render();
 
 		view->endFrame();
-
-		handleInput();
 
 		glfwSwapBuffers(glfwWindow);
 	}
@@ -174,27 +185,98 @@ void mt::GLWindow::onResize(int width, int height)
 	// FIXME: is this needed or not anymore
 }
 
-void mt::GLWindow::handleInput()
+void mt::GLWindow::applyOptions()
 {
-	double x, y;
-	int mouseButton = 0;
-	glfwGetCursorPos(window, &x, &y);
+	auto logger = spdlog::get(MT_LOGGER);
+	auto &state = singleton<State>();
 
-	// Left mouse button
-	if (glfwGetMouseButton(window, 0) == GLFW_PRESS)
+	for (const auto &path : options.basePaths)
 	{
-		mouseButton = 1;
-	}
-	// Right mouse button
-	else if (glfwGetMouseButton(window, 1) == GLFW_PRESS)
-	{
-		mouseButton = 2;
-	}
-	// Middle mouse button
-	else if (glfwGetMouseButton(window, 2) == GLFW_PRESS)
-	{
-		mouseButton = 3;
+		if (!state.filesystem.addPath(path))
+		{
+			logger->error("Invalid base path: {}", path);
+		}
 	}
 
-	scenePanel->onMouseMove(x, y, mouseButton);
+	if (!options.model.empty())
+	{
+		try
+		{
+			state.loadModel(options.model);
+			for (const auto &animation : options.animations)
+			{
+				state.loadAnimation(animation);
+			}
+
+			if (state.model && (options.frame >= 0 || !state.model->skeletalModel()))
+			{
+				state.model->currentFrame = std::clamp(options.frame, 0, std::max(state.model->numFrames() - 1, 0));
+			}
+		}
+		catch (const std::exception &ex)
+		{
+			logger->error("Failed to load {}: {}", options.model, ex.what());
+		}
+	}
+
+	auto &view = state.view;
+	const std::map<std::string, std::pair<bool *, bool>> toggles{
+		{"wireframe", {&view.wireframe, true}},	  {"notextures", {&view.textures, false}},	{"alpha", {&view.alpha, true}},
+		{"nogrid", {&view.drawGrid, false}},	  {"bounds", {&view.drawBounds, true}},		{"nohitboxes", {&view.drawHitboxes, false}},
+		{"tags", {&view.drawTags, true}},		  {"skeleton", {&view.drawSkeleton, true}}, {"normals", {&view.drawNormals, true}},
+		{"dynamiclod", {&view.dynamicLod, true}},
+	};
+
+	for (const auto &item : options.view)
+	{
+		auto toggle = toggles.find(item);
+		if (toggle == toggles.end())
+		{
+			logger->warn("Unknown view option: {}", item);
+			continue;
+		}
+		*toggle->second.first = toggle->second.second;
+	}
+}
+
+bool mt::GLWindow::screenshot()
+{
+	bool ok;
+	if (options.screenshotUi)
+	{
+		// A few frames so the docking layout and the windows settle
+		for (int frame = 0; frame < 10; frame++)
+		{
+			glfwPollEvents();
+			view->startFrame();
+			view->draw();
+			propertyPanel->render();
+			scenePanel->render();
+			view->endFrame();
+		}
+
+		int width = 0, height = 0;
+		glfwGetFramebufferSize(window, &width, &height);
+		std::vector<byte> pixels(size_t(width) * size_t(height) * 4);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+		glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+		ok = ScenePanel::writePng(options.screenshot, width, height, pixels);
+	}
+	else
+	{
+		scenePanel->renderScene(options.width, options.height);
+		ok = scenePanel->saveImage(options.screenshot);
+	}
+	auto logger = spdlog::get(MT_LOGGER);
+	if (ok)
+	{
+		logger->info("Saved screenshot: {}", options.screenshot);
+	}
+	else
+	{
+		logger->error("Failed to save screenshot: {}", options.screenshot);
+	}
+	return ok;
 }

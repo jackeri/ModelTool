@@ -19,5 +19,17 @@ namespace mt {
 		 * Draw the hitbox menu
 		 */
 		void drawHitboxMenu();
+
+		/**
+		 * Draw the animation playback controls
+		 */
+		void drawAnimationMenu();
+
+		/**
+		 * Draw the level of detail controls
+		 */
+		void drawLodMenu();
+
+		std::string sequenceFilter{}; ///< filter for the animation sequence list
 	};
 }

@@ -54,7 +54,7 @@ void mt::Framebuffer::clear()
 {
 	if (fboId)
 	{
-		glDeleteFramebuffers(GL_FRAMEBUFFER, &fboId);
+		glDeleteFramebuffers(1, &fboId);
 		glDeleteTextures(1, &texId);
 		glDeleteTextures(1, &depthId);
 		texId = 0;

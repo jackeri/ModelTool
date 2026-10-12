@@ -2,6 +2,8 @@
 #include "gl_window.h"
 #include "state.h"
 #include "hitbox.h"
+#include "scene_panel.h"
+#include "texture.h"
 #include "model_scripts.h"
 #include "skeletal_model.h"
 
@@ -9,13 +11,7 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 
-#if defined(MT_OPENGL_2)
-
-#include "backends/imgui_impl_opengl2.h"
-
-#elif defined(MT_OPENGL_3)
 #include "backends/imgui_impl_opengl3.h"
-#endif
 
 namespace mt {
 
@@ -51,21 +47,13 @@ namespace mt {
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForOpenGL(window->system(), true);
 
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_Init();
-#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_Init(glslVersion);
-#endif
 		return true;
 	}
 
 	void ImGuiView::startFrame()
 	{
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_NewFrame();
-#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_NewFrame();
-#endif
 
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
@@ -75,11 +63,7 @@ namespace mt {
 	{
 		ImGui::Render();
 
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif
 
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
@@ -97,23 +81,20 @@ namespace mt {
 		// Enable the whole viewport docking
 		ImGuiID dockId = ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-		if (ImGui::DockBuilderGetNode(dockId) == nullptr)
+		// DockSpaceOverViewport creates the node, so build the default layout while nothing is docked in it yet
+		ImGuiDockNode *dockNode = ImGui::DockBuilderGetNode(dockId);
+		if (dockNode == nullptr || (dockNode->IsLeafNode() && dockNode->Windows.Size == 0))
 		{
 			ImGui::DockBuilderRemoveNode(dockId);							 // Clear out existing layout
 			ImGui::DockBuilderAddNode(dockId, ImGuiDockNodeFlags_DockSpace); // Add empty node
-			ImGui::DockBuilderSetNodeSize(dockId, {500, 500});
+			ImGui::DockBuilderSetNodeSize(dockId, ImGui::GetMainViewport()->WorkSize);
 
-			ImGuiID dock_main_id = dockId; // This variable will track the document node, however we are not using it here as we aren't
-										   // docking anything into it.
-			ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
-			ImGuiID dock_id_center = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 1.f, nullptr, &dock_main_id);
-			ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
+			// Properties on the left, the scene takes the rest
+			ImGuiID sceneId = dockId;
+			ImGuiID leftId = ImGui::DockBuilderSplitNode(sceneId, ImGuiDir_Left, 0.25f, nullptr, &sceneId);
 
-			ImGui::DockBuilderDockWindow("Log", dock_id_bottom);
-			ImGui::DockBuilderDockWindow("Properties", dock_left_id);
-			ImGui::DockBuilderDockWindow("Mesh", dock_left_id);
-			ImGui::DockBuilderDockWindow("Extra", dock_left_id);
-			ImGui::DockBuilderDockWindow("Scene", dock_id_center);
+			ImGui::DockBuilderDockWindow("Properties", leftId);
+			ImGui::DockBuilderDockWindow("Scene", sceneId);
 			ImGui::DockBuilderFinish(dockId);
 		}
 
@@ -140,11 +121,7 @@ namespace mt {
 
 	void ImGuiView::shutdown()
 	{
-#if defined(MT_OPENGL_2)
-		ImGui_ImplOpenGL2_Shutdown();
-#elif defined(MT_OPENGL_3)
 		ImGui_ImplOpenGL3_Shutdown();
-#endif
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
@@ -257,6 +234,51 @@ namespace mt {
 				if (ImGui::MenuItem("Quit", "Cmd+Q", false, true))
 				{
 					std::exit(0);
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("View"))
+			{
+				auto &view = state.view;
+				ImGui::MenuItem("Wireframe", nullptr, &view.wireframe);
+				ImGui::MenuItem("Textures", nullptr, &view.textures);
+				ImGui::MenuItem("Alpha", nullptr, &view.alpha);
+				ImGui::Separator();
+				ImGui::MenuItem("Grid and origin", nullptr, &view.drawGrid);
+				ImGui::MenuItem("Bounding box", nullptr, &view.drawBounds);
+				ImGui::MenuItem("Hitboxes", nullptr, &view.drawHitboxes);
+				ImGui::MenuItem("Tags", nullptr, &view.drawTags);
+				ImGui::MenuItem("Tag names", nullptr, &view.drawTagNames, view.drawTags);
+				ImGui::MenuItem("Skeleton", nullptr, &view.drawSkeleton);
+				ImGui::MenuItem("Normals", nullptr, &view.drawNormals);
+				if (view.drawNormals)
+				{
+					ImGui::SliderFloat("Normal length", &view.normalLength, 0.005f, 0.2f, "%.3f");
+				}
+				ImGui::Separator();
+
+				const char *filters[] = {"Nearest", "Linear", "Trilinear"};
+				int filter = int(view.textureFilter);
+				if (ImGui::Combo("Texture filter", &filter, filters, IM_ARRAYSIZE(filters)))
+				{
+					view.textureFilter = TextureFilter(filter);
+				}
+				ImGui::SliderInt("Picmip", &view.picmip, 0, 3);
+				ImGui::Separator();
+
+				if (scene)
+				{
+					ImGui::SliderFloat("Field of view", &scene->getCamera().fov, 30.0f, 120.0f, "%.0f");
+				}
+				if (ImGui::MenuItem("Reset camera"))
+				{
+					state.resetCamera = true;
+				}
+				if (ImGui::MenuItem("Frame model", nullptr, false, !!state.model))
+				{
+					state.frameCamera = true;
 				}
 
 				ImGui::EndMenu();

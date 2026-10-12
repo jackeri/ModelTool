@@ -7,6 +7,7 @@
 namespace mt {
 
 	class GLWindow;
+	class ScenePanel;
 
 	class ImGuiView {
 	  public:
@@ -42,6 +43,15 @@ namespace mt {
 		 */
 		void shutdown();
 
+		/**
+		 * Scene panel whose camera the View menu controls
+		 * @param panel scene panel
+		 */
+		void setScene(ScenePanel *panel)
+		{
+			scene = panel;
+		}
+
 	  private:
 		/**
 		 * Draw the menu bar
@@ -54,5 +64,7 @@ namespace mt {
 		FileBrowser browser{}; ///< File browser instance which is changed by requirements
 
 		std::shared_ptr<spdlog::logger> logger; ///< shared logger
+
+		ScenePanel *scene = nullptr; ///< scene panel for the camera settings
 	};
 }

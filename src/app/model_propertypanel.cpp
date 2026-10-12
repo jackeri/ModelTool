@@ -2,6 +2,7 @@
 #include "state.h"
 #include "skeletal_model.h"
 #include "hitbox.h"
+#include "morph_model.h"
 
 using namespace mt::model;
 using namespace mt::model::skeletal;
@@ -22,12 +23,37 @@ namespace mt {
 					// Draw frame selector if the model has frames available
 					if (state.model->hasFrames())
 					{
-						ImGui::SliderInt("Frame", &state.model->currentFrame, mt::FRAME_BIND_POSE, state.model->numFrames() - 1);
+						const int minFrame = state.model->skeletalModel() ? mt::FRAME_BIND_POSE : 0;
+						if (ImGui::SliderInt("Frame", &state.model->currentFrame, minFrame, state.model->numFrames() - 1))
+						{
+							state.playback.pause();
+							state.playback.seek(state.model->currentFrame);
+						}
+						if (state.model->skeletalModel())
+						{
+							ImGui::TextDisabled("Frame -1 is the bind pose");
+						}
 					}
 				}
 				else
 				{
 					ImGui::Text("No model loaded");
+				}
+			}
+
+			if (state.model && state.model->hasFrames())
+			{
+				if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					drawAnimationMenu();
+				}
+			}
+
+			if (state.model)
+			{
+				if (ImGui::CollapsingHeader("Level of detail"))
+				{
+					drawLodMenu();
 				}
 			}
 
@@ -47,6 +73,90 @@ namespace mt {
 			}
 		}
 		ImGui::End();
+	}
+
+	void ModelPropertyPanel::drawAnimationMenu()
+	{
+		auto &state = singleton<State>();
+		auto &playback = state.playback;
+		Model &model = *state.model;
+
+		if (ImGui::Button(playback.isPlaying() ? "Pause" : "Play"))
+		{
+			if (playback.isPlaying())
+			{
+				playback.pause();
+			}
+			else
+			{
+				if (model.currentFrame < 0)
+				{
+					model.currentFrame = playback.first();
+				}
+				playback.seek(model.currentFrame);
+				playback.play();
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("All frames"))
+		{
+			state.resetPlayback();
+		}
+
+		ImGui::SliderFloat("Speed", &playback.speed, 0.0f, 4.0f, "%.2fx");
+		ImGui::Checkbox("Interpolation", &playback.interpolate);
+		ImGui::SameLine();
+		ImGui::Checkbox("Loop", &playback.loop);
+
+		int first = playback.first(), last = playback.last();
+		if (ImGui::DragIntRange2("Frame range", &first, &last, 1, 0, model.numFrames() - 1))
+		{
+			playback.setRange(first, std::max(first, last), 0, playback.loop);
+		}
+
+		if (!model.animations.empty() && ImGui::TreeNode("Sequences", "Sequences (%zu)", model.animations.size()))
+		{
+			ImGui::InputText("Filter", &sequenceFilter);
+			for (size_t i = 0; i < model.animations.size(); i++)
+			{
+				const auto &animation = model.animations[i];
+				if (!sequenceFilter.empty() && animation.name.find(sequenceFilter) == std::string::npos)
+				{
+					continue;
+				}
+
+				ImGui::PushID(int(i));
+				if (ImGui::SmallButton("Play"))
+				{
+					playback.setAnimation(animation);
+					model.currentFrame = playback.frame();
+					playback.play();
+				}
+				ImGui::SameLine();
+				ImGui::Text("%s  %d-%d  %d fps%s", animation.name.c_str(), animation.startFrame, animation.lastFrame(), animation.fps,
+							animation.loop ? "  loop" : "");
+				ImGui::PopID();
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	void ModelPropertyPanel::drawLodMenu()
+	{
+		auto &state = singleton<State>();
+		auto &view = state.view;
+
+		if (auto *morph = dynamic_cast<model::morph::MorphModel *>(state.model.get()); morph && morph->lodCount() > 1)
+		{
+			ImGui::SliderInt("Level", &view.lodLevel, 0, morph->lodCount() - 1);
+		}
+
+		ImGui::Checkbox("Dynamic LOD (collapse maps)", &view.dynamicLod);
+		if (view.dynamicLod)
+		{
+			ImGui::SliderFloat("Detail", &view.lodRatio, 0.0f, 1.0f, "%.2f");
+			ImGui::TextDisabled("0 = the mesh's minimum LOD, 1 = full mesh");
+		}
 	}
 
 	void ModelPropertyPanel::drawHitboxMenu()

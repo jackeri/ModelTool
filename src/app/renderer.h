@@ -5,114 +5,32 @@
 
 namespace mt {
 	class Camera;
+	class Texture;
 
-	/*! Buffer which is used by the models and other to buffer their vertices and other data for drawing */
-	struct RenderBuffer {
-		glm::ivec3 indexes[60000]{};
-		glm::fvec3 xyz[10000]{};
-		glm::fvec3 normals[10000]{};
-		glm::fvec2 texCoords[10000]{};
-
-		bool triangles = true;
-		float lineWidth = 1;
-
-		glm::fvec4 color{0, 0, 0, 1};
-
-		int numIndexes = 0;
-		int numVertices = 0;
-		int numNormals = 0;
-		int numTexCoords = 0;
-
-		/**
-		 * Add index for drawing
-		 * @param index to be added
-		 */
-		void addIndex(const glm::ivec3 &index)
-		{
-			indexes[numIndexes++] = index;
-		}
-
-		/**
-		 * Get a index from the buffer to be set
-		 * @return index value
-		 */
-		glm::ivec3 &getIndex()
-		{
-			return indexes[numIndexes++];
-		}
-
-		/**
-		 * Add vertex for drawing
-		 * @param vert to be added
-		 */
-		void addXyz(const glm::fvec3 &vert)
-		{
-			xyz[numVertices++] = vert;
-		}
-
-		/**
-		 * Get a vertex from the buffer to be set
-		 * @return vertex value
-		 */
-		glm::fvec3 &getXyz()
-		{
-			return xyz[numVertices++];
-		}
-
-		/**
-		 * Add normal for drawing
-		 * @param normal to be added
-		 */
-		void addNormal(const glm::fvec3 &normal)
-		{
-			normals[numNormals++] = normal;
-		}
-
-		/**
-		 * Get a normal from the buffer to be set
-		 * @return normal value
-		 */
-		glm::fvec3 &getNormal()
-		{
-			return normals[numNormals++];
-		}
-
-		/**
-		 * Add texture coordinate for drawing
-		 * @param texture coordinate to be added
-		 */
-		void addTexCoord(const glm::fvec2 &tex)
-		{
-			texCoords[numTexCoords++] = tex;
-		}
-
-		/**
-		 * Get a texture coordinate from the buffer to be set
-		 * @return texture coordinate value
-		 */
-		glm::fvec2 &getTexCoord()
-		{
-			return texCoords[numTexCoords++];
-		}
-
-		/**
-		 * Clear this buffer (reset the counters)
-		 * @param drawTriangles is the next drawing of triangles or lines
-		 */
-		void clear(bool drawTriangles = true)
-		{
-			numIndexes = 0;
-			numVertices = 0;
-			numNormals = 0;
-			numTexCoords = 0;
-
-			color = {0, 0, 0, 1};
-
-			triangles = drawTriangles;
-		}
+	/*! Vertex of a line or a point */
+	struct LineVertex {
+		glm::vec3 pos{};
+		glm::vec4 color{1, 1, 1, 1};
 	};
 
-	/*! Renderer baseclass */
+	/*! How a mesh is drawn */
+	struct MeshStyle {
+		glm::vec4 color{1, 1, 1, 1};	  ///< color multiplied with the texture
+		const Texture *texture = nullptr; ///< texture, nullptr for no texture
+		bool wireframe = false;			  ///< draw the triangle edges only
+		bool lighting = true;			  ///< shade with the normals
+		bool alpha = false;				  ///< blend with the texture alpha
+	};
+
+	/*! Mesh data to draw, the vectors are not copied */
+	struct MeshData {
+		const std::vector<glm::vec3> &positions;
+		const std::vector<glm::vec3> &normals;
+		const std::vector<glm::vec2> &texCoords;
+		const std::vector<glm::ivec3> &tris;
+	};
+
+	/*! Renderer base class */
 	class Renderer {
 	  public:
 		Renderer() = default;
@@ -121,77 +39,90 @@ namespace mt {
 
 		Renderer(const Renderer &other) = delete;
 
-		Renderer(Renderer &other) = delete;
-
-		Renderer(Renderer &&other) = delete;
+		Renderer &operator=(const Renderer &other) = delete;
 
 		/**
-		 * Setup mandatory fields, values and context data
+		 * Start a new frame
+		 * @param camera camera to view the scene with
+		 * @param width width of the view in pixels
+		 * @param height height of the view in pixels
+		 * @param clearColor background color
 		 */
-		virtual void setup() {}
-
-		/**
-		 * Set the GL view size
-		 * @param width width the view
-		 * @param height height of the view
-		 */
-		virtual void setView(int width, int height) = 0;
-
-		RenderBuffer &getBuffer()
-		{
-			return buffer;
-		}
-
-		/**
-		 * Push a model view matrix the the stack
-		 * @param matrix mdv matrix to push
-		 */
-		virtual void push(const glm::mat4x4 &matrix) = 0;
-
-		/**
-		 * Pop a matrix from the stack
-		 */
-		virtual void pop() = 0;
-
-		/**
-		 * Start a new frame and position the viewport with a camera
-		 */
-		virtual void startFrame(Camera &) = 0;
-
-		/**
-		 * Draw a grid
-		 */
-		virtual void grid() = 0;
-
-		/**
-		 * Render the current buffers data
-		 */
-		virtual void renderBuffer() = 0;
+		virtual void startFrame(const Camera &camera, int width, int height, const glm::vec4 &clearColor) = 0;
 
 		/**
 		 * End of the frame, finish up drawing
 		 */
 		virtual void endFrame() = 0;
 
-		Renderer &operator=(const Renderer &other) = delete;
-
-		Renderer &operator=(Renderer &other) = delete;
-
-		Renderer &operator=(Renderer &&other) = delete;
-
-	  protected:
-		RenderBuffer buffer{}; ///< Buffer that holds the drawing data
-	};
-
-	namespace model {
-		void renderModel(const Ref<Renderer> &renderer, const Ref<mt::Model> &model);
+		/**
+		 * Draw a mesh with the current model matrix
+		 */
+		virtual void drawMesh(const MeshData &mesh, const MeshStyle &style) = 0;
 
 		/**
-		 * Setup the render buffer from the bounds data
-		 * @param renderer renderer which is used
-		 * @param bounds bounds which should be drawn
-		 * @param drawPoints should the corners be highlighted
+		 * Draw lines (every two vertices are a line) with the current model matrix
+		 * @param vertices line end points
+		 * @param depthTest hide the lines behind the meshes
 		 */
-		void setupBounds(const Ref<mt::Renderer> &renderer, const Bounds &bounds, bool drawPoints = false);
-	}
+		virtual void drawLines(const std::vector<LineVertex> &vertices, bool depthTest = false) = 0;
+
+		/**
+		 * Draw points with the current model matrix
+		 * @param vertices points
+		 * @param size point size in pixels
+		 * @param depthTest hide the points behind the meshes
+		 */
+		virtual void drawPoints(const std::vector<LineVertex> &vertices, float size, bool depthTest = false) = 0;
+
+		/**
+		 * Draw the ground grid and the axis lines
+		 * @param size size of the area to cover, the grid steps are rounded to powers of two
+		 */
+		void grid(float size = 120.0f);
+
+		/**
+		 * Draw the edges of bounds with the current model matrix
+		 * @param bounds bounds to draw
+		 * @param color line color
+		 */
+		void bounds(const Bounds &bounds, const glm::vec4 &color);
+
+		/**
+		 * Draw the axis of a tag (red x, green y, blue z) at the origin of the current model matrix
+		 * @param size length of the axis lines
+		 */
+		void axis(float size);
+
+		/**
+		 * Push a matrix to the model matrix stack (multiplied with the current matrix)
+		 * @param matrix matrix to push
+		 */
+		void push(const glm::mat4 &matrix);
+
+		/**
+		 * Pop a matrix from the model matrix stack
+		 */
+		void pop();
+
+		/**
+		 * @return current model matrix
+		 */
+		[[nodiscard]] const glm::mat4 &modelMatrix() const
+		{
+			return stack.back();
+		}
+
+		/**
+		 * @return projection * view matrix of the current frame
+		 */
+		[[nodiscard]] const glm::mat4 &viewProjection() const
+		{
+			return viewProj;
+		}
+
+	  protected:
+		std::vector<glm::mat4> stack{glm::mat4{1.0f}}; ///< model matrix stack
+		glm::mat4 viewProj{1.0f};					   ///< projection * view of the frame
+	};
 }

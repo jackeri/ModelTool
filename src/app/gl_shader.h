@@ -73,6 +73,11 @@ namespace mt {
 		template<typename T>
 		void setUniform(const std::string &name, T val1, T val2, T val3);
 
+		void setUniform(const std::string &name, const glm::mat4 &matrix);
+		void setUniform(const std::string &name, const glm::mat3 &matrix);
+		void setUniform(const std::string &name, const glm::vec4 &vec);
+		void setUniform(const std::string &name, const glm::vec3 &vec);
+
 	  private:
 		/**
 		 * Check for shader compilation errors
@@ -82,7 +87,7 @@ namespace mt {
 		/**
 		 * Check for application linking errors
 		 */
-		void checkLinkingErr() const;
+		void checkLinkingErr();
 
 		/**
 		 * Compile the shaders

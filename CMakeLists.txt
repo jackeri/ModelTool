@@ -8,7 +8,6 @@ set(CMAKE_TARGETS_FOLDER CMake)
 set(BUNDLED_TARGETS_FOLDER Bundled)
 
 option(test "Enable testing" ON)
-option(opengl3 "Enable opengl3 core backend" OFF)
 option(NATIVE_DIALOG "Use platform native dialog" OFF)
 
 # Enable the generation of compile_commands.json by default
@@ -185,7 +184,6 @@ FILE(GLOB IMGUI_SRC
         # Backends
         "libs/imgui/backends/imgui_impl_glfw.cpp"
         "libs/imgui/backends/imgui_impl_opengl3.cpp"
-        "libs/imgui/backends/imgui_impl_opengl2.cpp"
         )
 
 # Libs that come in the form of headers only (stb, tinydir etc)
@@ -248,11 +246,6 @@ set_target_properties(spdlog PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_minizip PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 set_target_properties(bundled_zlib PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
 
-if (opengl3)
-    add_definitions(-DMT_OPENGL_3)
-else ()
-    add_definitions(-DMT_OPENGL_2)
-endif ()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ModelTool)
 

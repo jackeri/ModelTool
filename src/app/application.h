@@ -7,7 +7,7 @@ namespace mt {
 	/*! Main application class */
 	class Application {
 	  public:
-		explicit Application(const std::string &title);
+		explicit Application(const std::string &title, AppOptions options = {});
 
 		~Application();
 
@@ -22,7 +22,14 @@ namespace mt {
 		 */
 		void loop();
 
+		/**
+		 * Run the application: the main loop, or a single screenshot with --screenshot
+		 * @return process exit code
+		 */
+		int run();
+
 	  private:
 		Ref<GLWindow> window = nullptr; ///< Main window instance
+		AppOptions options;				///< command line options
 	};
 }
