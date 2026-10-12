@@ -103,6 +103,15 @@ namespace mt {
 		std::string previous();
 
 		/**
+		 * Current line number (zero based), for error messages
+		 * @return line number
+		 */
+		[[nodiscard]] unsigned int line() const
+		{
+			return lines;
+		}
+
+		/**
 		 * Peek the next token, but do not keep the parsed pointing to that token
 		 * @return token value
 		 */

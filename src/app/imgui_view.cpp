@@ -2,6 +2,8 @@
 #include "gl_window.h"
 #include "state.h"
 #include "hitbox.h"
+#include "model_scripts.h"
+#include "skeletal_model.h"
 
 // Dockspace internal api is needed
 #include "imgui_internal.h"
@@ -201,7 +203,28 @@ namespace mt {
 							logger->error("Failed to load hitboxes: {}", ex.what());
 						}
 					});
-					browser.setTypeFilters({".hitboxes"});
+					browser.setTypeFilters({".hitboxes", ".htx"});
+				}
+
+				auto *skeletal = dynamic_cast<model::skeletal::SkeletalModel *>(state.model.get());
+				if (ImGui::MenuItem("Load tags", nullptr, false, skeletal && !skeletal->joints.empty()))
+				{
+					browser.show("Load tags", [&](const std::string &file) {
+						logger->info("Selected filename: {}", file);
+						try
+						{
+							auto *model = dynamic_cast<model::skeletal::SkeletalModel *>(state.model.get());
+							if (model)
+							{
+								model::loadTags(*model, state.filesystem.loadFile(file));
+							}
+						}
+						catch (const std::exception &ex)
+						{
+							logger->error("Failed to load tags: {}", ex.what());
+						}
+					});
+					browser.setTypeFilters({".tag"});
 				}
 
 				if (ImGui::MenuItem("Save hitboxes", nullptr, false,

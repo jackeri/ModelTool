@@ -2,6 +2,8 @@
 
 #include "mt.h"
 #include "model.h"
+#include "model_md3.h"
+#include "morph_model.h"
 #include "filesystem.h"
 
 namespace mt {
@@ -51,6 +53,42 @@ namespace mt {
 			if (tmp)
 			{
 				model = std::unique_ptr<Model>(tmp);
+			}
+
+			if (auto *morph = dynamic_cast<model::morph::MorphModel *>(model.get()))
+			{
+				loadMorphLods(*morph, path);
+			}
+		}
+
+		/**
+		 * Load the extra levels of detail of a morph model (model_1.md3, model_2.md3, ...) if they exist
+		 * @param morph model to add the levels to
+		 * @param path path of the base model
+		 */
+		void loadMorphLods(model::morph::MorphModel &morph, const std::string &path)
+		{
+			// The game uses up to 4 levels of detail (MD3_MAX_LODS)
+			for (int level = 1; level < 4; level++)
+			{
+				std::string lodPath = model::morphLodPath(path, level);
+				if (!filesystem.findFile(lodPath))
+				{
+					break;
+				}
+
+				try
+				{
+					model::addMorphLod(morph, filesystem.loadFile(lodPath));
+				}
+				catch (const std::exception &ex)
+				{
+					if (auto logger = spdlog::get(MT_LOGGER))
+					{
+						logger->warn("Skipping level of detail {}: {}", lodPath, ex.what());
+					}
+					break;
+				}
 			}
 		}
 

@@ -14,9 +14,11 @@ namespace mt::model {
 		return length > 0.0f ? vec / length : glm::vec3{0, 0, 0};
 	}
 
+	// idTech models wind their triangles clockwise, the normal of (v1, v2, v3) is (v3 - v1) x (v2 - v1). This matches the
+	// normals stored in MD3, MDC and MDM files and the old LegacyModelView.
 	static glm::vec3 triangleNormal(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3)
 	{
-		return safeNormalize(glm::cross(v1 - v2, v1 - v3));
+		return safeNormalize(glm::cross(v3 - v1, v2 - v1));
 	}
 
 	/**

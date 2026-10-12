@@ -51,7 +51,23 @@ namespace mt::model {
 
 					while (stream.hasNext() && stream.peekNext() != "}")
 					{
-						hitbox.modifiers.emplace(stream.token());
+						std::string modifier = stream.token();
+
+						// The old LegacyModelView format (.htx) has "name true|false" pairs, like "headShot true"
+						std::string value = stream.peekNext();
+						std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+						if (value == "true" || value == "false")
+						{
+							stream.token();
+							if (value == "false")
+							{
+								continue;
+							}
+							std::transform(modifier.begin(), modifier.end(), modifier.begin(),
+										   [](unsigned char c) { return char(std::tolower(c)); });
+						}
+
+						hitbox.modifiers.emplace(modifier);
 					}
 
 					if (stream.token() != "}")
@@ -74,6 +90,19 @@ namespace mt::model {
 					stream.parse1DMatrix(3, glm::value_ptr(hitbox.max));
 					break;
 				}
+
+				// The old LegacyModelView format (.htx) stores the same data with different keywords
+				case hash("location"): {
+					stream.parse1DMatrix(3, glm::value_ptr(hitbox.location));
+					stream.parse1DMatrix(4, glm::value_ptr(hitbox.rotation));
+					break;
+				}
+
+				case hash("min"): stream.parse1DMatrix(3, glm::value_ptr(hitbox.min)); break;
+
+				case hash("max"): stream.parse1DMatrix(3, glm::value_ptr(hitbox.max)); break;
+
+				case hash("joint"): hitbox.parentJoint = stream.parseInt(); break;
 
 				default: throw mt_ex("Unexpected token: " + token);
 				}

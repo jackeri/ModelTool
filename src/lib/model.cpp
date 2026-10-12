@@ -1,5 +1,9 @@
 #include "model.h"
+#include "model_md3.h"
 #include "model_md5.h"
+#include "model_mdm.h"
+#include "model_mdx.h"
+#include "model_scripts.h"
 
 #include <filesystem>
 #include <map>
@@ -12,13 +16,20 @@ namespace mt::model::io {
 	// Function local statics so the registries exist before any static registration code runs
 	static Registry<ModelLoader> &modelLoaders()
 	{
-		static Registry<ModelLoader> loaders{{".md5mesh", model::loadMd5Model}};
+		static Registry<ModelLoader> loaders{
+			{".md3", model::loadMD3}, {".mdc", model::loadMDC}, {".md5mesh", model::loadMd5Model},
+			{".mdm", model::loadMDM}, {".mds", model::loadMDS}, {".mdx", model::loadMDX},
+		};
 		return loaders;
 	}
 
 	static Registry<AnimationLoader> &animationLoaders()
 	{
-		static Registry<AnimationLoader> loaders{{".md5anim", model::loadMD5Anim}};
+		static Registry<AnimationLoader> loaders{
+			{".aninc", model::loadAninc},
+			{".md5anim", model::loadMD5Anim},
+			{".mdx", model::loadMDXAnimation},
+		};
 		return loaders;
 	}
 

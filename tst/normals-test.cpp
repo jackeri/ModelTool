@@ -75,7 +75,7 @@ TEST(NormalsTest, skeletalBindPose)
 	auto &mesh = model.meshes[0];
 	for (auto &vert : mesh.vertices)
 	{
-		expectVec(vert.bindNormal, {0, 0, 1});
+		expectVec(vert.bindNormal, {0, 0, -1});
 		// The joint local normal turned back with the joint rotations gives the bind pose normal
 		expectVec(posedNormal(model, mesh, vert, FRAME_BIND_POSE), vert.bindNormal);
 	}
@@ -109,17 +109,17 @@ TEST(NormalsTest, morphSmoothAndFlat)
 
 	calculateNormals(model, NormalMode::Smooth);
 	auto &frame = model.meshes[0].frames[0];
-	expectVec(frame[2].normal, {0, 0, 1});
-	expectVec(frame[3].normal, {0, 1, 0});
+	expectVec(frame[2].normal, {0, 0, -1});
+	expectVec(frame[3].normal, {0, -1, 0});
 	// Shared vertices get the average
-	expectVec(frame[0].normal, glm::normalize(glm::vec3{0, 1, 1}));
+	expectVec(frame[0].normal, glm::normalize(glm::vec3{0, -1, -1}));
 	// Levels of detail are calculated too
-	expectVec(model.lods[0][0].frames[0][0].normal, glm::normalize(glm::vec3{0, 1, 1}));
+	expectVec(model.lods[0][0].frames[0][0].normal, glm::normalize(glm::vec3{0, -1, -1}));
 
 	calculateNormals(model, NormalMode::Flat);
 	// The last triangle using the vertex wins
-	expectVec(frame[0].normal, {0, 1, 0});
-	expectVec(frame[2].normal, {0, 0, 1});
+	expectVec(frame[0].normal, {0, -1, 0});
+	expectVec(frame[2].normal, {0, 0, -1});
 }
 
 TEST(NormalsTest, md5NormalsMatchBindPose)
