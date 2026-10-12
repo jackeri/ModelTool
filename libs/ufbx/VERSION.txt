@@ -1,0 +1,2 @@
+ufbx v0.23.1 (https://github.com/ufbx/ufbx, tag v0.23.1, commit 26a482ae)
+Vendored as-is: ufbx.c, ufbx.h, LICENSE (MIT / public domain).
