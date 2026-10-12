@@ -1,4 +1,5 @@
 # ModelTool [![CMake](https://github.com/jackeri/ModelTool/actions/workflows/cmake.yml/badge.svg)](https://github.com/jackeri/ModelTool/actions/workflows/cmake.yml)
+
 > Jere 'Jacker' S. 2021
 
 ModelTool is a viewer and editor for game models, mainly for Wolfenstein: Enemy Territory and the model formats of
@@ -14,24 +15,24 @@ It comes as a desktop application (`ModelTool`) and a command line tool (`mt`) b
 
 ### Formats
 
-| Format | Read | Write | Notes |
-|---|---|---|---|
-| MD3 | yes | yes | Morph (vertex) animated models, levels of detail (`model_1.md3`, `model_2.md3`, ...), tags |
-| MD3 tags only | | yes | Tag animation without surfaces |
-| MDC | yes | | Compressed MD3 |
-| MDM + MDX | yes | yes | ET skeletal mesh and animation |
-| MDS | yes | yes | RtCW skeletal model |
-| MD5 (`.md5mesh`, `.md5anim`) | yes | yes | |
-| IQM | yes | | |
-| MS3D (MilkShape 3D) | yes | | Mesh and animation |
-| FBX, OBJ | yes | | Through ufbx |
-| glTF, GLB | yes | | Through tinygltf |
-| STL | | yes | Binary or text |
-| `.aninc` | yes | yes | Animation sequences (ET animation scripts) |
-| `.tag` | yes | yes | Tags file |
-| `.hitboxes` | yes | yes | Hitboxes; old LegacyModelView `.htx` files are read too |
-| `.skin` | yes | | Shaders per mesh, Quake 3 and ET style |
-| `animation.cfg` | yes | | Quake 3 style player models |
+| Format                       | Read | Write | Notes                                                                                      |
+| ---------------------------- | ---- | ----- | ------------------------------------------------------------------------------------------ |
+| MD3                          | yes  | yes   | Morph (vertex) animated models, levels of detail (`model_1.md3`, `model_2.md3`, ...), tags |
+| MD3 tags only                |      | yes   | Tag animation without surfaces                                                             |
+| MDC                          | yes  |       | Compressed MD3                                                                             |
+| MDM + MDX                    | yes  | yes   | ET skeletal mesh and animation                                                             |
+| MDS                          | yes  | yes   | RtCW skeletal model                                                                        |
+| MD5 (`.md5mesh`, `.md5anim`) | yes  | yes   |                                                                                            |
+| IQM                          | yes  |       |                                                                                            |
+| MS3D (MilkShape 3D)          | yes  |       | Mesh and animation                                                                         |
+| FBX, OBJ                     | yes  |       | Through ufbx                                                                               |
+| glTF, GLB                    | yes  |       | Through tinygltf                                                                           |
+| STL                          |      | yes   | Binary or text                                                                             |
+| `.aninc`                     | yes  | yes   | Animation sequences (ET animation scripts)                                                 |
+| `.tag`                       | yes  | yes   | Tags file                                                                                  |
+| `.hitboxes`                  | yes  | yes   | Hitboxes; old LegacyModelView `.htx` files are read too                                    |
+| `.skin`                      | yes  |       | Shaders per mesh, Quake 3 and ET style                                                     |
+| `animation.cfg`              | yes  |       | Quake 3 style player models                                                                |
 
 Every binary loader checks the file against its size, so broken files give an error instead of a crash.
 
@@ -92,19 +93,19 @@ Every binary loader checks the file against its size, so broken files give an er
 
 ### Keyboard
 
-| Key | Action |
-|---|---|
-| Ctrl+O | Open model (Cmd on macOS) |
-| Ctrl+, | Settings |
-| Ctrl+Q | Quit |
-| Space | Play / pause |
-| F | Frame the model |
-| W / T / N / L | Wireframe / textures / interpolation / dynamic level of detail |
-| Ctrl+B | Bounding box |
-| Alt+O / Alt+T / Alt+S / Alt+N | Grid / tags / skeleton / normals |
-| G / R / S | Move / rotate / scale gizmo |
-| Escape | Deselect the tag or hitbox |
-| Shift+Escape | Show / hide the log |
+| Key                           | Action                                                         |
+| ----------------------------- | -------------------------------------------------------------- |
+| Ctrl+O                        | Open model (Cmd on macOS)                                      |
+| Ctrl+,                        | Settings                                                       |
+| Ctrl+Q                        | Quit                                                           |
+| Space                         | Play / pause                                                   |
+| F                             | Frame the model                                                |
+| W / T / N / L                 | Wireframe / textures / interpolation / dynamic level of detail |
+| Ctrl+B                        | Bounding box                                                   |
+| Alt+O / Alt+T / Alt+S / Alt+N | Grid / tags / skeleton / normals                               |
+| G / R / S                     | Move / rotate / scale gizmo                                    |
+| Escape                        | Deselect the tag or hitbox                                     |
+| Shift+Escape                  | Show / hide the log                                            |
 
 ## Usage
 
@@ -177,29 +178,37 @@ cmake --build build --config Release
 
 ## Libraries
 
-| Library | Version | Used for | License | In the source tree |
-|---|---|---|---|---|
-| [Dear ImGui](https://github.com/ocornut/imgui) | 1.91.3 (docking) | User interface | MIT | submodule `libs/imgui` |
-| [GLFW](https://github.com/glfw/glfw) | 3.4 | Window, input, OpenGL context | zlib | submodule `libs/glfw` |
-| [glad](https://github.com/Dav1dde/glad) | 2.0.8 (generated, GL 4.1 core) | OpenGL loader | WTFPL / CC0, Apache-2.0 (Khronos) | generated files `libs/glad` |
-| [GLM](https://github.com/g-truc/glm) | 0.9.9.8 | Math | MIT | submodule `libs/glm` |
-| [stb](https://github.com/nothings/stb) | stb_image 2.30, stb_image_write 1.16 | Loading textures, writing screenshots | MIT / public domain | submodule `libs/stb` |
-| [spdlog](https://github.com/gabime/spdlog) | 1.14.1 | Logging | MIT | submodule `libs/spdlog` |
-| [tinygltf](https://github.com/syoyo/tinygltf) | 2.9 | glTF and GLB import | MIT | submodule `libs/tinygltf` |
-| [ufbx](https://github.com/ufbx/ufbx) | 0.23.1 | FBX and OBJ import | MIT / public domain | vendored `libs/ufbx` |
-| [zlib](https://github.com/madler/zlib) + minizip | 1.3.2 | Reading `.pk3` (zip) files | zlib | submodule `libs/zlib` |
-| [imgui-filebrowser](https://github.com/jackeri/imgui-filebrowser) | fork of [AirGuanZ/imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) | File dialogs for the disk | MIT | submodule `libs/imgui-filebrowser` |
-| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | commit df1c301 (2025-12-03) | Move / rotate / scale gizmos | MIT | vendored `libs/imguizmo` |
-| [GoogleTest](https://github.com/google/googletest) | 1.15.2 | Tests (not in the program) | BSD-3-Clause | submodule `libs/googletest` |
-| [nativefiledialog](https://github.com/mlabbe/nativefiledialog) | 1.1.6 | System file dialogs, only with `-DNATIVE_DIALOG=ON` | zlib | submodule `libs/nativefiledialog` |
+| Library                                                           | Version                                                                             | Used for                                            | License                           | In the source tree                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------- | ---------------------------------- |
+| [Dear ImGui](https://github.com/ocornut/imgui)                    | 1.91.3 (docking)                                                                    | User interface                                      | MIT                               | submodule `libs/imgui`             |
+| [GLFW](https://github.com/glfw/glfw)                              | 3.4                                                                                 | Window, input, OpenGL context                       | zlib                              | submodule `libs/glfw`              |
+| [glad](https://github.com/Dav1dde/glad)                           | 2.0.8 (generated, GL 4.1 core)                                                      | OpenGL loader                                       | WTFPL / CC0, Apache-2.0 (Khronos) | generated files `libs/glad`        |
+| [GLM](https://github.com/g-truc/glm)                              | 0.9.9.8                                                                             | Math                                                | MIT                               | submodule `libs/glm`               |
+| [stb](https://github.com/nothings/stb)                            | stb_image 2.30, stb_image_write 1.16                                                | Loading textures, writing screenshots               | MIT / public domain               | submodule `libs/stb`               |
+| [spdlog](https://github.com/gabime/spdlog)                        | 1.14.1                                                                              | Logging                                             | MIT                               | submodule `libs/spdlog`            |
+| [tinygltf](https://github.com/syoyo/tinygltf)                     | 2.9                                                                                 | glTF and GLB import                                 | MIT                               | submodule `libs/tinygltf`          |
+| [ufbx](https://github.com/ufbx/ufbx)                              | 0.23.1                                                                              | FBX and OBJ import                                  | MIT / public domain               | vendored `libs/ufbx`               |
+| [zlib](https://github.com/madler/zlib) + minizip                  | 1.3.2                                                                               | Reading `.pk3` (zip) files                          | zlib                              | submodule `libs/zlib`              |
+| [imgui-filebrowser](https://github.com/jackeri/imgui-filebrowser) | fork of [AirGuanZ/imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) | File dialogs for the disk                           | MIT                               | submodule `libs/imgui-filebrowser` |
+| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)           | commit df1c301 (2025-12-03)                                                         | Move / rotate / scale gizmos                        | MIT                               | vendored `libs/imguizmo`           |
+| [GoogleTest](https://github.com/google/googletest)                | 1.15.2                                                                              | Tests (not in the program)                          | BSD-3-Clause                      | submodule `libs/googletest`        |
+| [nativefiledialog](https://github.com/mlabbe/nativefiledialog)    | 1.1.6                                                                               | System file dialogs, only with `-DNATIVE_DIALOG=ON` | zlib                              | submodule `libs/nativefiledialog`  |
 
 Fonts and icons built into the application:
 
-| Font | Used for | License |
-|---|---|---|
-| [Hack](https://github.com/source-foundry/Hack) | User interface text | MIT, Bitstream Vera |
-| [Font Awesome 4.7](https://fontawesome.com/v4/) | Icons | SIL OFL 1.1 |
-| [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) (`src/app/icons_font_awesome.h`) | Icon names | zlib |
+| Font                                                                                                   | Used for            | License             |
+| ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------- |
+| [Hack](https://github.com/source-foundry/Hack)                                                         | User interface text | MIT, Bitstream Vera |
+| [Font Awesome 4.7](https://fontawesome.com/v4/)                                                        | Icons               | SIL OFL 1.1         |
+| [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) (`src/app/icons_font_awesome.h`) | Icon names          | zlib                |
+
+Other media or resources used with the application:
+
+| File                          | Used for                         | License   | Source                                                                                                            |
+| ----------------------------- | -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `data/models/glft/pf.glb`     | Used for development and testing | CC-BY-4.0 | [Low-Poly Panzerfaust 3](https://sketchfab.com/3d-models/low-poly-panzerfaust-3-409081e73ed742588d44403ed1419e96) |
+| `data/models/iqm/mrfixit.iqm` | Used for development and testing | MIT       | [IQM dev kit](https://github.com/lsalzman/iqm)                                                                    |
+| `data/models/fbx/mrfixit.fbx` | Used for development and testing | MIT       | [IQM dev kit](https://github.com/lsalzman/iqm)                                                                    |
 
 # License
 
