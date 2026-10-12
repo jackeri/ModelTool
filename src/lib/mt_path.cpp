@@ -59,7 +59,14 @@ namespace mt::io {
 		std::filesystem::path sysPath(path);
 		sysPath /= mt::tools::fixName(name);
 
-		for (const auto &entry : std::filesystem::directory_iterator(sysPath))
+		// The folder can exist in other sources only (another pk3 or pk3dir)
+		std::error_code error;
+		if (!std::filesystem::is_directory(sysPath, error))
+		{
+			return files;
+		}
+
+		for (const auto &entry : std::filesystem::directory_iterator(sysPath, error))
 		{
 			if (!entry.is_directory() && !entry.is_regular_file())
 			{

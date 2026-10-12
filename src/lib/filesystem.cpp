@@ -1,12 +1,11 @@
 #include "filesystem.h"
-#include "tools.h"
 
 #include <filesystem>
 #include <utility>
 
-#include "../lib/library.h"
-#include "../lib/io.h"
-#include "../lib/mt_path.h"
+#include "library.h"
+#include "io.h"
+#include "mt_path.h"
 
 namespace mt::io {
 

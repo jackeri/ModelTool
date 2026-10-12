@@ -41,6 +41,16 @@ namespace mt::model {
 	std::string morphLodPath(const std::string &path, int level);
 
 	/**
+	 * Load the extra levels of detail of a morph model (model_1.md3, model_2.md3, ...) that exist next to it. The game
+	 * uses up to 4 levels; loading stops at the first missing or broken level.
+	 * @param model model to add the levels to
+	 * @param source file source the model was loaded from
+	 * @param path path of the base model
+	 * @return problems with the level files (a broken level is skipped with a message)
+	 */
+	std::vector<std::string> loadMorphLods(morph::MorphModel &model, mt::io::FileSource &source, const std::string &path);
+
+	/**
 	 * Encode a level of detail of a model as MD3. The transform and the export frames are applied, skeletal models are
 	 * baked into morph frames first.
 	 * @param model model to encode

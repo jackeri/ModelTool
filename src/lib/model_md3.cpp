@@ -330,6 +330,30 @@ namespace mt::model {
 		return path.substr(0, dot) + "_" + std::to_string(level) + path.substr(dot);
 	}
 
+	std::vector<std::string> loadMorphLods(morph::MorphModel &model, mt::io::FileSource &source, const std::string &path)
+	{
+		std::vector<std::string> problems;
+		for (int level = 1; level < 4; level++)
+		{
+			std::string lodPath = morphLodPath(path, level);
+			if (!source.findFile(lodPath))
+			{
+				break;
+			}
+
+			try
+			{
+				addMorphLod(model, source.loadFile(lodPath));
+			}
+			catch (const std::exception &ex)
+			{
+				problems.push_back("Skipping level of detail " + lodPath + ": " + ex.what());
+				break;
+			}
+		}
+		return problems;
+	}
+
 	namespace {
 		using mt::io::BinaryWriter;
 

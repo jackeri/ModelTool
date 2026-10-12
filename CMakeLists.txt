@@ -87,6 +87,7 @@ FILE(GLOB MODEL_TOOL_CLI_SRC "src/cli/*.*")
 # Remove main.cpp from the list of files to compile (for testing)
 list(FILTER MODEL_TOOL_APP_SRC EXCLUDE REGEX ".*/main.cpp$")
 list(FILTER MODEL_TOOL_LIB_SRC EXCLUDE REGEX ".*/main.cpp$")
+list(FILTER MODEL_TOOL_CLI_SRC EXCLUDE REGEX ".*/main.cpp$")
 
 list(APPEND MODEL_TOOL_APP_SRC ${MODEL_TOOL_SHADERS})
 
@@ -243,11 +244,12 @@ target_include_directories(glm INTERFACE libs/glm)
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
-target_link_libraries(ModelToolLib PUBLIC tinygltf glm PRIVATE bundled_ufbx)
+target_link_libraries(ModelToolLib PUBLIC tinygltf glm bundled_minizip PRIVATE bundled_ufbx)
 
 add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
+target_compile_definitions(ModelToolCLI PRIVATE MT_VERSION="${PROJECT_VERSION}")
 
 set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 # Application icon
@@ -289,6 +291,7 @@ set_target_properties(ModelTool PROPERTIES
 )
 
 install(TARGETS ModelTool BUNDLE DESTINATION "." RUNTIME DESTINATION ".")
+install(TARGETS ModelToolCLI RUNTIME DESTINATION ".")
 install(FILES "LICENSE.txt" DESTINATION ".")
 
 
@@ -311,11 +314,11 @@ if (test)
         "tst/*.cpp"
     )
 
-    set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_APP_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
+    set(ALL_SOURCES ${TEST_SOURCES} ${MODEL_TOOL_APP_SRC} ${MODEL_TOOL_CLI_SRC} ${IMGUI_SRC} ${LIB_HEADERS})
 
     add_executable(mt_test ${ALL_SOURCES})
     add_dependencies(mt_test ModelTool)
-    target_include_directories(mt_test PRIVATE "src/app")
+    target_include_directories(mt_test PRIVATE "src/app" "src/cli")
     target_link_libraries(mt_test PUBLIC ${MTLINK_LIBRARIES})
 
     if (GTest_FOUND)

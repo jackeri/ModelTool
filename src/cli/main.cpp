@@ -1,6 +1,9 @@
-#include <cstdlib>
+#include "cli.h"
+
+#include <iostream>
 
 int main(int argc, char *argv[])
 {
-	return EXIT_SUCCESS;
+	std::vector<std::string> args(argv + 1, argv + argc);
+	return mt::cli::runCli(args, std::cout, std::cerr);
 }
