@@ -151,6 +151,7 @@ namespace mt {
 		drawMenu();
 		handleAttachRequest();
 		drawScaleBoundsWindow();
+		drawSettingsWindow();
 		drawExportAllWindow();
 
 		// We might need to execute some ImGui code out of menus or a window for example, this is here for that
@@ -353,6 +354,12 @@ namespace mt {
 
 				ImGui::Separator();
 
+				if (ImGui::MenuItem(ICON_FA_COG " Settings...", shortcutLabel("Ctrl+,").c_str()))
+				{
+					showSettings = true;
+				}
+				ImGui::Separator();
+
 				if (ImGui::MenuItem(ICON_FA_SIGN_OUT " Quit", shortcutLabel("Ctrl+Q").c_str()))
 				{
 					glfwSetWindowShouldClose(glfwWindow, GLFW_TRUE);
@@ -408,10 +415,6 @@ namespace mt {
 				}
 				ImGui::Separator();
 				ImGui::MenuItem("Log", "Shift+Esc", &state.showLog);
-				if (ImGui::MenuItem("Vertical sync", nullptr, &state.settings.vsync))
-				{
-					glfwSwapInterval(state.settings.vsync ? 1 : 0);
-				}
 
 				ImGui::EndMenu();
 			}
@@ -514,6 +517,70 @@ namespace mt {
 		}
 
 		ImGui::EndMenu();
+	}
+
+	void ImGuiView::drawSettingsWindow()
+	{
+		auto &state = singleton<State>();
+		const char *title = ICON_FA_COG " Settings";
+		if (showSettings && !ImGui::IsPopupOpen(title))
+		{
+			ImGui::OpenPopup(title);
+			settingsFontSize = state.fontSize;
+		}
+
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		if (!ImGui::BeginPopupModal(title, &showSettings, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			showSettings = false;
+			return;
+		}
+
+		ImGui::SeparatorText("Interface");
+		int theme = int(state.theme);
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+		if (ImGui::Combo("Theme", &theme, "Darker\0Dark\0Light\0"))
+		{
+			// The scene background follows the theme, it can be changed after that
+			state.theme = ui::Theme(theme);
+			glm::vec3 background = ui::sceneBackground(state.theme);
+			state.clearColor = ImColor(background.r, background.g, background.b);
+		}
+
+		// The font atlas is rebuilt when the slider is let go
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+		ImGui::SliderFloat("Font size", &settingsFontSize, ui::MIN_FONT_SIZE, ui::MAX_FONT_SIZE, "%.0f");
+		if (ImGui::IsItemDeactivatedAfterEdit())
+		{
+			state.fontSize = std::round(settingsFontSize);
+		}
+
+		if (ImGui::Checkbox("Vertical sync", &state.settings.vsync))
+		{
+			glfwSwapInterval(state.settings.vsync ? 1 : 0);
+		}
+		ImGui::SetItemTooltip("Limit the frame rate to the screen's refresh rate");
+
+		ImGui::SeparatorText("Scene");
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+		ImGui::ColorEdit3("Background", (float *)&state.clearColor);
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_UNDO " Theme default"))
+		{
+			glm::vec3 background = ui::sceneBackground(state.theme);
+			state.clearColor = ImColor(background.r, background.g, background.b);
+		}
+
+		ImGui::Separator();
+		ImGui::TextDisabled("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::TextDisabled("Settings are saved when the program closes");
+
+		if (ImGui::Button("Close") || ImGui::IsKeyPressed(ImGuiKey_Escape))
+		{
+			showSettings = false;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
 	}
 
 	void ImGuiView::drawScaleBoundsWindow()
@@ -895,6 +962,10 @@ namespace mt {
 		if (pressed(ImGuiMod_Ctrl | ImGuiKey_O))
 		{
 			openModelFromDisk();
+		}
+		if (pressed(ImGuiMod_Ctrl | ImGuiKey_Comma))
+		{
+			showSettings = true;
 		}
 		if (pressed(ImGuiMod_Ctrl | ImGuiKey_Q))
 		{

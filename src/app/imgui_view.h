@@ -76,6 +76,11 @@ namespace mt {
 		void drawExportMenu();
 
 		/**
+		 * Draw the settings window (theme, font size, scene background) when it is open
+		 */
+		void drawSettingsWindow();
+
+		/**
 		 * Draw the "Export all" window when it is open
 		 */
 		void drawExportAllWindow();
@@ -148,6 +153,8 @@ namespace mt {
 		GLFWwindow *glfwWindow = nullptr;
 		std::string iniPath{};				///< ImGui layout file, kept alive for ImGuiIO::IniFilename
 		bool askedBaseFolder = false;		///< the base folder was asked for once
+		bool showSettings = false;			///< the settings window is open
+		float settingsFontSize = 0;			///< settings: font size while the slider is dragged
 		bool showExportAll = false;			///< the export all window is open
 		std::string exportFolder{};			///< export all: output folder
 		std::string exportName{};			///< export all: file name without the extension

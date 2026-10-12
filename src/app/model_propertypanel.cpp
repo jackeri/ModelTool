@@ -83,46 +83,6 @@ namespace mt {
 					drawHitboxMenu();
 				}
 			}
-
-			if (ImGui::CollapsingHeader("App", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				int theme = int(state.theme);
-				if (ImGui::Combo("Theme", &theme, "Darker\0Dark\0Light\0"))
-				{
-					// The scene background follows the theme, it can be changed after that
-					state.theme = ui::Theme(theme);
-					glm::vec3 background = ui::sceneBackground(state.theme);
-					state.clearColor = ImColor(background.r, background.g, background.b);
-				}
-
-				// The font atlas is rebuilt when the slider is let go
-				static float fontSize = 0;
-				if (!ImGui::IsAnyItemActive() || fontSize == 0)
-				{
-					fontSize = state.fontSize;
-				}
-				ImGui::SliderFloat("Font size", &fontSize, ui::MIN_FONT_SIZE, ui::MAX_FONT_SIZE, "%.0f");
-				if (ImGui::IsItemDeactivatedAfterEdit())
-				{
-					state.fontSize = std::round(fontSize);
-				}
-
-				// Leave room for the reset button next to the color
-				const float resetWidth = ImGui::CalcTextSize(ICON_FA_UNDO).x + ImGui::GetStyle().FramePadding.x * 2;
-				ImGui::SetNextItemWidth(ImGui::CalcItemWidth() - resetWidth - ImGui::GetStyle().ItemInnerSpacing.x);
-				ImGui::ColorEdit3("##background", (float *)&state.clearColor);
-				ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
-				if (ImGui::Button(ICON_FA_UNDO "##background"))
-				{
-					glm::vec3 background = ui::sceneBackground(state.theme);
-					state.clearColor = ImColor(background.r, background.g, background.b);
-				}
-				ImGui::SetItemTooltip("Theme default");
-				ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);
-				ImGui::TextUnformatted("Background");
-
-				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			}
 		}
 		ImGui::End();
 	}
