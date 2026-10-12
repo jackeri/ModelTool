@@ -8,6 +8,15 @@
 #include "lod.h"
 #include "skeletal_tools.h"
 #include "et_armature.h"
+#include "model_export.h"
+#include "model_mdm.h"
+#include "model_mdx.h"
+#include "model_md3.h"
+#include "model_md5.h"
+#include "model_scripts.h"
+#include "model_stl.h"
+
+#include <filesystem>
 #include "model_scripts.h"
 #include "skeletal_model.h"
 
@@ -104,6 +113,7 @@ namespace mt {
 
 		drawMenu();
 		drawScaleBoundsWindow();
+		drawExportAllWindow();
 
 		// We might need to execute some ImGui code out of menus or a window for example, this is here for that
 		if (!m_lateExecution.empty())
@@ -226,6 +236,8 @@ namespace mt {
 					browser.setTypeFilters({".hitboxes"});
 				}
 
+				ImGui::Separator();
+				drawExportMenu();
 				ImGui::Separator();
 
 				// Close the current model
@@ -362,6 +374,13 @@ namespace mt {
 
 		ImGui::Separator();
 
+		if (ImGui::MenuItem("Apply transform", nullptr, false, model != nullptr))
+		{
+			model::bakeTransform(*model);
+			state.frameCamera = true;
+			logger->info("The transform is now part of the model data");
+		}
+
 		if (ImGui::MenuItem("Bake pose", nullptr, false, skeletal && model->currentFrame >= 0 && model->hasFrames()))
 		{
 			model::skeletal::bakeBindPose(*skeletal, model->currentFrame);
@@ -432,6 +451,198 @@ namespace mt {
 			{
 				showScaleBounds = false;
 				scale = 1.0f;
+			}
+		}
+		ImGui::End();
+	}
+
+	namespace {
+		using ModelExport = std::function<void(const Model &, const std::string &)>;
+
+		/*! An export format offered in the menus */
+		struct ExportFormat {
+			const char *label;
+			const char *ext;
+			ModelExport write;
+			bool skeletal; ///< needs a skeletal model
+			bool frames;   ///< needs frames (or a bind pose for the skeletal formats that write it as a frame)
+		};
+
+		const std::vector<ExportFormat> &exportFormats()
+		{
+			static const std::vector<ExportFormat> formats = {
+				{"MDM (ET mesh)", ".mdm", model::writeMDM, true, false},
+				{"MDX (ET animation)", ".mdx", model::writeMDX, true, false},
+				{"MDS (RtCW model)", ".mds", model::writeMDS, true, false},
+				{"MD5 mesh", ".md5mesh", model::writeMD5Mesh, true, false},
+				{"MD5 animation", ".md5anim", model::writeMD5Anim, true, true},
+				{"MD3", ".md3", model::writeMD3, false, false},
+				{"MD3 tags only", ".md3", model::writeMD3Tags, false, false},
+				{"Animation sequences (.aninc)", ".aninc", model::writeAninc, false, false},
+				{"Tags file", ".tag", model::writeTags, true, false},
+				{"STL (binary)", ".stl", [](const Model &m, const std::string &p) { model::writeSTL(m, p, true); }, false, false},
+				{"STL (text)", ".stl", [](const Model &m, const std::string &p) { model::writeSTL(m, p, false); }, false, false},
+			};
+			return formats;
+		}
+
+		bool canExport(const Model &model, const ExportFormat &format)
+		{
+			return (!format.skeletal || model.skeletalModel()) && (!format.frames || model.hasFrames());
+		}
+
+		std::string withExtension(std::string path, const std::string &ext)
+		{
+			if (model::io::normalizeExtension(path) != ext)
+			{
+				path += ext;
+			}
+			return path;
+		}
+	}
+
+	void ImGuiView::drawExportMenu()
+	{
+		auto &state = singleton<State>();
+		Model *model = state.model.get();
+
+		if (!ImGui::BeginMenu("Export", model != nullptr))
+		{
+			return;
+		}
+
+		for (const auto &format : exportFormats())
+		{
+			if (ImGui::MenuItem(format.label, nullptr, false, canExport(*model, format)))
+			{
+				const ExportFormat *selected = &format;
+				browser.show(std::string("Export ") + format.label, [this, selected](const std::string &file) {
+					auto &current = singleton<State>();
+					if (!current.model)
+					{
+						return;
+					}
+
+					const std::string path = withExtension(file, selected->ext);
+					try
+					{
+						selected->write(*current.model, path);
+						logger->info("Exported {}", path);
+					}
+					catch (const std::exception &ex)
+					{
+						logger->error("Export to {} failed: {}", path, ex.what());
+					}
+				});
+				browser.setTypeFilters({format.ext});
+			}
+		}
+
+		ImGui::Separator();
+		if (ImGui::MenuItem("Export all..."))
+		{
+			showExportAll = true;
+			if (exportName.empty())
+			{
+				exportName = std::filesystem::path(state.modelPath).stem().string();
+			}
+		}
+
+		ImGui::EndMenu();
+	}
+
+	void ImGuiView::drawExportAllWindow()
+	{
+		auto &state = singleton<State>();
+		if (!showExportAll || !state.model)
+		{
+			showExportAll = false;
+			return;
+		}
+
+		const auto &formats = exportFormats();
+		if (exportSelected.size() != formats.size())
+		{
+			// The ET player model files are selected by default
+			exportSelected.assign(formats.size(), false);
+			for (size_t i = 0; i < formats.size(); i++)
+			{
+				std::string ext = formats[i].ext;
+				exportSelected[i] = ext == ".mdm" || ext == ".mdx" || ext == ".aninc";
+			}
+		}
+
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		if (ImGui::Begin("Export all", &showExportAll, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::InputText("Folder", &exportFolder);
+			ImGui::SameLine();
+			if (ImGui::Button("Browse"))
+			{
+				browser.show("Export folder", [this](const std::string &folder) { exportFolder = folder; }, true);
+			}
+			ImGui::InputText("File name", &exportName);
+			ImGui::TextDisabled("Every selected file is written as <folder>/<file name>.<extension>");
+			ImGui::Separator();
+
+			for (size_t i = 0; i < formats.size(); i++)
+			{
+				bool selected = exportSelected[i];
+				ImGui::BeginDisabled(!canExport(*state.model, formats[i]));
+				if (ImGui::Checkbox(formats[i].label, &selected))
+				{
+					exportSelected[i] = selected;
+				}
+				ImGui::EndDisabled();
+			}
+
+			ImGui::Separator();
+			const bool ready = !exportFolder.empty() && !exportName.empty();
+			ImGui::BeginDisabled(!ready);
+			if (ImGui::Button("Export"))
+			{
+				int written = 0, failed = 0;
+				for (size_t i = 0; i < formats.size(); i++)
+				{
+					if (!exportSelected[i] || !canExport(*state.model, formats[i]))
+					{
+						continue;
+					}
+
+					std::string name = exportName;
+					if (std::string(formats[i].label) == "MD3 tags only")
+					{
+						name += "_tags";
+					}
+					else if (std::string(formats[i].label) == "STL (text)")
+					{
+						name += "_text";
+					}
+
+					const std::string path = (std::filesystem::path(exportFolder) / (name + formats[i].ext)).string();
+					try
+					{
+						formats[i].write(*state.model, path);
+						logger->info("Exported {}", path);
+						written++;
+					}
+					catch (const std::exception &ex)
+					{
+						logger->error("Export to {} failed: {}", path, ex.what());
+						failed++;
+					}
+				}
+				logger->info("Export all: {} files written, {} failed", written, failed);
+				if (failed == 0)
+				{
+					showExportAll = false;
+				}
+			}
+			ImGui::EndDisabled();
+			ImGui::SameLine();
+			if (ImGui::Button("Close"))
+			{
+				showExportAll = false;
 			}
 		}
 		ImGui::End();

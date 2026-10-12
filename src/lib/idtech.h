@@ -40,7 +40,7 @@ namespace mt::idtech {
 	 */
 	inline int16_t angleToShort(float angle)
 	{
-		return int16_t(int(angle * (65536.0f / 360.0f)) & 65535);
+		return int16_t(int(std::lround(angle * (65536.0f / 360.0f))) & 65535);
 	}
 
 	/**
@@ -64,6 +64,34 @@ namespace mt::idtech {
 	 * @return unit normal vector
 	 */
 	glm::vec3 latLngToNormal(int16_t normal);
+
+	/**
+	 * Inverse of anglesToAxis
+	 * @param axis axis vectors, axis[0] forward, axis[1] left, axis[2] up
+	 * @return pitch, yaw and roll in degrees
+	 */
+	glm::vec3 axisToAngles(const glm::mat3 &axis);
+
+	/**
+	 * Inverse of ingleVector: 16 bit pitch and yaw of a direction
+	 * @param direction direction (does not need to be normalized)
+	 * @return pitch and yaw as short angles, 0 for a zero vector
+	 */
+	glm::ivec2 vectorToIngles(const glm::vec3 &direction);
+
+	/**
+	 * Encode a normal as MD3 latitude / longitude
+	 * @param normal unit normal
+	 * @return encoded normal, latitude in the high byte, longitude in the low byte
+	 */
+	int16_t normalToLatLng(const glm::vec3 &normal);
+
+	/**
+	 * Inverse of boneRotation: the axis of an ET bone matrix
+	 * @param rotation bone rotation
+	 * @return axis as anglesToAxis returns it
+	 */
+	glm::mat3 boneAxis(const glm::quat &rotation);
 
 	/**
 	 * Rotation of an ET skeletal bone matrix. ET applies bone matrices with the axis vectors as rows

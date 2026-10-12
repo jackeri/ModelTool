@@ -68,6 +68,16 @@ namespace mt {
 		 */
 		void drawScaleBoundsWindow();
 
+		/**
+		 * Draw the File > Export submenu
+		 */
+		void drawExportMenu();
+
+		/**
+		 * Draw the "Export all" window when it is open
+		 */
+		void drawExportAllWindow();
+
 		std::vector<std::function<void()>>
 			m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
 
@@ -75,7 +85,11 @@ namespace mt {
 
 		std::shared_ptr<spdlog::logger> logger; ///< shared logger
 
-		ScenePanel *scene = nullptr;  ///< scene panel for the camera settings
-		bool showScaleBounds = false; ///< the bounding box scaling window is open
+		ScenePanel *scene = nullptr;		///< scene panel for the camera settings
+		bool showScaleBounds = false;		///< the bounding box scaling window is open
+		bool showExportAll = false;			///< the export all window is open
+		std::string exportFolder{};			///< export all: output folder
+		std::string exportName{};			///< export all: file name without the extension
+		std::vector<bool> exportSelected{}; ///< export all: selected formats
 	};
 }

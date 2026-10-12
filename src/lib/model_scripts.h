@@ -24,4 +24,23 @@ namespace mt::model {
 	 * @throws mt::mt_exception if the data is invalid or a parent bone is not found
 	 */
 	void loadTags(skeletal::SkeletalModel &model, const Ref<mt::io::MTFile> &file);
+
+	/**
+	 * Encode the animation sequences as an .aninc file (frame numbers after the export frames are applied)
+	 * @param model model with the sequences
+	 * @return file text
+	 */
+	std::string encodeAninc(const Model &model);
+
+	void writeAninc(const Model &model, const std::string &path);
+
+	/**
+	 * Encode the tags of a skeletal model as a tags file: the bone tags and the bones used as tags, relative to their
+	 * parent bones. The transform is applied.
+	 * @param model skeletal model
+	 * @return file text
+	 */
+	std::string encodeTags(const Model &model);
+
+	void writeTags(const Model &model, const std::string &path);
 }

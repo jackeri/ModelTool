@@ -1,6 +1,7 @@
 #include "skeletal_tools.h"
 #include "morph_model.h"
 #include "normals.h"
+#include "model_export.h"
 
 #include <map>
 #include <tuple>
@@ -241,21 +242,7 @@ namespace mt::model::skeletal {
 				continue;
 			}
 
-			const bool useBind = model.hasBindPose || joint.frames.empty();
-			const Point &pose = useBind ? static_cast<const Point &>(joint) : joint.frames.front();
-			const Joint &parentJoint = model.joints[joint.parentId];
-			const Point &parent
-				= useBind || parentJoint.frames.empty() ? static_cast<const Point &>(parentJoint) : parentJoint.frames.front();
-
-			BoneTag tag;
-			tag.name = joint.name;
-			tag.parentBone = joint.parentId;
-			tag.location = glm::inverse(parent.rotation) * (pose.location - parent.location);
-			tag.rotation = glm::normalize(glm::inverse(parent.rotation) * pose.rotation);
-			if (model.flipBoneTags)
-			{
-				tag.rotation = glm::normalize(tag.rotation * BONE_TAG_FLIP);
-			}
+			BoneTag tag = boneTagFromJoint(model, index);
 
 			std::vector<int> remap(model.joints.size());
 			for (int i = 0; i < int(remap.size()); i++)

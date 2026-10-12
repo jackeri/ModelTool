@@ -59,17 +59,17 @@ namespace mt::model::morph {
 			currentFrame = 0;
 		}
 
-		int numFrames() override
+		int numFrames() const override
 		{
 			return int(frames.size());
 		}
 
-		bool morphModel() override
+		bool morphModel() const override
 		{
 			return true;
 		}
 
-		bool hasTags() override
+		bool hasTags() const override
 		{
 			return !tags.empty();
 		}

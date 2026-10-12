@@ -1,5 +1,9 @@
 #include "model_scripts.h"
 #include "script_stream.h"
+#include "model_export.h"
+#include "binary_writer.h"
+
+#include <iomanip>
 
 namespace mt::model {
 	using namespace mt::model::skeletal;
@@ -98,5 +102,65 @@ namespace mt::model {
 		}
 
 		model.tags.insert(model.tags.end(), tags.begin(), tags.end());
+	}
+
+	std::string encodeAninc(const Model &source)
+	{
+		auto model = prepareForExport(source);
+
+		std::ostringstream out;
+		out << "\t\t// Exported with ModelTool\n";
+		out << "\t\t// <animation name>\t<first frame> <length> <looping> <fps> <move speed> <transition> <reversed>\n\n";
+		for (const auto &animation : model->animations)
+		{
+			if (animation.name.find_first_of(" \t\n") != std::string::npos)
+			{
+				throw mt_ex("Animation names can not contain spaces: " + animation.name);
+			}
+			out << "\t\t" << animation.name << "\t" << animation.startFrame << "\t" << animation.numFrames << "\t"
+				<< (animation.loop ? 1 : 0) << "\t" << animation.fps << "\t" << animation.moveSpeed << "\t" << animation.transition << "\t"
+				<< (animation.reversed ? 1 : 0) << "\n";
+		}
+		return out.str();
+	}
+
+	void writeAninc(const Model &model, const std::string &path)
+	{
+		mt::io::saveFile(path, encodeAninc(model));
+	}
+
+	std::string encodeTags(const Model &source)
+	{
+		auto prepared = prepareForExport(source);
+		auto *model = dynamic_cast<SkeletalModel *>(prepared.get());
+		if (!model)
+		{
+			throw mt_ex("Tags files are written from skeletal models");
+		}
+
+		std::vector<BoneTag> tags = model->tags;
+		for (size_t i = 0; i < model->joints.size(); i++)
+		{
+			if (model->joints[i].asTag && model->joints[i].parentId >= 0)
+			{
+				tags.push_back(boneTagFromJoint(*model, int(i)));
+			}
+		}
+
+		std::ostringstream out;
+		out << std::setprecision(9) << "// Exported with ModelTool\ntags {\n";
+		for (const auto &tag : tags)
+		{
+			const auto &q = tag.rotation;
+			out << "\t\"" << tag.name << "\" \"" << model->joints.at(size_t(tag.parentBone)).name << "\" ( " << tag.location.x << " "
+				<< tag.location.y << " " << tag.location.z << " ) ( " << q.x << " " << q.y << " " << q.z << " " << q.w << " )\n";
+		}
+		out << "}\n";
+		return out.str();
+	}
+
+	void writeTags(const Model &model, const std::string &path)
+	{
+		mt::io::saveFile(path, encodeTags(model));
 	}
 }

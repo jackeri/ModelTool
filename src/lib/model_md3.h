@@ -39,4 +39,25 @@ namespace mt::model {
 	 * @return path of the level of detail file
 	 */
 	std::string morphLodPath(const std::string &path, int level);
+
+	/**
+	 * Encode a level of detail of a model as MD3. The transform and the export frames are applied, skeletal models are
+	 * baked into morph frames first.
+	 * @param model model to encode
+	 * @param level level of detail (0 for the base meshes)
+	 * @param tagsOnly write only the tags (MD3 tag animation, no surfaces)
+	 * @return file data
+	 * @throws mt::mt_exception if the model does not fit in the MD3 limits
+	 */
+	std::vector<byte> encodeMD3(const Model &model, int level = 0, bool tagsOnly = false);
+
+	/**
+	 * Write a model as MD3, extra levels of detail go to path_1.md3, path_2.md3, ...
+	 */
+	void writeMD3(const Model &model, const std::string &path);
+
+	/**
+	 * Write only the tags of a model as an MD3 (tag animation)
+	 */
+	void writeMD3Tags(const Model &model, const std::string &path);
 }

@@ -40,4 +40,66 @@ namespace mt::idtech {
 	{
 		return glm::normalize(glm::quat_cast(glm::transpose(axis)));
 	}
+
+	glm::vec3 axisToAngles(const glm::mat3 &axis)
+	{
+		const glm::vec3 &forward = axis[0];
+		const glm::vec3 &left = axis[1];
+		const glm::vec3 &up = axis[2];
+
+		const float pitch = std::asin(std::clamp(-forward.z, -1.0f, 1.0f));
+		const float cp = std::cos(pitch);
+
+		float yaw, roll;
+		if (std::abs(cp) > 1e-5f)
+		{
+			yaw = std::atan2(forward.y, forward.x);
+			roll = std::atan2(left.z, up.z);
+		}
+		else
+		{
+			// Looking straight up or down: roll and yaw are the same rotation, put it all in the yaw
+			yaw = std::atan2(-left.x, left.y);
+			roll = 0;
+		}
+
+		glm::vec3 angles;
+		angles[PITCH] = glm::degrees(pitch);
+		angles[YAW] = glm::degrees(yaw);
+		angles[ROLL] = glm::degrees(roll);
+		return angles;
+	}
+
+	glm::ivec2 vectorToIngles(const glm::vec3 &direction)
+	{
+		const float length = glm::length(direction);
+		if (length <= 0.0f)
+		{
+			return {0, 0};
+		}
+
+		const glm::vec3 dir = direction / length;
+		const float pitch = glm::degrees(std::asin(std::clamp(-dir.z, -1.0f, 1.0f)));
+		const float yaw = glm::degrees(std::atan2(dir.y, dir.x));
+		return {angleToShort(pitch), angleToShort(yaw)};
+	}
+
+	int16_t normalToLatLng(const glm::vec3 &normal)
+	{
+		// Straight up or down
+		if (normal.x == 0.0f && normal.y == 0.0f)
+		{
+			return int16_t(normal.z > 0.0f ? 0 : 128);
+		}
+
+		const float scale = 128.0f / glm::pi<float>();
+		int lat = int(std::lround(std::atan2(normal.y, normal.x) * scale)) & 0xff;
+		int lng = int(std::lround(std::acos(std::clamp(normal.z, -1.0f, 1.0f)) * scale)) & 0xff;
+		return int16_t((lat << 8) | lng);
+	}
+
+	glm::mat3 boneAxis(const glm::quat &rotation)
+	{
+		return glm::transpose(glm::mat3_cast(rotation));
+	}
 }

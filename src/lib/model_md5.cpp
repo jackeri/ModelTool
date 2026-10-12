@@ -2,6 +2,13 @@
 #include "skeletal_model.h"
 #include "script_stream.h"
 #include "normals.h"
+#include "model_export.h"
+#include "model_mdx.h"
+#include "skeletal_tools.h"
+#include "binary_writer.h"
+
+#include <cstdarg>
+#include <cstdio>
 
 namespace mt::model {
 	using namespace skeletal;
@@ -244,6 +251,7 @@ namespace mt::model {
 		int numAnimatedComponents = -1;
 
 		int processedFrames = 0;
+		std::vector<Point> baseFrame;
 
 		while (stream.hasNext())
 		{
@@ -325,10 +333,30 @@ namespace mt::model {
 				break;
 			}
 
-			case hash("baseframe"):
-				// The model should already have a bind pose, so just skip this section
-				stream.skipSection();
+			case hash("baseframe"): {
+				// Values for the components that the frames do not animate (local to the parent joint)
+				if (stream.token() != "{")
+				{
+					throw mt_ex("Invalid baseframe data");
+				}
+
+				baseFrame.clear();
+				while (stream.peekNext() != "}")
+				{
+					Point point;
+					stream.parse1DMatrix(3, glm::value_ptr(point.location));
+					stream.parse1DMatrix(3, glm::value_ptr(point.rotation));
+					baseFrame.push_back(point);
+				}
+				stream.parse();
+
+				if (baseFrame.size() != model->joints.size())
+				{
+					throw mt_ex("The baseframe has " + std::to_string(baseFrame.size()) + " joints, the model has "
+								+ std::to_string(model->joints.size()));
+				}
 				break;
+			}
 
 			case hash("frame"): {
 				int frameNumber = stream.parseInt();
@@ -346,35 +374,42 @@ namespace mt::model {
 				stream.parse();
 
 				// calculate the final joint locations per frame
-				for (auto &joint : model->joints)
+				for (size_t jointIndex = 0; jointIndex < model->joints.size(); jointIndex++)
 				{
+					auto &joint = model->joints[jointIndex];
+
+					// Components that are not animated keep their baseframe value
 					Point point;
+					if (jointIndex < baseFrame.size())
+					{
+						point = baseFrame[jointIndex];
+					}
 
 					unsigned int j = 0;
 
 					if (joint.flags & 1) // Pos.x
 					{
-						point.location.x = frameValues[joint.startIndex + j++];
+						point.location.x = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 					if (joint.flags & 2) // Pos.y
 					{
-						point.location.y = frameValues[joint.startIndex + j++];
+						point.location.y = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 					if (joint.flags & 4) // Pos.z
 					{
-						point.location.z = frameValues[joint.startIndex + j++];
+						point.location.z = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 					if (joint.flags & 8) // Orient.x
 					{
-						point.rotation.x = frameValues[joint.startIndex + j++];
+						point.rotation.x = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 					if (joint.flags & 16) // Orient.y
 					{
-						point.rotation.y = frameValues[joint.startIndex + j++];
+						point.rotation.y = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 					if (joint.flags & 32) // Orient.z
 					{
-						point.rotation.z = frameValues[joint.startIndex + j++];
+						point.rotation.z = frameValues.at(size_t(joint.startIndex) + j++);
 					}
 
 					computeQuaternionWComponent(point.rotation);
@@ -421,5 +456,185 @@ namespace mt::model {
 		ScriptStream stream(file);
 
 		parseAnimRoot(stream, model);
+	}
+
+	namespace {
+		std::string printText(const char *fmt, ...)
+		{
+			char buffer[1024];
+			va_list args;
+			va_start(args, fmt);
+			vsnprintf(buffer, sizeof(buffer), fmt, args);
+			va_end(args);
+			return buffer;
+		}
+
+		/*! MD5 stores x y z of unit quaternions with a negative (or zero) w */
+		glm::quat md5Quaternion(glm::quat rotation)
+		{
+			rotation = glm::normalize(rotation);
+			return rotation.w > 0 ? -rotation : rotation;
+		}
+
+		/*! Pose relative to the parent joint */
+		Point localPose(const Point &pose, const Point *parent)
+		{
+			if (!parent)
+			{
+				return pose;
+			}
+			glm::quat inverse = glm::inverse(parent->rotation);
+			return {inverse * (pose.location - parent->location), glm::normalize(inverse * pose.rotation)};
+		}
+
+		std::unique_ptr<SkeletalModel> skeletalForExport(const Model &model)
+		{
+			auto prepared = prepareForExport(model);
+			auto *skeletal = dynamic_cast<SkeletalModel *>(prepared.get());
+			if (!skeletal)
+			{
+				throw mt_ex("MD5 needs a skeletal model");
+			}
+			prepared.release();
+			return std::unique_ptr<SkeletalModel>(skeletal);
+		}
+
+		std::string md5String(const std::string &value)
+		{
+			if (value.find('"') != std::string::npos)
+			{
+				throw mt_ex("Names can not contain quotes: " + value);
+			}
+			return "\"" + value + "\"";
+		}
+	}
+
+	std::string encodeMD5Mesh(const Model &source)
+	{
+		auto model = skeletalForExport(source);
+		if (!model->hasBindPose)
+		{
+			if (!model->hasFrames())
+			{
+				throw mt_ex("The model has no bind pose and no frames");
+			}
+			skeletal::bakeBindPose(*model, 0);
+		}
+
+		std::string out = "MD5Version 10\ncommandline \"Exported with ModelTool\"\n\n";
+		out += printText("numJoints %zu\nnumMeshes %zu\n\njoints {\n", model->joints.size(), model->meshes.size());
+		for (const auto &joint : model->joints)
+		{
+			glm::quat q = md5Quaternion(joint.rotation);
+			out += "\t" + md5String(joint.name)
+				   + printText("\t%d ( %.6f %.6f %.6f ) ( %.9f %.9f %.9f )\n", joint.parentId, joint.location.x, joint.location.y,
+							   joint.location.z, q.x, q.y, q.z);
+		}
+		out += "}\n\n";
+
+		for (const auto &mesh : model->meshes)
+		{
+			out += "mesh {\n\tshader " + md5String(mesh.materialName) + "\n\n";
+
+			out += printText("\tnumverts %zu\n", mesh.vertices.size());
+			for (size_t i = 0; i < mesh.vertices.size(); i++)
+			{
+				const auto &vert = mesh.vertices[i];
+				out += printText("\tvert %zu ( %.6f %.6f ) %d %d\n", i, vert.tex.x, vert.tex.y, vert.startWeight, vert.weightCount);
+			}
+
+			out += printText("\n\tnumtris %zu\n", mesh.tris.size());
+			for (size_t i = 0; i < mesh.tris.size(); i++)
+			{
+				out += printText("\ttri %zu %d %d %d\n", i, mesh.tris[i].x, mesh.tris[i].y, mesh.tris[i].z);
+			}
+
+			out += printText("\n\tnumweights %zu\n", mesh.weights.size());
+			for (size_t i = 0; i < mesh.weights.size(); i++)
+			{
+				const auto &weight = mesh.weights[i];
+				out += printText("\tweight %zu %d %.9f ( %.6f %.6f %.6f )\n", i, weight.jointId, weight.bias, weight.pos.x, weight.pos.y,
+								 weight.pos.z);
+			}
+			out += "}\n\n";
+		}
+
+		return out;
+	}
+
+	std::string encodeMD5Anim(const Model &source)
+	{
+		auto model = skeletalForExport(source);
+		if (!model->hasFrames())
+		{
+			throw mt_ex("The model has no frames");
+		}
+
+		detail::ensureBounds(*model);
+		const int numFrames = model->numFrames();
+		const size_t numJoints = model->joints.size();
+		const int frameRate = model->animations.empty() ? 24 : std::max(model->animations.front().fps, 1);
+
+		std::string out = "MD5Version 10\ncommandline \"Exported with ModelTool\"\n\n";
+		out += printText("numFrames %d\nnumJoints %zu\nframeRate %d\nnumAnimatedComponents %zu\n\n", numFrames, numJoints, frameRate,
+						 numJoints * 6);
+
+		// Every joint has every component animated
+		out += "hierarchy {\n";
+		for (size_t i = 0; i < numJoints; i++)
+		{
+			out += "\t" + md5String(model->joints[i].name) + printText("\t%d 63 %zu\n", model->joints[i].parentId, i * 6);
+		}
+		out += "}\n\nbounds {\n";
+		for (int frame = 0; frame < numFrames; frame++)
+		{
+			const Bounds &bounds = model->bounds[frame];
+			out += printText("\t( %.6f %.6f %.6f ) ( %.6f %.6f %.6f )\n", bounds.min.x, bounds.min.y, bounds.min.z, bounds.max.x,
+							 bounds.max.y, bounds.max.z);
+		}
+
+		auto jointLine = [&](int frame, size_t joint, bool baseframe) {
+			const auto &info = model->joints[joint];
+			const Point &pose = frame < 0 ? static_cast<const Point &>(info) : info.frames[frame];
+			const Point *parent = nullptr;
+			if (info.parentId >= 0)
+			{
+				const auto &parentJoint = model->joints[info.parentId];
+				parent = frame < 0 ? &static_cast<const Point &>(parentJoint) : &parentJoint.frames[frame];
+			}
+			Point local = localPose(pose, parent);
+			glm::quat q = md5Quaternion(local.rotation);
+			return printText(baseframe ? "\t( %.6f %.6f %.6f ) ( %.9f %.9f %.9f )\n" : "\t%.6f %.6f %.6f %.9f %.9f %.9f\n",
+							 local.location.x, local.location.y, local.location.z, q.x, q.y, q.z);
+		};
+
+		out += "}\n\nbaseframe {\n";
+		for (size_t joint = 0; joint < numJoints; joint++)
+		{
+			out += jointLine(model->hasBindPose ? -1 : 0, joint, true);
+		}
+		out += "}\n\n";
+
+		for (int frame = 0; frame < numFrames; frame++)
+		{
+			out += printText("frame %d {\n", frame);
+			for (size_t joint = 0; joint < numJoints; joint++)
+			{
+				out += jointLine(frame, joint, false);
+			}
+			out += "}\n\n";
+		}
+
+		return out;
+	}
+
+	void writeMD5Mesh(const Model &model, const std::string &path)
+	{
+		mt::io::saveFile(path, encodeMD5Mesh(model));
+	}
+
+	void writeMD5Anim(const Model &model, const std::string &path)
+	{
+		mt::io::saveFile(path, encodeMD5Anim(model));
 	}
 }

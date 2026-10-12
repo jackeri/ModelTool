@@ -1,5 +1,9 @@
 #include "model_md3.h"
 #include "binary_reader.h"
+#include "binary_writer.h"
+#include "model_export.h"
+
+#include <cstring>
 #include "idtech.h"
 
 namespace mt::model {
@@ -324,5 +328,185 @@ namespace mt::model {
 		}
 
 		return path.substr(0, dot) + "_" + std::to_string(level) + path.substr(dot);
+	}
+
+	namespace {
+		using mt::io::BinaryWriter;
+
+		const int MD3_MAX_TRIANGLES = 8192;
+		const int MD3_MAX_VERTS = 4096;
+		const int MD3_MAX_SURFACES = 32;
+		const int MD3_MAX_TAGS = 16;
+		const int MD3_MAX_FRAMES = 1024;
+
+		int16_t encodeCoordinate(float value)
+		{
+			const float scaled = std::round(value / MD3_XYZ_SCALE);
+			if (scaled < float(INT16_MIN) || scaled > float(INT16_MAX))
+			{
+				throw mt_ex("A vertex is outside the MD3 range (+-512 units): " + std::to_string(value));
+			}
+			return int16_t(scaled);
+		}
+
+		std::unique_ptr<morph::MorphModel> morphForExport(const Model &model)
+		{
+			auto prepared = prepareForExport(model);
+			if (auto *skeletal = dynamic_cast<skeletal::SkeletalModel *>(prepared.get()))
+			{
+				return toMorphModel(*skeletal);
+			}
+			return std::unique_ptr<morph::MorphModel>(dynamic_cast<morph::MorphModel *>(prepared.release()));
+		}
+	}
+
+	std::vector<byte> encodeMD3(const Model &source, int level, bool tagsOnly)
+	{
+		auto model = morphForExport(source);
+		const auto &meshes = model->lod(level);
+		const int numFrames = model->numFrames();
+
+		auto limit = [](const char *what, size_t count, int max) {
+			if (int(count) > max)
+			{
+				throw mt_ex("The model has " + std::to_string(count) + " " + what + ", MD3 allows " + std::to_string(max)
+							+ " (use the export frames or remove " + what + ")");
+			}
+		};
+		limit("frames", size_t(numFrames), MD3_MAX_FRAMES);
+		limit("tags", model->tags.size(), MD3_MAX_TAGS);
+		if (!tagsOnly)
+		{
+			limit("meshes", meshes.size(), MD3_MAX_SURFACES);
+		}
+
+		BinaryWriter out;
+		md3Header_t header{};
+		header.ident = MD3_IDENT;
+		header.version = MD3_VERSION;
+		BinaryWriter::setStringTruncated(header.name, model->name);
+		header.numFrames = numFrames;
+		header.numTags = int32_t(model->tags.size());
+		header.numSurfaces = tagsOnly ? 0 : int32_t(meshes.size());
+		out.write(header);
+
+		header.ofsFrames = out.tell();
+		for (const auto &frame : model->frames)
+		{
+			md3Frame_t entry{};
+			std::memcpy(entry.bounds[0], glm::value_ptr(frame.bounds.min), sizeof(entry.bounds[0]));
+			std::memcpy(entry.bounds[1], glm::value_ptr(frame.bounds.max), sizeof(entry.bounds[1]));
+			std::memcpy(entry.localOrigin, glm::value_ptr(frame.localOrigin), sizeof(entry.localOrigin));
+			entry.radius = frame.radius;
+			BinaryWriter::setStringTruncated(entry.name, frame.name);
+			out.write(entry);
+		}
+
+		header.ofsTags = out.tell();
+		for (int frame = 0; frame < numFrames; frame++)
+		{
+			for (const auto &tag : model->tags)
+			{
+				md3Tag_t entry{};
+				BinaryWriter::setString(entry.name, tag.name, "tag name");
+				const Point &point = tag.frames.at(size_t(frame));
+				std::memcpy(entry.origin, glm::value_ptr(point.location), sizeof(entry.origin));
+				glm::mat3 axis = point.axis();
+				for (int i = 0; i < 3; i++)
+				{
+					std::memcpy(entry.axis[i], glm::value_ptr(axis[i]), sizeof(entry.axis[i]));
+				}
+				out.write(entry);
+			}
+		}
+
+		header.ofsSurfaces = out.tell();
+		if (!tagsOnly)
+		{
+			for (const auto &mesh : meshes)
+			{
+				if (int(mesh.numVertices()) > MD3_MAX_VERTS || int(mesh.tris.size()) > MD3_MAX_TRIANGLES)
+				{
+					throw mt_ex("Mesh " + mesh.name + " does not fit in MD3: max " + std::to_string(MD3_MAX_VERTS) + " vertices and "
+								+ std::to_string(MD3_MAX_TRIANGLES) + " triangles");
+				}
+
+				const int32_t start = out.tell();
+				md3Surface_t surface{};
+				surface.ident = MD3_IDENT;
+				BinaryWriter::setString(surface.name, mesh.name, "mesh name");
+				surface.flags = mesh.flags;
+				surface.numFrames = numFrames;
+				surface.numShaders = 1;
+				surface.numVerts = int32_t(mesh.numVertices());
+				surface.numTriangles = int32_t(mesh.tris.size());
+				out.write(surface);
+
+				surface.ofsTriangles = out.tell() - start;
+				for (const auto &tri : mesh.tris)
+				{
+					out.write(md3Triangle_t{{tri.x, tri.y, tri.z}});
+				}
+
+				surface.ofsShaders = out.tell() - start;
+				md3Shader_t shader{};
+				BinaryWriter::setString(shader.name, mesh.materialName, "material name");
+				out.write(shader);
+
+				surface.ofsSt = out.tell() - start;
+				for (const auto &tex : mesh.texCoords)
+				{
+					out.write(md3St_t{{tex.x, tex.y}});
+				}
+
+				surface.ofsXyzNormals = out.tell() - start;
+				for (const auto &frame : mesh.frames)
+				{
+					for (const auto &vert : frame)
+					{
+						md3XyzNormal_t entry{};
+						for (int i = 0; i < 3; i++)
+						{
+							entry.xyz[i] = encodeCoordinate(vert.pos[i]);
+						}
+						entry.normal = normalToLatLng(vert.normal);
+						out.write(entry);
+					}
+				}
+
+				surface.ofsEnd = out.tell() - start;
+				out.patch(start, surface);
+			}
+		}
+
+		header.ofsEnd = out.tell();
+		out.patch(0, header);
+		return out.data;
+	}
+
+	void writeMD3(const Model &model, const std::string &path)
+	{
+		int levels = 1;
+		if (const auto *morph = dynamic_cast<const morph::MorphModel *>(&model))
+		{
+			levels = morph->lodCount();
+		}
+
+		// Encode every level first so nothing is written when a level fails
+		std::vector<std::vector<byte>> files;
+		for (int level = 0; level < levels; level++)
+		{
+			files.push_back(encodeMD3(model, level));
+		}
+
+		for (int level = 0; level < levels; level++)
+		{
+			mt::io::saveFile(level == 0 ? path : morphLodPath(path, level), files[level]);
+		}
+	}
+
+	void writeMD3Tags(const Model &model, const std::string &path)
+	{
+		mt::io::saveFile(path, encodeMD3(model, 0, true));
 	}
 }

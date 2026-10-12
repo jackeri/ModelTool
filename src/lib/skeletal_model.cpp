@@ -10,7 +10,7 @@ namespace mt::model::skeletal {
 		emptyVector(bounds);
 	}
 
-	int SkeletalModel::numFrames()
+	int SkeletalModel::numFrames() const
 	{
 		return int(joints.empty() ? 0 : joints[0].frames.size());
 	}
@@ -34,7 +34,7 @@ namespace mt::model::skeletal {
 		return foundParent;
 	}
 
-	bool SkeletalModel::hasTags()
+	bool SkeletalModel::hasTags() const
 	{
 		if (!tags.empty())
 		{

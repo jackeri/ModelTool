@@ -37,6 +37,10 @@ namespace mt {
 			{
 				options.screenshot = value();
 			}
+			else if (arg == "--export")
+			{
+				options.exports.push_back(value());
+			}
 			else if (arg == "--ui")
 			{
 				options.screenshotUi = true;
@@ -73,6 +77,6 @@ namespace mt {
 	{
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--frame n]\n"
 			   "                 [--view wireframe,notextures,alpha,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
-			   "                 [--screenshot out.png [--ui]] [--size WxH]";
+			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH]";
 	}
 }

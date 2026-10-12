@@ -22,4 +22,32 @@ namespace mt::model {
 	 * @throws mt::mt_exception if the data is invalid
 	 */
 	Model *loadMDS(const Ref<mt::io::MTFile> &file);
+
+	/**
+	 * Encode a skeletal model as MDM (the mesh, the bones come from the MDX). The transform is applied. Bones used as
+	 * tags become MDM tags. Meshes without collapse maps get their level of detail calculated.
+	 * @param model model to encode
+	 * @return file data
+	 * @throws mt::mt_exception if the model can not be written as MDM
+	 */
+	std::vector<byte> encodeMDM(const Model &model);
+
+	/**
+	 * Write a skeletal model as an MDM file
+	 */
+	void writeMDM(const Model &model, const std::string &path);
+
+	/**
+	 * Encode a skeletal model as MDS (mesh, bones and frames in one file). The transform and the export frames are
+	 * applied. Tags become tag bones.
+	 * @param model model to encode
+	 * @return file data
+	 * @throws mt::mt_exception if the model can not be written as MDS
+	 */
+	std::vector<byte> encodeMDS(const Model &model);
+
+	/**
+	 * Write a skeletal model as an MDS file
+	 */
+	void writeMDS(const Model &model, const std::string &path);
 }

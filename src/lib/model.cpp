@@ -8,6 +8,7 @@
 #include "model_mdx.h"
 #include "model_ufbx.h"
 #include "model_scripts.h"
+#include "model_stl.h"
 
 #include <filesystem>
 #include <map>
@@ -50,17 +51,31 @@ namespace mt::model::io {
 	}
 	// clang-format on
 
+	// clang-format off
 	static Registry<ModelWriter> &modelWriters()
 	{
-		static Registry<ModelWriter> writers{};
+		static Registry<ModelWriter> writers{
+			{".md3", model::writeMD3},
+			{".md5mesh", model::writeMD5Mesh},
+			{".mdm", model::writeMDM},
+			{".mds", model::writeMDS},
+			{".mdx", model::writeMDX},
+			{".stl", [](const Model &model, const std::string &path) { model::writeSTL(model, path, true); }},
+			{".tag", model::writeTags},
+		};
 		return writers;
 	}
 
 	static Registry<AnimationWriter> &animationWriters()
 	{
-		static Registry<AnimationWriter> writers{};
+		static Registry<AnimationWriter> writers{
+			{".aninc", model::writeAninc},
+			{".md5anim", model::writeMD5Anim},
+			{".mdx", model::writeMDX},
+		};
 		return writers;
 	}
+	// clang-format on
 
 	template<typename T>
 	static const T &find(const Registry<T> &registry, const std::string &ext, const std::string &what)

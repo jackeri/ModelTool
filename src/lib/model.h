@@ -145,7 +145,7 @@ namespace mt {
 		 * Does this model have something to draw
 		 * @return true if this model can be drawn
 		 */
-		virtual bool hasDrawable()
+		virtual bool hasDrawable() const
 		{
 			return (hasBindPose() || hasFrames());
 		}
@@ -154,7 +154,7 @@ namespace mt {
 		 * Does this model have bind pose information
 		 * @return true if bind pose information exists
 		 */
-		virtual bool hasBindPose()
+		virtual bool hasBindPose() const
 		{
 			return false;
 		}
@@ -163,7 +163,7 @@ namespace mt {
 		 * Does this model have frames
 		 * @return true if there are 1 or more frames
 		 */
-		virtual bool hasFrames()
+		virtual bool hasFrames() const
 		{
 			return (numFrames() > 0);
 		}
@@ -172,13 +172,13 @@ namespace mt {
 		 * Check how many frames the model has available
 		 * @return number of frames
 		 */
-		virtual int numFrames() = 0;
+		virtual int numFrames() const = 0;
 
 		/**
 		 * Is this model a morph animated model (no skeleton)
 		 * @return true if the model is a morph model
 		 */
-		virtual bool morphModel()
+		virtual bool morphModel() const
 		{
 			return false;
 		}
@@ -187,7 +187,7 @@ namespace mt {
 		 * Is this model a Skeletal animated model (the animation is not baked in)
 		 * @return true if the model is a skeletal model
 		 */
-		virtual bool skeletalModel()
+		virtual bool skeletalModel() const
 		{
 			return false;
 		}
@@ -205,7 +205,7 @@ namespace mt {
 		 * Does the model have tags
 		 * @return true if tags are present
 		 */
-		virtual bool hasTags()
+		virtual bool hasTags() const
 		{
 			return false;
 		}

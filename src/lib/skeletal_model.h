@@ -84,9 +84,10 @@ namespace mt::model::skeletal {
 
 	/*! Tag that is bound to a bone, location and rotation are relative to the parent bone */
 	struct BoneTag : public Point {
-		std::string name{};	 ///< name of the tag
-		int parentBone = -1; ///< Parent bone offset
-		float torsoWeight{}; ///< torso rotation weight (MDS tags)
+		std::string name{};				   ///< name of the tag
+		int parentBone = -1;			   ///< Parent bone offset
+		float torsoWeight{};			   ///< torso rotation weight (MDS tags)
+		std::vector<int> boneReferences{}; ///< bones listed in the MDM file, used when the model has no bones loaded
 	};
 
 	/*! Bone weight */
@@ -117,7 +118,8 @@ namespace mt::model::skeletal {
 		reshandle material{};					///< material instance used in this mesh
 
 		// FIXME: this will be used by the ET models, implement later
-		std::vector<int> collapseMap; ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
+		std::vector<int> collapseMap;	   ///< Every skeletal mesh has a collapse map that is used for dynamic lodding (level of detail)
+		std::vector<int> boneReferences{}; ///< bones listed in the MDM/MDS file, used when the model has no bones loaded
 
 		Mesh() = default;
 
@@ -144,9 +146,9 @@ namespace mt::model::skeletal {
 
 		~SkeletalModel() override;
 
-		int numFrames() override;
+		int numFrames() const override;
 
-		bool skeletalModel() override
+		bool skeletalModel() const override
 		{
 			return true;
 		}
@@ -156,7 +158,7 @@ namespace mt::model::skeletal {
 			return &hitboxes;
 		}
 
-		bool hasTags() override;
+		bool hasTags() const override;
 
 		// TODO: needed when doing bone scaling in the future
 		int findParentIndex(int boneIndex);

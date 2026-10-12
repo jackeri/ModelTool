@@ -15,7 +15,8 @@ namespace mt {
 		bool screenshotUi = false;			   ///< --ui: the screenshot has the whole window with the UI
 		int width = 1280;					   ///< --size WxH: screenshot size
 		int height = 720;
-		std::vector<std::string> view{}; ///< --view: comma separated view toggles, like wireframe,skeleton,tags
+		std::vector<std::string> view{};	///< --view: comma separated view toggles, like wireframe,skeleton,tags
+		std::vector<std::string> exports{}; ///< --export: write the loaded model to these files (format by extension)
 
 		/**
 		 * Parse the command line

@@ -219,6 +219,35 @@ void mt::GLWindow::applyOptions()
 		}
 	}
 
+	for (const auto &path : options.exports)
+	{
+		if (!state.model)
+		{
+			logger->error("Nothing to export to {}", path);
+			continue;
+		}
+
+		try
+		{
+			// Animation only formats (.md5anim, .aninc) use the animation writers, the rest the model writers
+			auto ext = model::io::normalizeExtension(path);
+			auto modelFormats = model::io::modelWriterExtensions();
+			if (std::find(modelFormats.begin(), modelFormats.end(), ext) == modelFormats.end())
+			{
+				model::io::writeAnimation(*state.model, path);
+			}
+			else
+			{
+				model::io::writeModel(*state.model, path);
+			}
+			logger->info("Exported {}", path);
+		}
+		catch (const std::exception &ex)
+		{
+			logger->error("Export to {} failed: {}", path, ex.what());
+		}
+	}
+
 	auto &view = state.view;
 	const std::map<std::string, std::pair<bool *, bool>> toggles{
 		{"wireframe", {&view.wireframe, true}},	  {"notextures", {&view.textures, false}},	{"alpha", {&view.alpha, true}},
