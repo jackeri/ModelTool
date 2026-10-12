@@ -1,4 +1,5 @@
 #include "imgui_view.h"
+#include <ImGuizmo.h>
 #include "icons_font_awesome.h"
 #include "gl_window.h"
 #include "state.h"
@@ -104,6 +105,7 @@ namespace mt {
 
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiView::endFrame()
@@ -988,6 +990,27 @@ namespace mt {
 		}
 
 		// The view toggles of LegacyModelView
+		// Move and rotate gizmo of the selected tag or hitbox
+		if (pressed(ImGuiKey_G))
+		{
+			view.gizmoMode = GizmoMode::Move;
+		}
+		if (pressed(ImGuiKey_R))
+		{
+			view.gizmoMode = GizmoMode::Rotate;
+		}
+		if (pressed(ImGuiKey_S))
+		{
+			view.gizmoMode = GizmoMode::Scale;
+		}
+
+		// Escape deselects the tag or hitbox and hides the gizmo (dialogs use it to close)
+		if (pressed(ImGuiKey_Escape) && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId) && view.editTarget != EditTarget::None)
+		{
+			view.editTarget = EditTarget::None;
+			view.selectedTag = -1;
+			view.selectedHitbox = -1;
+		}
 		if (pressed(ImGuiKey_W))
 		{
 			view.wireframe = !view.wireframe;

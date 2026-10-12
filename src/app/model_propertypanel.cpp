@@ -316,6 +316,7 @@ namespace mt {
 		if (selected >= int(hitboxes.size()))
 		{
 			selected = int(hitboxes.size()) - 1;
+			state.view.editTarget = EditTarget::Hitbox;
 		}
 
 		ImGui::Text("Hitboxes: %zu", hitboxes.size());
@@ -334,6 +335,7 @@ namespace mt {
 			copy.name += " copy";
 			hitboxes.insert(hitboxes.begin() + selected + 1, copy);
 			selected++;
+			state.view.editTarget = EditTarget::Hitbox;
 		}
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_TRASH " Delete"))
@@ -354,6 +356,7 @@ namespace mt {
 				if (ImGui::Selectable(label.c_str(), selected == i))
 				{
 					selected = selected == i ? -1 : i;
+					state.view.editTarget = selected >= 0 ? EditTarget::Hitbox : EditTarget::None;
 				}
 				ImGui::PopID();
 			}

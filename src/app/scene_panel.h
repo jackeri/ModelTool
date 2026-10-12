@@ -66,6 +66,21 @@ namespace mt {
 		 */
 		void drawGizmo(const ImVec2 &origin);
 
+		/**
+		 * Draw the move / rotate gizmo of the selected tag or hitbox and apply its changes to the model
+		 * @param origin screen position of the scene image
+		 */
+		void drawEditGizmo(const ImVec2 &origin);
+
+		/**
+		 * Draw the gizmo toolbar (move / rotate, local / world) in the top left corner of the scene
+		 * @param origin screen position of the scene image
+		 * @param label what is edited
+		 * @param morphTag a morph model tag is edited (it has the "all frames" option)
+		 * @param canScale a hitbox is edited (it can be scaled)
+		 */
+		void drawEditToolbar(const ImVec2 &origin, const std::string &label, bool morphTag, bool canScale);
+
 		glm::ivec2 size{};								   ///< Framebuffer size in pixels
 		glm::vec2 viewSize{};							   ///< Size of the scene image in the window (smaller than size on HiDPI screens)
 		Camera camera;									   ///< Camera instance which is used in the scene panel
@@ -75,6 +90,8 @@ namespace mt {
 		glm::mat4 modelMatrix{1.0f};					   ///< model transform of the last frame
 		std::vector<model::PosedModel> posedAttachments{}; ///< attached models of the last frame
 		std::vector<glm::mat4> attachmentMatrices{};	   ///< scene matrices of the attached models
+		model::Hitbox scaleStart{};						   ///< the edited hitbox when the scale drag started
+		bool gizmoDrag = false;							   ///< the mouse button went down on the edit gizmo, the camera does not move
 		bool sceneHovered = false;						   ///< state flag for mouse hover scene panel
 	};
 }

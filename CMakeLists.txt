@@ -196,6 +196,8 @@ FILE(GLOB IMGUI_SRC
         "libs/imgui/imstb_textedit.h"
         "libs/imgui/imstb_truetype.h"
         "libs/imgui/misc/cpp/imgui_stdlib.cpp"
+        "libs/imguizmo/ImGuizmo.cpp"
+        "libs/imguizmo/ImGuizmo.h"
         # Backends
         "libs/imgui/backends/imgui_impl_glfw.cpp"
         "libs/imgui/backends/imgui_impl_opengl3.cpp"
@@ -211,6 +213,7 @@ FILE(GLOB LIB_HEADERS
 
 include_directories("libs/imgui")
 include_directories("libs/imgui-filebrowser")
+include_directories("libs/imguizmo")
 include_directories("libs/stb")
 
 # TinyGLTF

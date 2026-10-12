@@ -17,25 +17,46 @@
 
 namespace mt {
 
+	/*! What the move / rotate gizmo of the scene edits */
+	enum class EditTarget
+	{
+		None,
+		Tag,   ///< ViewSettings::selectedTag
+		Hitbox ///< ViewSettings::selectedHitbox
+	};
+
+	/*! What the edit gizmo does */
+	enum class GizmoMode
+	{
+		Move,
+		Rotate,
+		Scale ///< hitboxes only
+	};
+
 	/*! What is drawn in the scene and how */
 	struct ViewSettings {
-		bool wireframe = false;		///< draw triangle edges only
-		bool textures = true;		///< draw the textures
-		bool alpha = false;			///< blend with the texture alpha
-		bool drawGrid = true;		///< ground grid and origin axis
-		bool drawBounds = false;	///< frame bounding box
-		bool drawHitboxes = true;	///< hitboxes of skeletal models
-		bool drawGizmo = true;		///< orientation gizmo in the corner of the scene
-		int selectedHitbox = -1;	///< hitbox drawn highlighted (open in the hitbox panel)
-		bool drawTags = false;		///< tag axis
-		bool drawTagNames = true;	///< names next to the tags
-		bool drawSkeleton = false;	///< bones and joints
-		bool drawNormals = false;	///< vertex normals
-		float normalLength = 0.03f; ///< length of the drawn normals, relative to the model size
-		int lodLevel = 0;			///< level of detail of morph models with extra levels
-		bool dynamicLod = false;	///< reduce triangles with the collapse maps
-		float lodRatio = 0.0f;		///< dynamic level of detail: 0 = minimum LOD, 1 = full mesh
-		int picmip = 0;				///< texture picmip (halvings)
+		bool wireframe = false;					  ///< draw triangle edges only
+		bool textures = true;					  ///< draw the textures
+		bool alpha = false;						  ///< blend with the texture alpha
+		bool drawGrid = true;					  ///< ground grid and origin axis
+		bool drawBounds = false;				  ///< frame bounding box
+		bool drawHitboxes = true;				  ///< hitboxes of skeletal models
+		bool drawGizmo = true;					  ///< orientation gizmo in the corner of the scene
+		int selectedHitbox = -1;				  ///< hitbox drawn highlighted (open in the hitbox panel)
+		int selectedTag = -1;					  ///< tag selected for the gizmo
+		EditTarget editTarget = EditTarget::None; ///< what the gizmo moves
+		GizmoMode gizmoMode = GizmoMode::Move;	  ///< what the edit gizmo does
+		bool gizmoLocal = true;					  ///< the gizmo axes follow the edited object instead of the world
+		bool gizmoAllFrames = true;				  ///< moving a morph model tag moves it in every frame
+		bool drawTags = false;					  ///< tag axis
+		bool drawTagNames = true;				  ///< names next to the tags
+		bool drawSkeleton = false;				  ///< bones and joints
+		bool drawNormals = false;				  ///< vertex normals
+		float normalLength = 0.03f;				  ///< length of the drawn normals, relative to the model size
+		int lodLevel = 0;						  ///< level of detail of morph models with extra levels
+		bool dynamicLod = false;				  ///< reduce triangles with the collapse maps
+		float lodRatio = 0.0f;					  ///< dynamic level of detail: 0 = minimum LOD, 1 = full mesh
+		int picmip = 0;							  ///< texture picmip (halvings)
 		TextureFilter textureFilter = TextureFilter::Trilinear;
 	};
 
@@ -183,6 +204,8 @@ namespace mt {
 			}
 			view.lodLevel = 0;
 			view.selectedHitbox = -1;
+			view.selectedTag = -1;
+			view.editTarget = EditTarget::None;
 			frameCamera = true;
 			resetPlayback();
 		}

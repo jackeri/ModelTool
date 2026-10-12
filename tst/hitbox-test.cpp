@@ -191,3 +191,45 @@ TEST(HitboxTest, ShapeLines)
 	model::Hitbox box(2);
 	EXPECT_EQ(box.lines().size(), 12);
 }
+
+TEST(HitboxTest, ScaleFrom)
+{
+	model::Hitbox start(0);
+	start.min = {-1, -2, -3};
+	start.max = {1, 2, 4};
+	start.radius = 2;
+	start.height = 10;
+
+	// Boxes per axis around the origin
+	model::Hitbox box = start;
+	box.scaleFrom(start, {2, 1, 0.5f});
+	EXPECT_FLOAT_EQ(box.min.x, -2);
+	EXPECT_FLOAT_EQ(box.max.y, 2);
+	EXPECT_FLOAT_EQ(box.max.z, 2);
+
+	// Scaling again starts from the same start, not from the last result
+	box.scaleFrom(start, {1, 1, 1});
+	EXPECT_FLOAT_EQ(box.min.x, -1);
+
+	// Spheres by the axis that changed the most
+	model::Hitbox sphere = start;
+	sphere.shape = model::HitboxShape::Sphere;
+	sphere.scaleFrom(start, {1, 1.5f, 1});
+	EXPECT_FLOAT_EQ(sphere.radius, 3);
+	sphere.scaleFrom(start, {0.5f, 0.5f, 0.5f});
+	EXPECT_FLOAT_EQ(sphere.radius, 1);
+
+	// Capsules: radius from X / Y, height from Z, still at least as high as wide
+	model::Hitbox capsule = start;
+	capsule.shape = model::HitboxShape::Capsule;
+	capsule.scaleFrom(start, {1, 1, 2});
+	EXPECT_FLOAT_EQ(capsule.radius, 2);
+	EXPECT_FLOAT_EQ(capsule.height, 20);
+	capsule.scaleFrom(start, {4, 1, 0.2f});
+	EXPECT_FLOAT_EQ(capsule.radius, 8);
+	EXPECT_FLOAT_EQ(capsule.height, 16);
+
+	// No negative sizes
+	box.scaleFrom(start, {-1, 1, 1});
+	EXPECT_FLOAT_EQ(box.min.x, 0);
+}

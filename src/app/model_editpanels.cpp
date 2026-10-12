@@ -139,6 +139,13 @@ namespace mt {
 	void ModelPropertyPanel::drawTagsMenu()
 	{
 		auto &state = singleton<State>();
+		// Clicking the selected tag again hides the gizmo
+		auto selectTag = [&](int index) {
+			auto &view = state.view;
+			const bool again = view.editTarget == EditTarget::Tag && view.selectedTag == index;
+			view.editTarget = again ? EditTarget::None : EditTarget::Tag;
+			view.selectedTag = again ? -1 : index;
+		};
 
 		if (auto *skeletal = dynamic_cast<SkeletalModel *>(state.model.get()))
 		{
@@ -156,7 +163,15 @@ namespace mt {
 			{
 				auto &tag = skeletal->tags[i];
 				ImGui::PushID(int(i));
-				if (ImGui::TreeNode("tag", "%s", tag.name.c_str()))
+				const bool tagSelected = state.view.editTarget == EditTarget::Tag && state.view.selectedTag == int(i);
+				const bool open = ImGui::TreeNodeEx("tag", ImGuiTreeNodeFlags_OpenOnArrow | (tagSelected ? ImGuiTreeNodeFlags_Selected : 0),
+													"%s", tag.name.c_str());
+				if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+				{
+					selectTag(int(i));
+				}
+				ImGui::SetItemTooltip("Click to move and rotate the tag with the gizmo in the scene");
+				if (open)
 				{
 					ImGui::InputText("Name", &tag.name);
 					boneCombo("Bone", skeletal->joints, tag.parentBone, false);
@@ -183,7 +198,22 @@ namespace mt {
 			{
 				auto &tag = morph->tags[i];
 				ImGui::PushID(int(i));
-				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
+				const bool tagSelected = state.view.editTarget == EditTarget::Tag && state.view.selectedTag == int(i);
+				if (tagSelected)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+				}
+				if (ImGui::SmallButton(ICON_FA_ARROWS "##gizmo"))
+				{
+					selectTag(int(i));
+				}
+				if (tagSelected)
+				{
+					ImGui::PopStyleColor();
+				}
+				ImGui::SetItemTooltip("Move and rotate the tag with the gizmo in the scene");
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.4f);
 				ImGui::InputText("##name", &tag.name);
 				ImGui::SameLine();
 				ui::attachButton(-1, tag.name);

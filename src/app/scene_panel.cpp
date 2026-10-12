@@ -4,6 +4,11 @@
 #include "gl_renderer.h"
 #include "model_render.h"
 #include "state.h"
+#include "point_edit.h"
+#include "skeletal_model.h"
+#include "morph_model.h"
+#include "icons_font_awesome.h"
+#include <ImGuizmo.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -165,13 +170,17 @@ namespace mt {
 		ImVec2 origin = ImGui::GetCursorScreenPos();
 		auto textureId = reinterpret_cast<ImTextureID>(intptr_t(fbo->texture()));
 		ImGui::Image(textureId, ImVec2{viewSize.x, viewSize.y}, ImVec2{0, 1}, ImVec2{1, 0});
-		sceneHovered = ImGui::IsItemHovered();
+		const bool imageHovered = ImGui::IsItemHovered();
 
 		drawLabels(origin);
+		drawEditGizmo(origin);
 		if (singleton<State>().view.drawGizmo)
 		{
 			drawGizmo(origin);
 		}
+
+		// The toolbar buttons and the edit gizmo take the mouse before the camera
+		sceneHovered = imageHovered && !ImGui::IsAnyItemHovered();
 		handleInput();
 
 		ImGui::End();
@@ -180,6 +189,20 @@ namespace mt {
 	void ScenePanel::handleInput()
 	{
 		auto &io = ImGui::GetIO();
+
+		// A drag that starts on the edit gizmo moves the tag or hitbox, not the camera
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		{
+			gizmoDrag = ImGuizmo::IsOver() || ImGui::IsAnyItemActive();
+		}
+		if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			gizmoDrag = false;
+		}
+		if (gizmoDrag || ImGuizmo::IsUsing())
+		{
+			return;
+		}
 
 		if (sceneHovered && io.MouseWheel != 0)
 		{
@@ -329,5 +352,171 @@ namespace mt {
 				camera.viewFrom(hovered->axis->axis, hovered->axis->negative);
 			}
 		}
+	}
+
+	void ScenePanel::drawEditGizmo(const ImVec2 &origin)
+	{
+		auto &state = singleton<State>();
+		auto &view = state.view;
+		if (!state.model || view.editTarget == EditTarget::None)
+		{
+			return;
+		}
+
+		using model::pointMatrix;
+		auto *skeletal = dynamic_cast<model::skeletal::SkeletalModel *>(state.model.get());
+		auto *morph = dynamic_cast<model::morph::MorphModel *>(state.model.get());
+
+		// Bones of the current pose (posed every frame by renderScene)
+		auto boneMatrix = [&](int bone) {
+			return bone >= 0 && bone < int(posed.bonePoints.size()) ? pointMatrix(posed.bonePoints[size_t(bone)].point) : glm::mat4{1.0f};
+		};
+
+		// The edited point: its parent's world matrix and its own
+		glm::mat4 parent = modelMatrix;
+		Point *point = nullptr;
+		model::Hitbox *hitbox = nullptr;
+		std::string label;
+		int morphFrame = 0;
+		if (view.editTarget == EditTarget::Hitbox && skeletal && view.selectedHitbox >= 0
+			&& view.selectedHitbox < int(skeletal->hitboxes.size()))
+		{
+			hitbox = &skeletal->hitboxes[size_t(view.selectedHitbox)];
+			parent = modelMatrix * boneMatrix(hitbox->parentJoint);
+			point = hitbox;
+			label = "Hitbox " + hitbox->name;
+		}
+		else if (view.editTarget == EditTarget::Tag && skeletal && view.selectedTag >= 0 && view.selectedTag < int(skeletal->tags.size()))
+		{
+			auto &tag = skeletal->tags[size_t(view.selectedTag)];
+			parent = modelMatrix * boneMatrix(tag.parentBone);
+			point = &tag;
+			label = "Tag " + tag.name;
+		}
+		else if (view.editTarget == EditTarget::Tag && morph && view.selectedTag >= 0 && view.selectedTag < int(morph->tags.size())
+				 && !morph->tags[size_t(view.selectedTag)].frames.empty())
+		{
+			auto &tag = morph->tags[size_t(view.selectedTag)];
+			morphFrame = std::clamp(state.model->currentFrame, 0, int(tag.frames.size()) - 1);
+			point = &tag.frames[size_t(morphFrame)];
+			label = "Tag " + tag.name;
+		}
+		if (!point)
+		{
+			return;
+		}
+
+		drawEditToolbar(origin, label, morph != nullptr, hitbox != nullptr);
+		const GizmoMode mode = view.gizmoMode == GizmoMode::Scale && !hitbox ? GizmoMode::Move : view.gizmoMode;
+
+		glm::mat4 world = parent * pointMatrix(*point);
+		const glm::mat4 viewMatrix = camera.view();
+		const glm::mat4 projection = camera.projection(viewSize.x / std::max(viewSize.y, 1.0f));
+
+		ImGuizmo::SetOrthographic(false);
+		ImGuizmo::SetDrawlist();
+		ImGuizmo::SetRect(origin.x, origin.y, viewSize.x, viewSize.y);
+
+		// The scale gizmo gives the scale since the drag started, the sizes scale from the hitbox at that moment
+		if (hitbox && !ImGuizmo::IsUsing())
+		{
+			scaleStart = *hitbox;
+		}
+
+		// Ctrl snaps: 1 unit steps, 15 degree steps, 10% steps
+		const float snapValue = mode == GizmoMode::Rotate ? 15.0f : (mode == GizmoMode::Scale ? 0.1f : 1.0f);
+		const float snap[3] = {snapValue, snapValue, snapValue};
+		const bool snapping = ImGui::GetIO().KeyCtrl;
+		const ImGuizmo::OPERATION operation
+			= mode == GizmoMode::Rotate ? ImGuizmo::ROTATE : (mode == GizmoMode::Scale ? ImGuizmo::SCALE : ImGuizmo::TRANSLATE);
+		// Scaling is always along the hitbox's own axes
+		const ImGuizmo::MODE space = view.gizmoLocal || mode == GizmoMode::Scale ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
+		if (ImGuizmo::Manipulate(glm::value_ptr(viewMatrix), glm::value_ptr(projection), operation, space, glm::value_ptr(world), nullptr,
+								 snapping ? snap : nullptr))
+		{
+			if (mode == GizmoMode::Scale)
+			{
+				// Scale on the hitbox's own axes, without the parent's (model) scale
+				const glm::mat4 local = glm::inverse(parent) * world;
+				const glm::vec3 scale{glm::length(glm::vec3(local[0])), glm::length(glm::vec3(local[1])), glm::length(glm::vec3(local[2]))};
+				hitbox->scaleFrom(scaleStart, scale);
+				return;
+			}
+
+			const Point local = model::localPoint(parent, world);
+			if (morph && view.editTarget == EditTarget::Tag)
+			{
+				model::moveMorphTag(*morph, view.selectedTag, morphFrame, local, view.gizmoAllFrames);
+			}
+			else
+			{
+				point->location = local.location;
+				point->rotation = local.rotation;
+			}
+		}
+	}
+
+	void ScenePanel::drawEditToolbar(const ImVec2 &origin, const std::string &label, bool morphTag, bool canScale)
+	{
+		auto &view = singleton<State>().view;
+		const ImVec2 padding = ImGui::GetStyle().WindowPadding;
+		ImGui::SetCursorScreenPos({origin.x + padding.x, origin.y + padding.y});
+
+		ImGui::BeginGroup();
+		ImGui::TextUnformatted(label.c_str());
+
+		auto toggle = [](const char *text, bool active, const char *tooltip) {
+			if (active)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+			}
+			const bool clicked = ImGui::Button(text);
+			if (active)
+			{
+				ImGui::PopStyleColor();
+			}
+			ImGui::SetItemTooltip("%s", tooltip);
+			return clicked;
+		};
+
+		const bool scaling = view.gizmoMode == GizmoMode::Scale && canScale;
+		if (toggle(ICON_FA_ARROWS " Move", view.gizmoMode == GizmoMode::Move || (view.gizmoMode == GizmoMode::Scale && !canScale),
+				   "Move (G), hold Ctrl to snap to 1 unit steps"))
+		{
+			view.gizmoMode = GizmoMode::Move;
+		}
+		ImGui::SameLine();
+		if (toggle(ICON_FA_REFRESH " Rotate", view.gizmoMode == GizmoMode::Rotate, "Rotate (R), hold Ctrl to snap to 15 degree steps"))
+		{
+			view.gizmoMode = GizmoMode::Rotate;
+		}
+		ImGui::SameLine();
+		if (canScale)
+		{
+			if (toggle(ICON_FA_EXPAND " Scale", scaling, "Scale the size (S), hold Ctrl to snap to 10% steps"))
+			{
+				view.gizmoMode = GizmoMode::Scale;
+			}
+			ImGui::SameLine();
+		}
+		if (toggle(view.gizmoLocal ? "Local" : "World", view.gizmoLocal, "Gizmo axes: the object's own (local) or the world's"))
+		{
+			view.gizmoLocal = !view.gizmoLocal;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_FA_TIMES))
+		{
+			view.editTarget = EditTarget::None;
+			view.selectedTag = -1;
+			view.selectedHitbox = -1;
+		}
+		ImGui::SetItemTooltip("Deselect and hide the gizmo (Escape)");
+
+		if (morphTag)
+		{
+			ImGui::Checkbox("All frames", &view.gizmoAllFrames);
+			ImGui::SetItemTooltip("Move the tag in every frame (keeps its animation), or only in the current frame");
+		}
+		ImGui::EndGroup();
 	}
 }

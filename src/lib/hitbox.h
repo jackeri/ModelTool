@@ -56,6 +56,14 @@ namespace mt::model {
 		void clampSize();
 
 		/**
+		 * Scale the size of the hitbox (like with a scale gizmo): boxes scale per axis around the origin, spheres by the
+		 * axis that changed the most, cylinders and capsules their radius by X / Y and their height by Z
+		 * @param start the hitbox before the scaling started
+		 * @param scale scale on the hitbox's own axes, relative to start
+		 */
+		void scaleFrom(const Hitbox &start, const glm::vec3 &scale);
+
+		/**
 		 * @return bounds of the shape in the hitbox's own space (before location and rotation)
 		 */
 		[[nodiscard]] Bounds localBounds() const;

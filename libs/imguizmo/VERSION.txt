@@ -1,0 +1,4 @@
+ImGuizmo (https://github.com/CedricGuillemet/ImGuizmo), MIT license
+Commit df1c30142e7c3fb13c171aaeb328bb338fa7aaa6 (2025-12-03)
+Vendored files: ImGuizmo.h, ImGuizmo.cpp, LICENSE (unchanged)
+Later commits need Dear ImGui 1.92.8+ (AddRect / AddPolyline signatures), this project uses 1.91.3.

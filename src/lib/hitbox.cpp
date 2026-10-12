@@ -87,6 +87,39 @@ namespace mt::model {
 		min = low;
 	}
 
+	void Hitbox::scaleFrom(const Hitbox &start, const glm::vec3 &scale)
+	{
+		const glm::vec3 factor = glm::max(scale, glm::vec3(0.0f));
+
+		// The factor that changed the most (one axis is dragged, or all three the same way)
+		auto strongest = [](std::initializer_list<float> values) {
+			float best = 1.0f;
+			for (float value : values)
+			{
+				if (std::abs(std::log(std::max(value, 1e-6f))) > std::abs(std::log(std::max(best, 1e-6f))))
+				{
+					best = value;
+				}
+			}
+			return best;
+		};
+
+		min = start.min * factor;
+		max = start.max * factor;
+		switch (shape)
+		{
+		case HitboxShape::Sphere: radius = start.radius * strongest({factor.x, factor.y, factor.z}); break;
+		case HitboxShape::Cylinder:
+		case HitboxShape::Capsule:
+			radius = start.radius * strongest({factor.x, factor.y});
+			height = start.height * factor.z;
+			break;
+		case HitboxShape::Box:
+		default: break;
+		}
+		clampSize();
+	}
+
 	Bounds Hitbox::localBounds() const
 	{
 		switch (shape)
