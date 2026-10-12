@@ -3,6 +3,8 @@
 #include "library.h"
 #include "files.h"
 
+#include <map>
+
 #include "unzip.h"
 
 namespace mt::io {
@@ -31,6 +33,13 @@ namespace mt::io {
 		unzFile zipFile = nullptr;				 ///< minizip zip instance
 		std::unordered_set<std::string> files;	 ///< Files in the package (scanned for faster finds)
 		std::unordered_set<std::string> folders; ///< Folders in the package (scanned for faster finds)
+	};
+
+	/*! File or folder of the virtual file system (base folders, pk3 files and pk3dir folders merged together) */
+	struct VirtualEntry {
+		std::string name{};					///< file or folder name
+		bool isDirectory = false;			///< it is a folder
+		std::vector<std::string> sources{}; ///< folders / pk3 files that have it, the file is loaded from the first one
 	};
 
 	/*! Class that wraps multiple other FileSources and unifies their usage to a single point of access */
@@ -84,6 +93,14 @@ namespace mt::io {
 		Ref<MTFile> loadFile(const std::string &name) override;
 
 		FileList getFiles(const std::string &name) override;
+
+		/**
+		 * The files and folders of a folder of the virtual file system: every base folder, pk3 file and pk3dir folder
+		 * merged together, folders first, sorted by name
+		 * @param folder folder path relative to the root, empty for the root
+		 * @return entries with the sources that have them
+		 */
+		std::vector<VirtualEntry> listFolder(const std::string &folder);
 
 		[[nodiscard]] std::string getSource() const override;
 

@@ -51,6 +51,14 @@ namespace mt::io {
 					{
 						files.insert(fileName);
 					}
+
+					// Many pk3 tools do not store folder entries, the folders of the files are there anyway
+					std::string parent = fileName;
+					for (auto slash = parent.find_last_of('/'); slash != std::string::npos && slash > 0; slash = parent.find_last_of('/'))
+					{
+						parent.resize(slash);
+						folders.insert(parent);
+					}
 				}
 			} while (unzGoToNextFile(zipFile) == UNZ_OK);
 
@@ -184,27 +192,43 @@ namespace mt::io {
 
 		if (is_directory(sysPath))
 		{
+			// Search order: the loose files first, then the pk3dir folders, then the pk3 files. Within the packages the
+			// later names win like in the game (pak1.pk3 over pak0.pk3), so they are searched first
+			sources.push_back(std::make_shared<MTPath>(absolute(sysPath).string()));
+
 			// Do not scan the directory if it is supposed to be an unpacked pk3 (pk3dir)
 			if (!tools::endsWith(absolute(sysPath).filename().string(), ".pk3dir"))
 			{
+				std::vector<std::filesystem::path> pk3dirs, pk3s;
 				for (const auto &entry : std::filesystem::directory_iterator(path))
 				{
 					auto name = entry.path().filename().string();
 					auto ext = entry.path().extension().string();
 
-					// Check if directory, ignore if not a PK3Dir
 					if (entry.is_directory() && tools::endsWith(name, ".pk3dir"))
 					{
-						sources.push_back(std::make_shared<MTPath>(absolute(entry.path()).string()));
+						pk3dirs.push_back(absolute(entry.path()));
 					}
 					else if (entry.is_regular_file() && ext == ".pk3")
 					{
-						sources.push_back(std::make_shared<MTPackage>(absolute(entry.path()).string()));
+						pk3s.push_back(absolute(entry.path()));
 					}
 				}
-			}
 
-			sources.push_back(std::make_shared<MTPath>(absolute(sysPath).string()));
+				auto laterFirst = [](const std::filesystem::path &a, const std::filesystem::path &b) {
+					return a.filename().string() > b.filename().string();
+				};
+				std::sort(pk3dirs.begin(), pk3dirs.end(), laterFirst);
+				std::sort(pk3s.begin(), pk3s.end(), laterFirst);
+				for (const auto &folder : pk3dirs)
+				{
+					sources.push_back(std::make_shared<MTPath>(folder.string()));
+				}
+				for (const auto &package : pk3s)
+				{
+					sources.push_back(std::make_shared<MTPackage>(package.string()));
+				}
+			}
 		}
 		else if (is_regular_file(sysPath) && sysPath.extension() == ".pk3")
 		{
@@ -320,6 +344,45 @@ namespace mt::io {
 		files->erase(unique, files->end());
 
 		return files;
+	}
+
+	std::vector<VirtualEntry> FileSystem::listFolder(const std::string &folder)
+	{
+		std::vector<VirtualEntry> entries;
+		std::map<std::pair<bool, std::string>, size_t> index;
+
+		// Sources are searched in order, so the first source of a file is the one it is loaded from
+		for (auto &source : sources)
+		{
+			FileList found = source->getFiles(folder);
+			for (const auto &record : *found)
+			{
+				if (record.name.empty())
+				{
+					continue;
+				}
+				auto key = std::make_pair(record.isDirectory, record.name);
+				auto existing = index.find(key);
+				if (existing == index.end())
+				{
+					index[key] = entries.size();
+					entries.push_back({record.name, record.isDirectory, {source->getSource()}});
+				}
+				else if (entries[existing->second].sources.back() != source->getSource())
+				{
+					entries[existing->second].sources.push_back(source->getSource());
+				}
+			}
+		}
+
+		std::sort(entries.begin(), entries.end(), [](const VirtualEntry &first, const VirtualEntry &second) {
+			if (first.isDirectory != second.isDirectory)
+			{
+				return first.isDirectory;
+			}
+			return first.name < second.name;
+		});
+		return entries;
 	}
 
 	std::string FileSystem::getSource() const
