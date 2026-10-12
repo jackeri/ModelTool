@@ -97,6 +97,18 @@ namespace mt {
 		void openModelFromDisk();
 
 		/**
+		 * Folder the open file browsers start in: the folder of the last opened model or animation, or the first base
+		 * folder when nothing has been opened yet
+		 */
+		[[nodiscard]] std::string startFolder() const;
+
+		/**
+		 * Remember the folder of an opened file for the next file browser (kept in the settings)
+		 * @param file opened file
+		 */
+		void rememberFolder(const std::string &file);
+
+		/**
 		 * Show the folder browser for the base folder
 		 * @param add add the folder to the current ones instead of replacing them
 		 */

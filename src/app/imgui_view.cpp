@@ -250,11 +250,12 @@ namespace mt {
 
 				if (ImGui::MenuItem("Load animation...", nullptr, false, !!state.model))
 				{
-					browser.show("Load animation", [&](const std::string &animation) {
-						logger->info("Selected filename: {}", animation);
+					browser.show("Load animation", [this](const std::string &animation) {
+						rememberFolder(animation);
 						try
 						{
-							state.loadAnimation(animation);
+							singleton<State>().loadAnimation(animation);
+							logger->info("Loaded animation {}", animation);
 						}
 						catch (const std::exception &ex)
 						{
@@ -262,6 +263,7 @@ namespace mt {
 						}
 					});
 					browser.setTypeFilters(model::io::animationExtensions());
+					browser.setDirectory(startFolder());
 				}
 
 				if (ImGui::MenuItem("Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
@@ -763,10 +765,47 @@ namespace mt {
 		}
 	}
 
+	// Settings key of the folder of the last model or animation opened from the disk
+	static const char *LAST_FOLDER_KEY = "files.lastFolder";
+
+	std::string ImGuiView::startFolder() const
+	{
+		auto &state = singleton<State>();
+
+		// The folder of the last opened file (also from earlier sessions), or the base folder before anything was opened
+		auto last = state.settings.values.find(LAST_FOLDER_KEY);
+		std::error_code error;
+		if (last != state.settings.values.end() && std::filesystem::is_directory(last->second, error))
+		{
+			return last->second;
+		}
+
+		if (!state.basePaths.empty())
+		{
+			const std::filesystem::path base(state.basePaths.front());
+			return std::filesystem::is_directory(base, error) ? base.string() : base.parent_path().string(); // pk3 files
+		}
+		return "";
+	}
+
+	void ImGuiView::rememberFolder(const std::string &file)
+	{
+		std::error_code error;
+		auto folder = std::filesystem::absolute(std::filesystem::path(file).parent_path(), error);
+		if (!error)
+		{
+			singleton<State>().settings.values[LAST_FOLDER_KEY] = folder.lexically_normal().string();
+		}
+	}
+
 	void ImGuiView::openModelFromDisk()
 	{
-		browser.show("Open model", [this](const std::string &path) { openModel(path); });
+		browser.show("Open model", [this](const std::string &path) {
+			rememberFolder(path);
+			openModel(path);
+		});
 		browser.setTypeFilters(model::io::modelExtensions());
+		browser.setDirectory(startFolder());
 	}
 
 	void ImGuiView::showBaseFolderBrowser(bool add)

@@ -1,5 +1,6 @@
 #include "file_browser.h"
 
+#include <filesystem>
 #include <utility>
 
 namespace mt {
@@ -33,6 +34,16 @@ namespace mt {
 		{
 			browser->SetTypeFilters(filters);
 		}
+	}
+
+	bool FileBrowser::setDirectory(const std::string &folder)
+	{
+		std::error_code error;
+		if (!browser || folder.empty() || !std::filesystem::is_directory(folder, error))
+		{
+			return false;
+		}
+		return browser->SetDirectory(folder);
 	}
 
 	void FileBrowser::handle()

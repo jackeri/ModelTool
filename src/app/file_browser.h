@@ -26,6 +26,13 @@ namespace mt {
 		void setTypeFilters(const std::vector<std::string> &);
 
 		/**
+		 * Set the folder the picker shows
+		 * @param folder folder path, ignored if it does not exist
+		 * @return true if the folder was set
+		 */
+		bool setDirectory(const std::string &folder);
+
+		/**
 		 * Returns the current picker status
 		 * @return true if open
 		 */
