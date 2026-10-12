@@ -206,6 +206,11 @@ set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory("libs/tinygltf")
 
+# ufbx (vendored single file library, FBX and OBJ loading)
+add_library(bundled_ufbx STATIC "libs/ufbx/ufbx.c" "libs/ufbx/ufbx.h")
+target_include_directories(bundled_ufbx PUBLIC "libs/ufbx")
+set_target_properties(bundled_ufbx PROPERTIES FOLDER ${BUNDLED_TARGETS_FOLDER})
+
 # GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
@@ -226,7 +231,7 @@ target_include_directories(glm INTERFACE libs/glm)
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
-target_link_libraries(ModelToolLib PUBLIC tinygltf glm)
+target_link_libraries(ModelToolLib PUBLIC tinygltf glm PRIVATE bundled_ufbx)
 
 add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")

@@ -135,6 +135,7 @@ namespace mt::model::skeletal {
 		int torsoParent = -1;			///< bone which is the parent of the torso (MDS/MDX), -1 if not set
 		float lodScale = 1.0f;			///< level of detail scale (MDS/MDM)
 		float lodBias = 0.0f;			///< level of detail bias (MDS/MDM)
+		bool flipBoneTags = false;		///< rotate the tags made from bones when exporting (set for MS3D models)
 
 		~SkeletalModel() override;
 

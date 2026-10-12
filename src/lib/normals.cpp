@@ -121,7 +121,15 @@ namespace mt::model {
 			positions[v] = pos;
 		}
 
-		std::vector<glm::vec3> normals = calculate(positions, mesh.tris, mode);
+		setNormals(model, mesh, calculate(positions, mesh.tris, mode), frame);
+	}
+
+	void setNormals(const SkeletalModel &model, skeletal::Mesh &mesh, const std::vector<glm::vec3> &normals, int frame)
+	{
+		if (normals.size() != mesh.vertices.size())
+		{
+			throw mt_ex("Normal count does not match the vertex count");
+		}
 
 		for (size_t v = 0; v < mesh.vertices.size(); v++)
 		{

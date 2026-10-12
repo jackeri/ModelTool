@@ -1,8 +1,12 @@
 #include "model.h"
+#include "model_gltf.h"
+#include "model_iqm.h"
 #include "model_md3.h"
 #include "model_md5.h"
 #include "model_mdm.h"
+#include "model_ms3d.h"
 #include "model_mdx.h"
+#include "model_ufbx.h"
 #include "model_scripts.h"
 
 #include <filesystem>
@@ -14,11 +18,22 @@ namespace mt::model::io {
 	using Registry = std::map<std::string, T>;
 
 	// Function local statics so the registries exist before any static registration code runs
+	// clang-format off
 	static Registry<ModelLoader> &modelLoaders()
 	{
 		static Registry<ModelLoader> loaders{
-			{".md3", model::loadMD3}, {".mdc", model::loadMDC}, {".md5mesh", model::loadMd5Model},
-			{".mdm", model::loadMDM}, {".mds", model::loadMDS}, {".mdx", model::loadMDX},
+			{".fbx", model::loadFBX},
+			{".glb", model::loadGLTF},
+			{".gltf", model::loadGLTF},
+			{".iqm", model::loadIQM},
+			{".md3", model::loadMD3},
+			{".md5mesh", model::loadMd5Model},
+			{".mdc", model::loadMDC},
+			{".mdm", model::loadMDM},
+			{".mds", model::loadMDS},
+			{".mdx", model::loadMDX},
+			{".ms3d", model::loadMS3D},
+			{".obj", model::loadOBJ},
 		};
 		return loaders;
 	}
@@ -29,9 +44,11 @@ namespace mt::model::io {
 			{".aninc", model::loadAninc},
 			{".md5anim", model::loadMD5Anim},
 			{".mdx", model::loadMDXAnimation},
+			{".ms3d", model::loadMS3DAnimation},
 		};
 		return loaders;
 	}
+	// clang-format on
 
 	static Registry<ModelWriter> &modelWriters()
 	{

@@ -26,6 +26,17 @@ namespace mt::model {
 						  NormalMode mode = NormalMode::Smooth);
 
 	/**
+	 * Set the normals of a skeletal mesh from known normals (like the normals stored in a file). Sets the joint-local
+	 * vertex normals used for animation, and the bind pose normals if the pose is the bind pose.
+	 * @param model model that owns the joints (the mesh does not need to be in the model yet)
+	 * @param mesh mesh to set the normals for
+	 * @param normals normal per vertex in the pose
+	 * @param frame pose the normals are in, FRAME_BIND_POSE for the bind pose
+	 */
+	void setNormals(const skeletal::SkeletalModel &model, skeletal::Mesh &mesh, const std::vector<glm::vec3> &normals,
+					int frame = FRAME_BIND_POSE);
+
+	/**
 	 * Calculate the normals of every mesh in a skeletal model. Uses the bind pose if the model has one, otherwise the
 	 * current frame.
 	 * @param model model to calculate the normals for
