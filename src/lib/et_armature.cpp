@@ -1,4 +1,5 @@
 #include "et_armature.h"
+#include "skeletal_tools.h"
 
 namespace mt::model::et {
 	using skeletal::BoneTag;
@@ -148,5 +149,41 @@ namespace mt::model::et {
 		}
 
 		return issues;
+	}
+
+	int reorganizeArmature(SkeletalModel &model)
+	{
+		std::vector<int> order;
+		std::vector<bool> used(model.joints.size(), false);
+
+		for (const auto &bone : defaultArmature())
+		{
+			for (size_t i = 0; i < model.joints.size(); i++)
+			{
+				if (!used[i] && !model.joints[i].asTag && equalsIgnoreCase(model.joints[i].name, bone.name))
+				{
+					order.push_back(int(i));
+					used[i] = true;
+					break;
+				}
+			}
+		}
+
+		for (size_t i = 0; i < model.joints.size(); i++)
+		{
+			if (!used[i])
+			{
+				order.push_back(int(i));
+			}
+		}
+
+		int moved = 0;
+		for (size_t i = 0; i < order.size(); i++)
+		{
+			moved += order[i] != int(i) ? 1 : 0;
+		}
+
+		skeletal::reorderJoints(model, order);
+		return moved;
 	}
 }

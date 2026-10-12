@@ -216,6 +216,8 @@ namespace mt {
 		std::string name;							///< Name of this model
 		std::vector<model::Animation> animations{}; ///< Animation sequences defined for this model
 		int currentFrame = FRAME_BIND_POSE;			///< Currently used frame
+		int firstExportFrame = 0;					///< first frame written by the exporters
+		int lastExportFrame = -1;					///< last frame written by the exporters, -1 for the last frame
 	};
 
 }

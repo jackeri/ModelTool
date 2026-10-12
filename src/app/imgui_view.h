@@ -58,6 +58,16 @@ namespace mt {
 		 */
 		void drawMenu();
 
+		/**
+		 * Draw the Edit menu (model operations)
+		 */
+		void drawEditMenu();
+
+		/**
+		 * Draw the bounding box scaling window when it is open
+		 */
+		void drawScaleBoundsWindow();
+
 		std::vector<std::function<void()>>
 			m_lateExecution{}; ///< Late execution buffer for code that must not be executed in the menu context
 
@@ -65,6 +75,7 @@ namespace mt {
 
 		std::shared_ptr<spdlog::logger> logger; ///< shared logger
 
-		ScenePanel *scene = nullptr; ///< scene panel for the camera settings
+		ScenePanel *scene = nullptr;  ///< scene panel for the camera settings
+		bool showScaleBounds = false; ///< the bounding box scaling window is open
 	};
 }

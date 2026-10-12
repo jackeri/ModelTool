@@ -4,6 +4,10 @@
 #include "hitbox.h"
 #include "scene_panel.h"
 #include "texture.h"
+#include "normals.h"
+#include "lod.h"
+#include "skeletal_tools.h"
+#include "et_armature.h"
 #include "model_scripts.h"
 #include "skeletal_model.h"
 
@@ -99,6 +103,7 @@ namespace mt {
 		}
 
 		drawMenu();
+		drawScaleBoundsWindow();
 
 		// We might need to execute some ImGui code out of menus or a window for example, this is here for that
 		if (!m_lateExecution.empty())
@@ -239,6 +244,8 @@ namespace mt {
 				ImGui::EndMenu();
 			}
 
+			drawEditMenu();
+
 			if (ImGui::BeginMenu("View"))
 			{
 				auto &view = state.view;
@@ -303,5 +310,130 @@ namespace mt {
 
 			ImGui::EndMainMenuBar();
 		}
+	}
+
+	void ImGuiView::drawEditMenu()
+	{
+		auto &state = singleton<State>();
+		Model *model = state.model.get();
+		auto *skeletal = dynamic_cast<model::skeletal::SkeletalModel *>(model);
+
+		if (!ImGui::BeginMenu("Edit"))
+		{
+			return;
+		}
+
+		if (ImGui::MenuItem("Recalculate normals", nullptr, false, model != nullptr))
+		{
+			if (!model::calculateNormals(*model))
+			{
+				logger->warn("The model has no bind pose or frames to calculate the normals from");
+			}
+		}
+
+		if (ImGui::MenuItem("Calculate LOD", nullptr, false, model != nullptr))
+		{
+			try
+			{
+				if (model::calculateLod(*model))
+				{
+					logger->info("Calculated the level of detail data");
+				}
+				else
+				{
+					logger->warn("The model has nothing to calculate the level of detail from");
+				}
+			}
+			catch (const std::exception &ex)
+			{
+				logger->error("Failed to calculate the level of detail: {}", ex.what());
+			}
+		}
+
+		if (ImGui::MenuItem("Optimize vertices", nullptr, false, skeletal != nullptr))
+		{
+			logger->info("Removed {} duplicate vertices", model::skeletal::optimizeVertices(*skeletal));
+		}
+
+		if (ImGui::MenuItem("Scale bounding box...", nullptr, false, model != nullptr && model->hasFrames()))
+		{
+			showScaleBounds = true;
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("Bake pose", nullptr, false, skeletal && model->currentFrame >= 0 && model->hasFrames()))
+		{
+			model::skeletal::bakeBindPose(*skeletal, model->currentFrame);
+			logger->info("Frame {} is now the bind pose", model->currentFrame);
+		}
+
+		if (ImGui::MenuItem("Bake tags", nullptr, false, skeletal != nullptr))
+		{
+			logger->info("Baked {} bones into tags", model::skeletal::bakeTags(*skeletal));
+		}
+
+		if (ImGui::MenuItem("Reorganize armature", nullptr, false, skeletal != nullptr))
+		{
+			try
+			{
+				logger->info("Moved {} bones to the default armature order", model::et::reorganizeArmature(*skeletal));
+			}
+			catch (const std::exception &ex)
+			{
+				logger->error("Could not reorganize the armature: {}", ex.what());
+			}
+		}
+
+		if (ImGui::MenuItem("Check armature", nullptr, false, skeletal != nullptr))
+		{
+			auto issues = model::et::checkArmature(*skeletal);
+			if (issues.empty())
+			{
+				logger->info("The armature matches the default ET armature");
+			}
+			for (const auto &issue : issues)
+			{
+				logger->warn("{}", issue);
+			}
+		}
+
+		ImGui::EndMenu();
+	}
+
+	void ImGuiView::drawScaleBoundsWindow()
+	{
+		auto &state = singleton<State>();
+		if (!showScaleBounds || !state.model)
+		{
+			showScaleBounds = false;
+			return;
+		}
+
+		static float scale = 1.0f;
+		static int axes = int(model::skeletal::BoundsAxes::All);
+
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		if (ImGui::Begin("Scale bounding box", &showScaleBounds, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::TextDisabled("Scales the frame bounds the game uses for culling");
+			ImGui::SliderFloat("Scale", &scale, 0.1f, 5.0f);
+			ImGui::Combo("Axes", &axes, "X\0Y\0Z\0X and Y\0All\0");
+
+			if (ImGui::Button("Apply"))
+			{
+				model::skeletal::scaleBounds(*state.model, scale, model::skeletal::BoundsAxes(axes));
+				logger->info("Scaled the bounds by {}", scale);
+				showScaleBounds = false;
+				scale = 1.0f;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				showScaleBounds = false;
+				scale = 1.0f;
+			}
+		}
+		ImGui::End();
 	}
 }

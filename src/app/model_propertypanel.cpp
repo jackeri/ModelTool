@@ -14,31 +14,18 @@ namespace mt {
 
 		if (ImGui::Begin("Properties", nullptr, 0))
 		{
-			if (ImGui::CollapsingHeader("Model basics", ImGuiTreeNodeFlags_DefaultOpen))
+			if (!state.model)
 			{
-				if (state.model)
-				{
-					ImGui::InputText("Name", &state.model->name);
+				ImGui::Text("No model loaded");
+			}
+			else if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				drawModelBasics();
+			}
 
-					// Draw frame selector if the model has frames available
-					if (state.model->hasFrames())
-					{
-						const int minFrame = state.model->skeletalModel() ? mt::FRAME_BIND_POSE : 0;
-						if (ImGui::SliderInt("Frame", &state.model->currentFrame, minFrame, state.model->numFrames() - 1))
-						{
-							state.playback.pause();
-							state.playback.seek(state.model->currentFrame);
-						}
-						if (state.model->skeletalModel())
-						{
-							ImGui::TextDisabled("Frame -1 is the bind pose");
-						}
-					}
-				}
-				else
-				{
-					ImGui::Text("No model loaded");
-				}
+			if (state.model && ImGui::CollapsingHeader("Transform"))
+			{
+				drawTransformMenu();
 			}
 
 			if (state.model && state.model->hasFrames())
@@ -47,6 +34,26 @@ namespace mt {
 				{
 					drawAnimationMenu();
 				}
+			}
+
+			if (state.model && ImGui::CollapsingHeader("Animation sequences"))
+			{
+				drawSequencesMenu();
+			}
+
+			if (state.model && ImGui::CollapsingHeader("Meshes"))
+			{
+				drawMeshesMenu();
+			}
+
+			if (state.model && ImGui::CollapsingHeader("Tags"))
+			{
+				drawTagsMenu();
+			}
+
+			if (state.model && state.model->skeletalModel() && ImGui::CollapsingHeader("Bones"))
+			{
+				drawBonesMenu();
 			}
 
 			if (state.model)
@@ -112,32 +119,6 @@ namespace mt {
 		if (ImGui::DragIntRange2("Frame range", &first, &last, 1, 0, model.numFrames() - 1))
 		{
 			playback.setRange(first, std::max(first, last), 0, playback.loop);
-		}
-
-		if (!model.animations.empty() && ImGui::TreeNode("Sequences", "Sequences (%zu)", model.animations.size()))
-		{
-			ImGui::InputText("Filter", &sequenceFilter);
-			for (size_t i = 0; i < model.animations.size(); i++)
-			{
-				const auto &animation = model.animations[i];
-				if (!sequenceFilter.empty() && animation.name.find(sequenceFilter) == std::string::npos)
-				{
-					continue;
-				}
-
-				ImGui::PushID(int(i));
-				if (ImGui::SmallButton("Play"))
-				{
-					playback.setAnimation(animation);
-					model.currentFrame = playback.frame();
-					playback.play();
-				}
-				ImGui::SameLine();
-				ImGui::Text("%s  %d-%d  %d fps%s", animation.name.c_str(), animation.startFrame, animation.lastFrame(), animation.fps,
-							animation.loop ? "  loop" : "");
-				ImGui::PopID();
-			}
-			ImGui::TreePop();
 		}
 	}
 

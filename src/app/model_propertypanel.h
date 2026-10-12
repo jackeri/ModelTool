@@ -30,6 +30,14 @@ namespace mt {
 		 */
 		void drawLodMenu();
 
+		void drawModelBasics();
+		void drawTransformMenu();
+		void drawMeshesMenu();
+		void drawTagsMenu();
+		void drawBonesMenu();
+		void drawSequencesMenu();
+
 		std::string sequenceFilter{}; ///< filter for the animation sequence list
+		std::string boneFilter{};	  ///< filter for the bone list
 	};
 }

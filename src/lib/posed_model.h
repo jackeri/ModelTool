@@ -75,9 +75,4 @@ namespace mt::model {
 	 * @return vertex count to keep
 	 */
 	int lodVertexCount(int numVertices, int minLod, float ratio);
-
-	/**
-	 * Rotation applied to tags made from bones when the model has flipBoneTags set (MS3D models)
-	 */
-	const glm::quat BONE_TAG_FLIP{0.5f, 0.5f, 0.5f, 0.5f};
 }

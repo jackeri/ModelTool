@@ -42,4 +42,13 @@ namespace mt::model::et {
 	 * @return human readable list of differences, empty if the armature matches
 	 */
 	std::vector<std::string> checkArmature(const SkeletalModel &model);
+
+	/**
+	 * Reorder the bones to the default armature order: the default bones that are found (by name) first, the other
+	 * bones (like tag bones) after them in their current order. The bone hierarchy is kept as it is.
+	 * @param model model to change
+	 * @return number of bones that moved
+	 * @throws mt::mt_exception if the order would put a bone before its parent (a default bone under a custom bone)
+	 */
+	int reorganizeArmature(SkeletalModel &model);
 }

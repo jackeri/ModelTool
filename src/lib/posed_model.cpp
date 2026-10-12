@@ -111,7 +111,7 @@ namespace mt::model {
 					Point point = pose[i];
 					if (model.flipBoneTags)
 					{
-						point.rotation = glm::normalize(point.rotation * BONE_TAG_FLIP);
+						point.rotation = glm::normalize(point.rotation * skeletal::BONE_TAG_FLIP);
 					}
 					out.tags.push_back({joint.name, point});
 					continue;

@@ -153,7 +153,7 @@ TEST(PosedModelTest, boneTagsAndHitboxes)
 
 	model.flipBoneTags = true;
 	posed = poseModel(model, bind);
-	ASSERT_EQ(posed.tags[0].point.rotation, BONE_TAG_FLIP);
+	ASSERT_EQ(posed.tags[0].point.rotation, skeletal::BONE_TAG_FLIP);
 
 	ASSERT_EQ(posed.hitboxes.size(), 1);
 	expectVec(posed.hitboxes[0].point.location, {0, 0, 11});

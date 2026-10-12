@@ -6,6 +6,11 @@
 
 namespace mt::model::skeletal {
 
+	/**
+	 * Rotation applied to tags made from bones when the model has flipBoneTags set (MS3D models)
+	 */
+	const glm::quat BONE_TAG_FLIP{0.5f, 0.5f, 0.5f, 0.5f};
+
 	/*! Skeletons joint */
 	struct Joint : public Point {
 		std::string name{}; ///< name of the bone
