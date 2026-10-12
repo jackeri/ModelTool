@@ -43,3 +43,8 @@
 	url = https://github.com/syoyo/tinygltf.git
 	ignore = dirty
 	shallow = true
+[submodule "libs/zlib"]
+	path = libs/zlib
+	url = https://github.com/madler/zlib.git
+	ignore = dirty
+	shallow = true

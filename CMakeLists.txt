@@ -117,7 +117,7 @@ FILE(GLOB ZLIB_LIB_SRC
 include_directories(${ZLIB_LIB})
 add_library(bundled_zlib STATIC ${ZLIB_LIB_SRC} ${ZLIB_LIB_HEADERS})
 
-set(MINIZIP_LIB "libs/minizip")
+set(MINIZIP_LIB "libs/zlib/contrib/minizip")
 
 FILE(GLOB MINIZIP_LIB_HEADERS
         ${MINIZIP_LIB}/crypt.h
