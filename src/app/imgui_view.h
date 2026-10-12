@@ -92,6 +92,16 @@ namespace mt {
 		void openModel(const std::string &path);
 
 		/**
+		 * Open the file dialog for a tag or bone picked in the panels (State::attachRequest)
+		 */
+		void handleAttachRequest();
+
+		/**
+		 * @return extensions the open dialogs show: the model formats and .cfg (animation.cfg of player models)
+		 */
+		static std::vector<std::string> openExtensions();
+
+		/**
 		 * Show the file browser for opening a model from the disk
 		 */
 		void openModelFromDisk();

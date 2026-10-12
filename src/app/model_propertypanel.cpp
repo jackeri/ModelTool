@@ -25,6 +25,11 @@ namespace mt {
 				drawModelBasics();
 			}
 
+			if (state.isPlayer && ImGui::CollapsingHeader("Player", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				drawPlayerMenu();
+			}
+
 			if (state.model && ImGui::CollapsingHeader("Transform"))
 			{
 				drawTransformMenu();
@@ -51,6 +56,11 @@ namespace mt {
 			if (state.model && ImGui::CollapsingHeader("Tags"))
 			{
 				drawTagsMenu();
+			}
+
+			if (state.model && ImGui::CollapsingHeader("Attachments"))
+			{
+				drawAttachmentsMenu();
 			}
 
 			if (state.model && state.model->skeletalModel() && ImGui::CollapsingHeader("Bones"))
@@ -154,6 +164,184 @@ namespace mt {
 		if (ImGui::DragIntRange2("Frame range", &first, &last, 1, 0, model.numFrames() - 1))
 		{
 			playback.setRange(first, std::max(first, last), 0, playback.loop);
+		}
+	}
+
+	namespace {
+		/**
+		 * Sequence combo, the selected sequence is the one the playback plays
+		 * @return the picked sequence, nullptr if nothing was picked
+		 */
+		const Animation *sequenceCombo(const char *label, const std::vector<Animation> &list, const model::Playback &playback)
+		{
+			const Animation *current = nullptr;
+			for (const auto &animation : list)
+			{
+				if (animation.startFrame == playback.first() && animation.lastFrame() == playback.last())
+				{
+					current = &animation;
+				}
+			}
+
+			const Animation *picked = nullptr;
+			if (ImGui::BeginCombo(label, current ? current->name.c_str() : "(frames)", ImGuiComboFlags_HeightLarge))
+			{
+				for (const auto &animation : list)
+				{
+					if (ImGui::Selectable(animation.name.c_str(), &animation == current))
+					{
+						picked = &animation;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			return picked;
+		}
+	}
+
+	void ModelPropertyPanel::drawPlayerMenu()
+	{
+		auto &state = singleton<State>();
+		if (state.attachments.empty())
+		{
+			return;
+		}
+
+		if (ImGui::BeginCombo("Skin", state.playerSkin.empty() ? "(none)" : state.playerSkin.c_str()))
+		{
+			for (const auto &name : state.player.skins)
+			{
+				if (ImGui::Selectable(name.c_str(), name == state.playerSkin))
+				{
+					state.setPlayerSkin(name);
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		// BOTH_* sequences (deaths) are played by the legs and the torso together
+		Attachment &upper = state.attachments[0];
+		auto playBoth = [&](const Animation &animation, bool legs) {
+			state.playSequence(legs ? -1 : 0, animation);
+			if (tools::startsWith(animation.name, "BOTH_"))
+			{
+				const auto &other = legs ? upper.model->animations : state.model->animations;
+				auto same = std::find_if(other.begin(), other.end(), [&](const auto &item) { return item.name == animation.name; });
+				if (same != other.end())
+				{
+					state.playSequence(legs ? 0 : -1, *same);
+				}
+			}
+		};
+
+		if (const Animation *legs = sequenceCombo("Legs", state.model->animations, state.playback))
+		{
+			playBoth(*legs, true);
+		}
+		if (const Animation *torso = sequenceCombo("Torso", upper.model->animations, upper.playback))
+		{
+			playBoth(*torso, false);
+		}
+
+		ImGui::TextDisabled("Sex %s, footsteps %s", state.playerConfig.sex.c_str(), state.playerConfig.footsteps.c_str());
+		ImGui::TextDisabled("Play and pause in the Animation section");
+	}
+
+	void ModelPropertyPanel::drawAttachmentsMenu()
+	{
+		auto &state = singleton<State>();
+
+		if (state.attachments.empty())
+		{
+			ImGui::TextWrapped("Attach a model with the Attach button of a tag (Tags) or a bone (Bones).");
+			return;
+		}
+
+		int remove = -1;
+		for (int i = 0; i < int(state.attachments.size()); i++)
+		{
+			Attachment &attachment = state.attachments[i];
+			ImGui::PushID(i);
+			if (ImGui::TreeNodeEx("attachment", ImGuiTreeNodeFlags_DefaultOpen, "%s", attachment.name.c_str()))
+			{
+				// Parents come before their children in the list
+				auto parentName = [&](int index) { return index < 0 ? std::string("main model") : state.attachments[index].name; };
+				if (ImGui::BeginCombo("On", parentName(attachment.parent).c_str()))
+				{
+					for (int parent = -1; parent < i; parent++)
+					{
+						ImGui::PushID(parent);
+						if (ImGui::Selectable(parentName(parent).c_str(), parent == attachment.parent))
+						{
+							attachment.parent = parent;
+						}
+						ImGui::PopID();
+					}
+					ImGui::EndCombo();
+				}
+
+				const auto tags = state.attachPoints(attachment.parent);
+				const bool tagFound = std::find(tags.begin(), tags.end(), attachment.tag) != tags.end();
+				if (ImGui::BeginCombo("At", attachment.tag.c_str()))
+				{
+					for (const auto &tag : tags)
+					{
+						if (ImGui::Selectable(tag.c_str(), tag == attachment.tag))
+						{
+							attachment.tag = tag;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				if (!tagFound)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1, 0.6f, 0.2f, 1});
+					ImGui::TextWrapped("The parent has no tag or bone %s, drawn at its origin", attachment.tag.c_str());
+					ImGui::PopStyleColor();
+				}
+
+				if (attachment.model->numFrames() > 1)
+				{
+					if (!attachment.model->animations.empty())
+					{
+						if (const Animation *picked = sequenceCombo("Sequence", attachment.model->animations, attachment.playback))
+						{
+							state.playSequence(i, *picked);
+						}
+					}
+					int frame = std::max(attachment.model->currentFrame, 0);
+					if (ImGui::SliderInt("Frame", &frame, 0, attachment.model->numFrames() - 1))
+					{
+						attachment.playback.seek(frame);
+						attachment.model->currentFrame = frame;
+					}
+				}
+
+				// Models can be attached to the attached model's own tags and bones too
+				const auto points = state.attachPoints(i);
+				if (!points.empty() && ImGui::TreeNode("points", "Tags and bones (%zu)", points.size()))
+				{
+					for (const auto &point : points)
+					{
+						ui::attachButton(i, point);
+						ImGui::SameLine();
+						ImGui::TextUnformatted(point.c_str());
+					}
+					ImGui::TreePop();
+				}
+
+				if (ImGui::Button(ICON_FA_TRASH " Remove"))
+				{
+					remove = i;
+				}
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+
+		if (remove >= 0)
+		{
+			state.removeAttachment(remove);
 		}
 	}
 

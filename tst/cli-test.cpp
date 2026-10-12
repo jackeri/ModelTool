@@ -85,6 +85,13 @@ TEST(CliTest, Info)
 	ASSERT_EQ(lods.code, cli::EXIT_OK) << lods.err;
 	EXPECT_TRUE(contains(lods.out, "Levels of detail: 3"));
 
+	auto player = run({"--base", "data", "info", "models/players/grunt/animation.cfg"});
+	ASSERT_EQ(player.code, cli::EXIT_OK) << player.err;
+	EXPECT_TRUE(contains(player.out, "Upper: models/players/grunt/upper.md3"));
+	EXPECT_TRUE(contains(player.out, "Skins: default blue red stripe"));
+	EXPECT_TRUE(contains(player.out, "LEGS_WALKCR  legs frames 90-97, 20 fps, loops"));
+	EXPECT_EQ(run({"info", "data/models/md5/animation.cfg"}).code, cli::EXIT_FAILED);
+
 	auto missing = run({"info", "data/models/missing.md3"});
 	EXPECT_EQ(missing.code, cli::EXIT_FAILED);
 	EXPECT_TRUE(contains(missing.err, "File not found"));

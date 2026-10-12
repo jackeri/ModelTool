@@ -7,14 +7,17 @@ namespace mt {
 
 	/*! Command line options */
 	struct AppOptions {
-		std::vector<std::string> basePaths{};  ///< --base: folders (or pk3 files) to load files from
-		std::string model{};				   ///< --model: model to open
-		std::vector<std::string> animations{}; ///< --animation: animations to load into the model
-		std::string hitboxes{};				   ///< --hitboxes: hitbox file to load into the model
-		int frame = FRAME_BIND_POSE;		   ///< --frame: frame to show (-1 is the bind pose)
-		std::string screenshot{};			   ///< --screenshot: render the scene to this PNG and exit
-		bool screenshotUi = false;			   ///< --ui: the screenshot has the whole window with the UI
-		int width = 1280;					   ///< --size WxH: screenshot size
+		std::vector<std::string> basePaths{};	///< --base: folders (or pk3 files) to load files from
+		std::string model{};					///< --model: model to open
+		std::vector<std::string> animations{};	///< --animation: animations to load into the model
+		std::string skin{};						///< --skin: skin of a player model
+		std::vector<std::string> attachments{}; ///< --attach tag=file: attach a model to a tag of the main model
+		std::vector<std::string> sequences{};	///< --sequence: play the named sequence on every part that has it
+		std::string hitboxes{};					///< --hitboxes: hitbox file to load into the model
+		int frame = FRAME_BIND_POSE;			///< --frame: frame to show (-1 is the bind pose)
+		std::string screenshot{};				///< --screenshot: render the scene to this PNG and exit
+		bool screenshotUi = false;				///< --ui: the screenshot has the whole window with the UI
+		int width = 1280;						///< --size WxH: screenshot size
 		int height = 720;
 		std::vector<std::string> view{};	///< --view: comma separated view toggles, like wireframe,skeleton,tags
 		std::vector<std::string> exports{}; ///< --export: write the loaded model to these files (format by extension)

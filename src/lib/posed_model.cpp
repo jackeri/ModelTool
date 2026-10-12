@@ -106,6 +106,7 @@ namespace mt::model {
 			for (size_t i = 0; i < model.joints.size(); i++)
 			{
 				const Joint &joint = model.joints[i];
+				out.bonePoints.push_back({joint.name, pose[i]});
 				if (joint.asTag)
 				{
 					Point point = pose[i];
@@ -260,5 +261,44 @@ namespace mt::model {
 		}
 
 		return {};
+	}
+
+	bool tagMatrix(const PosedModel &posed, const std::string &tag, glm::mat4 &out)
+	{
+		// Tags first, then any bone of a skeletal model
+		auto same = [&](const std::string &name) {
+			return name.size() == tag.size() && std::equal(name.begin(), name.end(), tag.begin(), [](char a, char b) {
+					   return std::tolower((unsigned char)a) == std::tolower((unsigned char)b);
+				   });
+		};
+		for (const auto &posedTag : posed.tags)
+		{
+			if (same(posedTag.name))
+			{
+				out = glm::translate(posedTag.point.location) * glm::toMat4(posedTag.point.rotation);
+				return true;
+			}
+		}
+		for (const auto &bone : posed.bonePoints)
+		{
+			if (same(bone.name))
+			{
+				out = glm::translate(bone.point.location) * glm::toMat4(bone.point.rotation);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void applySkin(PosedModel &posed, const Skin &skin)
+	{
+		for (auto &mesh : posed.meshes)
+		{
+			std::string shader = skin.shader(mesh.name);
+			if (!shader.empty())
+			{
+				mesh.material = shader;
+			}
+		}
 	}
 }

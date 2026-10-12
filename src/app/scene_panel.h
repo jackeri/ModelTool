@@ -59,13 +59,15 @@ namespace mt {
 		 */
 		void drawLabels(const ImVec2 &origin);
 
-		glm::ivec2 size{};			 ///< Framebuffer size in pixels
-		glm::vec2 viewSize{};		 ///< Size of the scene image in the window (smaller than size on HiDPI screens)
-		Camera camera;				 ///< Camera instance which is used in the scene panel
-		Ref<Framebuffer> fbo;		 ///< Frame buffer for 3d view drawing
-		Ref<Renderer> renderer;		 ///< Renderer which is used for the 3d view
-		model::PosedModel posed{};	 ///< model pose of the last frame
-		glm::mat4 modelMatrix{1.0f}; ///< model transform of the last frame
-		bool sceneHovered = false;	 ///< state flag for mouse hover scene panel
+		glm::ivec2 size{};								   ///< Framebuffer size in pixels
+		glm::vec2 viewSize{};							   ///< Size of the scene image in the window (smaller than size on HiDPI screens)
+		Camera camera;									   ///< Camera instance which is used in the scene panel
+		Ref<Framebuffer> fbo;							   ///< Frame buffer for 3d view drawing
+		Ref<Renderer> renderer;							   ///< Renderer which is used for the 3d view
+		model::PosedModel posed{};						   ///< model pose of the last frame
+		glm::mat4 modelMatrix{1.0f};					   ///< model transform of the last frame
+		std::vector<model::PosedModel> posedAttachments{}; ///< attached models of the last frame
+		std::vector<glm::mat4> attachmentMatrices{};	   ///< scene matrices of the attached models
+		bool sceneHovered = false;						   ///< state flag for mouse hover scene panel
 	};
 }

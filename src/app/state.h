@@ -9,8 +9,11 @@
 #include "texture_cache.h"
 #include "settings.h"
 #include "ui_theme.h"
+#include "player.h"
+#include "skin.h"
 
 #include <filesystem>
+#include <optional>
 
 namespace mt {
 
@@ -35,26 +38,51 @@ namespace mt {
 		TextureFilter textureFilter = TextureFilter::Trilinear;
 	};
 
+	/*! Model drawn on a tag of the main model or of another attachment */
+	struct Attachment {
+		Ref<Model> model = nullptr; ///< attached model
+		std::string path{};			///< file of the model (textures are looked up next to it)
+		std::string name{};			///< shown name
+		int parent = -1;			///< -1 for the main model, else the index of an earlier attachment
+		std::string tag{};			///< tag of the parent the model follows
+		model::Playback playback{}; ///< frames of the attached model, played along with the main playback
+		model::Skin skin{};			///< shaders of the meshes
+	};
+
+	/*! A tag or bone picked in the panels to attach a model to, the menu view opens the file dialog for it */
+	struct AttachRequest {
+		int parent = -1;	   ///< -1 for the main model, else the attachment index
+		std::string point{};   ///< tag or bone name
+		bool fromBase = false; ///< pick the model from the base folders instead of the disk
+	};
+
 	/*! State singleton object */
 	class State {
 		friend Ref<State> singleton_ref<State>();
 
 	  public:
-		Ref<Model> model = nullptr;				 ///< currently loaded model
-		ImColor clearColor{0.15f, 0.16f, 0.18f}; ///< scene background color
-		ui::Theme theme = ui::Theme::Darker;	 ///< user interface colors
-		float fontSize = ui::DEFAULT_FONT_SIZE;	 ///< user interface font size
-		io::FileSystem filesystem{};			 ///< used filesystem, which will be initialized by the ImGuiView
-		std::string modelPath{};				 ///< path of the loaded model, textures are also looked up next to it
-		ViewSettings view{};					 ///< scene drawing settings
-		model::Playback playback{};				 ///< animation playback
-		TextureCache textures{};				 ///< loaded textures
-		bool frameCamera = false;				 ///< the scene panel should point the camera at the model
-		bool resetCamera = false;				 ///< the scene panel should reset the camera
-		AppSettings settings{};					 ///< settings kept between runs
-		bool persistSettings = false;			 ///< load and save the settings (off for screenshots)
-		std::vector<std::string> basePaths{};	 ///< base folders added by the user
-		bool showLog = true;					 ///< the log panel is open
+		Ref<Model> model = nullptr;					  ///< currently loaded model
+		ImColor clearColor{0.15f, 0.16f, 0.18f};	  ///< scene background color
+		ui::Theme theme = ui::Theme::Darker;		  ///< user interface colors
+		float fontSize = ui::DEFAULT_FONT_SIZE;		  ///< user interface font size
+		io::FileSystem filesystem{};				  ///< used filesystem, which will be initialized by the ImGuiView
+		std::string modelPath{};					  ///< path of the loaded model, textures are also looked up next to it
+		ViewSettings view{};						  ///< scene drawing settings
+		model::Playback playback{};					  ///< animation playback
+		TextureCache textures{};					  ///< loaded textures
+		bool frameCamera = false;					  ///< the scene panel should point the camera at the model
+		bool resetCamera = false;					  ///< the scene panel should reset the camera
+		AppSettings settings{};						  ///< settings kept between runs
+		bool persistSettings = false;				  ///< load and save the settings (off for screenshots)
+		std::vector<std::string> basePaths{};		  ///< base folders added by the user
+		bool showLog = true;						  ///< the log panel is open
+		model::Skin skin{};							  ///< skin of the main model
+		std::vector<Attachment> attachments{};		  ///< models drawn on tags, parents come before their children
+		bool isPlayer = false;						  ///< a three part player model is loaded (lower is the main model)
+		model::PlayerFiles player{};				  ///< files of the player model
+		model::PlayerConfig playerConfig{};			  ///< animation.cfg of the player model
+		std::optional<AttachRequest> attachRequest{}; ///< attach a model to this tag or bone (handled by the menu view)
+		std::string playerSkin{};					  ///< skin name of the player model
 
 		/**
 		 * no copy for singletons
@@ -82,38 +110,88 @@ namespace mt {
 		}
 
 		/**
-		 * Uses the filesystem and the modelloader to load a model into the current state
+		 * Uses the filesystem and the modelloader to load a model into the current state. animation.cfg of a player
+		 * model folder loads the player (lower, upper and head)
 		 * @param path path to the model
 		 */
-		void loadModel(const std::string &path)
+		void loadModel(const std::string &path);
+
+		/**
+		 * Load a three part player model: lower is the main model, upper on its tag_torso and head on the upper's
+		 * tag_head, with the default skin and the idle sequences
+		 * @param files player files
+		 */
+		void loadPlayer(const model::PlayerFiles &files);
+
+		/**
+		 * Use another skin of the player model
+		 * @param name skin name (lower_<name>.skin, ...)
+		 */
+		void setPlayerSkin(const std::string &name);
+
+		/**
+		 * Play a sequence on the main model (-1) or an attachment
+		 * @param target -1 for the main model, else the attachment index
+		 * @param animation sequence
+		 */
+		void playSequence(int target, const model::Animation &animation);
+
+		/**
+		 * Attach a model to a tag
+		 * @param path model file
+		 * @param parent -1 for the main model, else the index of an attachment
+		 * @param tag tag of the parent
+		 * @return the new attachment
+		 * @throws mt::mt_exception if the model can not be loaded
+		 */
+		Attachment &attachModel(const std::string &path, int parent, const std::string &tag);
+
+		/**
+		 * Remove an attachment and the attachments on it
+		 * @param index attachment index
+		 */
+		void removeAttachment(int index);
+
+		/**
+		 * @param target -1 for the main model, else an attachment index
+		 * @return tag names of the model (tags, and bones usable as tags of skeletal models)
+		 */
+		[[nodiscard]] std::vector<std::string> tagNames(int target) const;
+
+		/**
+		 * @param target -1 for the main model, else an attachment index
+		 * @return where models can be attached: the tags, then the other bones of skeletal models
+		 */
+		[[nodiscard]] std::vector<std::string> attachPoints(int target) const;
+
+	  private:
+		/**
+		 * Load a model file as the main model
+		 * @param path path to the model
+		 * @param recent add it to the recent files
+		 */
+		void loadSingleModel(const std::string &path, bool recent)
 		{
 			closeModels();
-
-			auto *tmp = model::io::loadModel(filesystem.loadFile(path));
-			if (tmp)
-			{
-				model = std::unique_ptr<Model>(tmp);
-			}
-
-			if (auto *morph = dynamic_cast<model::morph::MorphModel *>(model.get()))
-			{
-				for (const auto &problem : model::loadMorphLods(*morph, filesystem, path))
-				{
-					if (auto logger = spdlog::get(MT_LOGGER))
-					{
-						logger->warn("{}", problem);
-					}
-				}
-			}
+			model = loadModelFile(path);
 
 			modelPath = path;
-			settings.addRecentFile(path);
+			if (recent)
+			{
+				settings.addRecentFile(path);
+			}
 			view.lodLevel = 0;
 			view.selectedHitbox = -1;
 			frameCamera = true;
 			resetPlayback();
 		}
 
+		/**
+		 * Load a model with its levels of detail (morph models)
+		 */
+		Ref<Model> loadModelFile(const std::string &path);
+
+	  public:
 		/**
 		 * Add a base folder (or a pk3 file) to load the models and textures from
 		 * @param path folder or pk3 path
@@ -165,16 +243,7 @@ namespace mt {
 		 * Move the animation forward, called every frame
 		 * @param seconds time since the last call
 		 */
-		void update(double seconds)
-		{
-			if (!model || !playback.isPlaying() || !model->hasFrames())
-			{
-				return;
-			}
-
-			playback.advance(seconds);
-			model->currentFrame = std::clamp(playback.frame(), 0, model->numFrames() - 1);
-		}
+		void update(double seconds);
 
 		/**
 		 * Uses the filesystem and the modelloader to load an animation into the current state's model
@@ -211,6 +280,13 @@ namespace mt {
 			modelPath.clear();
 			textures.clear();
 			playback.pause();
+			attachments.clear();
+			attachRequest.reset();
+			skin = {};
+			isPlayer = false;
+			player = {};
+			playerConfig = {};
+			playerSkin.clear();
 		}
 
 	  private:

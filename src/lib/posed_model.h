@@ -3,6 +3,7 @@
 #include "library.h"
 #include "model.h"
 #include "hitbox.h"
+#include "skin.h"
 
 namespace mt::model {
 
@@ -45,6 +46,7 @@ namespace mt::model {
 		std::vector<glm::vec3> joints{};					  ///< bone positions (tags excluded)
 		std::vector<std::pair<glm::vec3, glm::vec3>> bones{}; ///< lines from bones to their parents (tags excluded)
 		std::vector<PosedTag> tags{};
+		std::vector<PosedTag> bonePoints{}; ///< every bone of a skeletal model (location and rotation), for attachments
 		std::vector<PosedHitbox> hitboxes{};
 		bool hasBounds = false;
 		Bounds bounds{};
@@ -57,6 +59,23 @@ namespace mt::model {
 	 * @return posed model, empty meshes when there is nothing to show (skeletal model without frames or bind pose)
 	 */
 	PosedModel poseModel(const Model &model, const PoseOptions &options);
+
+	/**
+	 * Matrix of a posed tag or bone (location and rotation in the model's space), for attaching another model to it.
+	 * Tags are looked up first, then the bones of skeletal models.
+	 * @param posed posed model
+	 * @param tag tag or bone name (case insensitive)
+	 * @param out tag matrix
+	 * @return false if the model has no such tag
+	 */
+	bool tagMatrix(const PosedModel &posed, const std::string &tag, glm::mat4 &out);
+
+	/**
+	 * Use the shaders of a skin as the materials of the meshes it names
+	 * @param posed posed model to change
+	 * @param skin skin to apply
+	 */
+	void applySkin(PosedModel &posed, const Skin &skin);
 
 	/**
 	 * Remap triangles with a collapse map (Melax progressive mesh) so that only the first vertexCount vertices are used,

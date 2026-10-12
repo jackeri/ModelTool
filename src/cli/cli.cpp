@@ -6,6 +6,8 @@
 #include "model_md3.h"
 #include "morph_model.h"
 #include "normals.h"
+#include "player.h"
+#include "skin.h"
 #include "posed_model.h"
 #include "skeletal_model.h"
 #include "skeletal_tools.h"
@@ -323,9 +325,44 @@ namespace mt::cli {
 			}
 		}
 
+		int playerInfo(Files &files, const std::string &path, std::ostream &out)
+		{
+			const std::string resolved = files.resolve(path);
+			model::PlayerFiles player;
+			if (!model::findPlayerFiles(files.system, resolved, player))
+			{
+				throw mt_ex("No player model (lower.md3, upper.md3 and head.md3) next to " + path);
+			}
+			auto config = model::parsePlayerConfig(model::fileText(files.load(resolved)));
+
+			out << "Player: " << path << "\n";
+			for (const auto &[part, file] : {std::pair{"Lower", player.lower}, {"Upper", player.upper}, {"Head", player.head}})
+			{
+				std::unique_ptr<Model> partModel(model::io::loadModel(files.load(file)));
+				out << part << ": " << file << "  frames " << partModel->numFrames() << "\n";
+			}
+			out << "Skins: " << join(player.skins) << "\n";
+			out << "Sex: " << config.sex << ", footsteps: " << config.footsteps << "\n";
+			out << "Sequences: " << config.animations.size() << "\n";
+			for (const auto &animation : config.animations)
+			{
+				const char *part = animation.part == model::PlayerPart::Both   ? "both"
+								   : animation.part == model::PlayerPart::Legs ? "legs"
+																			   : "torso";
+				out << "  " << animation.name << "  " << part << " frames " << animation.firstFrame << "-"
+					<< animation.firstFrame + animation.numFrames - 1 << ", " << animation.fps << " fps"
+					<< (animation.loopFrames > 0 ? ", loops" : "") << (animation.reversed ? ", reversed" : "") << "\n";
+			}
+			return EXIT_OK;
+		}
+
 		int infoCommand(const Options &options, std::ostream &out, std::ostream &err)
 		{
 			Files files(options.basePaths);
+			if (!options.arguments.empty() && model::io::normalizeExtension(options.arguments[0]) == ".cfg")
+			{
+				return playerInfo(files, options.arguments[0], out);
+			}
 			auto loaded = loadModel(files, options, err);
 			const Model &model = *loaded;
 
@@ -511,7 +548,8 @@ namespace mt::cli {
 			   "\n"
 			   "Commands:\n"
 			   "  formats                        list the readable and writable formats\n"
-			   "  info <model>                   show the meshes, bones, tags, hitboxes and animation sequences\n"
+			   "  info <model>                   show the meshes, bones, tags, hitboxes and animation sequences;\n"
+			   "                                 animation.cfg shows a player model (parts, skins, sequences)\n"
 			   "  convert <model> <output>...    write the model, the format comes from the output extension\n"
 			   "  list [folder]                  list the model files in the base folders and pk3 files\n"
 			   "\n"

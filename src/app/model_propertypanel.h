@@ -30,6 +30,16 @@ namespace mt {
 		 */
 		void drawLodMenu();
 
+		/**
+		 * Draw the player model controls (skin, legs and torso sequences)
+		 */
+		void drawPlayerMenu();
+
+		/**
+		 * Draw the attached models (parent, tag, frame, remove)
+		 */
+		void drawAttachmentsMenu();
+
 		void drawModelBasics();
 		void drawTransformMenu();
 		void drawMeshesMenu();

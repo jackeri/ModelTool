@@ -162,6 +162,8 @@ namespace mt {
 					boneCombo("Bone", skeletal->joints, tag.parentBone, false);
 					ImGui::DragFloat3("Location", glm::value_ptr(tag.location), 0.1f);
 					editRotation("Rotation", tag.rotation);
+					ui::attachButton(-1, tag.name);
+					ImGui::SameLine();
 					if (ImGui::Button(ICON_FA_TRASH " Remove tag"))
 					{
 						skeletal->tags.erase(skeletal->tags.begin() + long(i));
@@ -181,7 +183,10 @@ namespace mt {
 			{
 				auto &tag = morph->tags[i];
 				ImGui::PushID(int(i));
+				ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
 				ImGui::InputText("##name", &tag.name);
+				ImGui::SameLine();
+				ui::attachButton(-1, tag.name);
 				ImGui::SameLine();
 				if (ImGui::SmallButton(ICON_FA_TRASH " Remove"))
 				{
@@ -237,6 +242,7 @@ namespace mt {
 				}
 
 				ImGui::SliderFloat("Torso weight", &joint.torsoWeight, 0.0f, 1.0f);
+				ui::attachButton(-1, joint.name);
 				ImGui::TreePop();
 			}
 			ImGui::PopID();

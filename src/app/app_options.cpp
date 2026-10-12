@@ -29,6 +29,22 @@ namespace mt {
 			{
 				options.animations.push_back(value());
 			}
+			else if (arg == "--skin")
+			{
+				options.skin = value();
+			}
+			else if (arg == "--attach")
+			{
+				options.attachments.push_back(value());
+				if (options.attachments.back().find('=') == std::string::npos)
+				{
+					throw mt_ex("Invalid attachment, expected tag=file: " + options.attachments.back());
+				}
+			}
+			else if (arg == "--sequence")
+			{
+				options.sequences.push_back(value());
+			}
 			else if (arg == "--hitboxes")
 			{
 				options.hitboxes = value();
@@ -84,6 +100,7 @@ namespace mt {
 	std::string AppOptions::usage()
 	{
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]\n"
+			   "                 [--skin name] [--attach tag=file]... [--sequence name]...\n"
 			   "                 [--view wireframe,notextures,alpha,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
 			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}

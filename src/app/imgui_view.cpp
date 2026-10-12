@@ -149,6 +149,7 @@ namespace mt {
 		}
 
 		drawMenu();
+		handleAttachRequest();
 		drawScaleBoundsWindow();
 		drawExportAllWindow();
 
@@ -198,8 +199,7 @@ namespace mt {
 
 				if (ImGui::MenuItem(ICON_FA_ARCHIVE " Open from base folders..."))
 				{
-					baseBrowser.show("Open from base folders", model::io::modelExtensions(),
-									 [this](const std::string &path) { openModel(path); });
+					baseBrowser.show("Open from base folders", openExtensions(), [this](const std::string &path) { openModel(path); });
 				}
 
 				if (ImGui::BeginMenu(ICON_FA_HISTORY " Recent models", !state.settings.recentFiles.empty()))
@@ -773,6 +773,52 @@ namespace mt {
 		return label;
 	}
 
+	std::vector<std::string> ImGuiView::openExtensions()
+	{
+		// animation.cfg opens a player model
+		auto extensions = model::io::modelExtensions();
+		extensions.emplace_back(".cfg");
+		return extensions;
+	}
+
+	void ImGuiView::handleAttachRequest()
+	{
+		auto &state = singleton<State>();
+		if (!state.attachRequest)
+		{
+			return;
+		}
+		const AttachRequest request = *state.attachRequest;
+		state.attachRequest.reset();
+
+		auto attach = [this, request](const std::string &path) {
+			try
+			{
+				singleton<State>().attachModel(path, request.parent, request.point);
+				logger->info("Attached {} to {}", path, request.point);
+			}
+			catch (const std::exception &ex)
+			{
+				logger->error("Failed to attach {}: {}", path, ex.what());
+			}
+		};
+
+		const std::string title = "Attach a model to " + request.point;
+		if (request.fromBase)
+		{
+			baseBrowser.show(title, model::io::modelExtensions(), attach);
+		}
+		else
+		{
+			browser.show(title, [this, attach](const std::string &path) {
+				rememberFolder(path);
+				attach(path);
+			});
+			browser.setTypeFilters(model::io::modelExtensions());
+			browser.setDirectory(startFolder());
+		}
+	}
+
 	void ImGuiView::openModel(const std::string &path)
 	{
 		try
@@ -825,7 +871,7 @@ namespace mt {
 			rememberFolder(path);
 			openModel(path);
 		});
-		browser.setTypeFilters(model::io::modelExtensions());
+		browser.setTypeFilters(openExtensions());
 		browser.setDirectory(startFolder());
 	}
 

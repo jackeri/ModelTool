@@ -294,7 +294,34 @@ void mt::GLWindow::applyOptions()
 				model::Hitbox::loadHitboxes(state.filesystem.loadFile(options.hitboxes), *state.model->getHitboxes());
 			}
 
-			if (state.model && (options.frame >= 0 || !state.model->skeletalModel()))
+			if (!options.skin.empty() && state.isPlayer)
+			{
+				state.setPlayerSkin(options.skin);
+			}
+			for (const auto &attachment : options.attachments)
+			{
+				const auto split = attachment.find('=');
+				state.attachModel(attachment.substr(split + 1), -1, attachment.substr(0, split));
+			}
+			for (const auto &name : options.sequences)
+			{
+				auto play = [&](int target, const std::vector<model::Animation> &list) {
+					for (const auto &animation : list)
+					{
+						if (animation.name == name)
+						{
+							state.playSequence(target, animation);
+						}
+					}
+				};
+				play(-1, state.model->animations);
+				for (int i = 0; i < int(state.attachments.size()); i++)
+				{
+					play(i, state.attachments[i].model->animations);
+				}
+			}
+
+			if (state.model && (options.frame >= 0 || (!state.model->skeletalModel() && !state.isPlayer)))
 			{
 				state.model->currentFrame = std::clamp(options.frame, 0, std::max(state.model->numFrames() - 1, 0));
 			}

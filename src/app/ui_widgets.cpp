@@ -1,4 +1,6 @@
 #include "ui_widgets.h"
+#include "icons_font_awesome.h"
+#include "state.h"
 
 using namespace mt::model::skeletal;
 
@@ -39,6 +41,34 @@ namespace mt::ui {
 			ImGui::EndCombo();
 		}
 		return changed;
+	}
+
+	void attachButton(int parent, const std::string &point)
+	{
+		ImGui::PushID("attach");
+		ImGui::PushID(point.c_str());
+		if (ImGui::SmallButton(ICON_FA_LINK " Attach"))
+		{
+			ImGui::OpenPopup("attach");
+		}
+		ImGui::SetItemTooltip("Attach a model to %s", point.c_str());
+
+		if (ImGui::BeginPopup("attach"))
+		{
+			ImGui::TextDisabled("Attach a model to %s", point.c_str());
+			auto &state = singleton<State>();
+			if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN " From disk..."))
+			{
+				state.attachRequest = AttachRequest{parent, point, false};
+			}
+			if (ImGui::MenuItem(ICON_FA_ARCHIVE " From base folders..."))
+			{
+				state.attachRequest = AttachRequest{parent, point, true};
+			}
+			ImGui::EndPopup();
+		}
+		ImGui::PopID();
+		ImGui::PopID();
 	}
 
 }
