@@ -30,7 +30,7 @@ jobs:
             packages: DragNDrop;ZIP
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0 # the tags give the version
@@ -83,7 +83,7 @@ jobs:
         run: cpack -C ${{ env.BUILD_TYPE }} -G "${{ matrix.packages }}"
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ModelTool-${{ matrix.name }}
           path: |
@@ -103,13 +103,13 @@ jobs:
 
     steps:
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: packages
           merge-multiple: true
 
       - name: Create the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ModelTool ${{ github.ref_name }}
           generate_release_notes: true
