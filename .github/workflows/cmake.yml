@@ -119,6 +119,7 @@ jobs:
 
       - name: Cleanup
         uses: geekyeggo/delete-artifact@v6
+        if: always()
         with:
           failOnError: false
           name: |
