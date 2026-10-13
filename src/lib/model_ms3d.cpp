@@ -6,7 +6,7 @@
 #include "normals.h"
 #include "model_export.h"
 #include "binary_writer.h"
-#include "io.h"
+#include "mt_io.h"
 
 #include <filesystem>
 #include <map>

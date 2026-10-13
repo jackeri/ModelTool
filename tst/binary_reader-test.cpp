@@ -69,7 +69,7 @@ TEST(BinaryReaderTest, throwsOnOutOfBounds)
 	ASSERT_THROW(reader.readArray<float>(1000), mt_exception);
 	// count * sizeof would overflow
 	ASSERT_THROW(reader.readArray<float>(INT64_MAX / 2), mt_exception);
-	ASSERT_THROW(reader.readAt<int>(int64_t(data.size()) - 2), mt_exception);
+	ASSERT_THROW((void)reader.readAt<int>(int64_t(data.size()) - 2), mt_exception);
 	ASSERT_THROW(reader.skip(int64_t(data.size()) + 1), mt_exception);
 
 	// a failed read does not move the offset
@@ -89,7 +89,7 @@ TEST(BinaryReaderTest, subReaders)
 	ASSERT_EQ(version.read<int>(), 15);
 	ASSERT_THROW(version.read<int>(), mt_exception);
 
-	ASSERT_THROW(reader.sub(4, int64_t(data.size())), mt_exception);
+	ASSERT_THROW((void)reader.sub(4, int64_t(data.size())), mt_exception);
 }
 
 TEST(BinaryReaderTest, readsLoadedFiles)

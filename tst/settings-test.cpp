@@ -66,7 +66,7 @@ TEST(SettingsTest, unknownAndBrokenInput)
 	// Values that can not be stored
 	AppSettings bad;
 	bad.basePaths = {"has \"quotes\""};
-	ASSERT_THROW(bad.serialize(), mt_exception);
+	ASSERT_THROW((void)bad.serialize(), mt_exception);
 
 	// A missing file gives the defaults
 	AppSettings missing = AppSettings::load("tmp/does-not-exist/settings.cfg");
