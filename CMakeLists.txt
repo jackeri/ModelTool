@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.1)
 include(CheckIncludeFile)
 include(ExternalProject)
 
@@ -207,11 +207,10 @@ include_directories("libs/imgui-filebrowser")
 include_directories("libs/imguizmo")
 include_directories("libs/stb")
 
-# TinyGLTF
-set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
-set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "" FORCE)
-set(TINYGLTF_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory("libs/tinygltf")
+# tinygltf v3 (C11 glTF / GLB parser). Its own CMake file only builds tests, so the library target is made here.
+add_library(bundled_tinygltf STATIC "libs/tinygltf/tiny_gltf_v3.c" "libs/tinygltf/tiny_gltf_v3.h")
+target_include_directories(bundled_tinygltf PUBLIC "libs/tinygltf")
+set_target_properties(bundled_tinygltf PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF FOLDER ${BUNDLED_TARGETS_FOLDER})
 
 # ufbx (vendored single file library, FBX and OBJ loading)
 add_library(bundled_ufbx STATIC "libs/ufbx/ufbx.c" "libs/ufbx/ufbx.h")
@@ -243,7 +242,7 @@ target_include_directories(ModelToolLib PUBLIC "src/lib")
 # mt_version.h: the version for the programs (window title, mt --version)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/mt_version.h.in" "${CMAKE_BINARY_DIR}/generated/mt_version.h" @ONLY)
 target_include_directories(ModelToolLib PUBLIC "${CMAKE_BINARY_DIR}/generated")
-target_link_libraries(ModelToolLib PUBLIC tinygltf glm bundled_minizip PRIVATE bundled_ufbx)
+target_link_libraries(ModelToolLib PUBLIC glm bundled_minizip PRIVATE bundled_tinygltf bundled_ufbx)
 
 add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")

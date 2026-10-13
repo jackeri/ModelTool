@@ -1,67 +1,89 @@
 #include "model_gltf.h"
 #include "scene_import.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_NO_STB_IMAGE
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#define TINYGLTF_NO_EXTERNAL_IMAGE
-#include <tiny_gltf.h>
+#include <tiny_gltf_v3.h>
 
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <map>
+#include <numeric>
+#include <string>
 #include <tuple>
+#include <vector>
 
 namespace mt::model {
 
 	namespace {
+		std::string str(tg3_str value)
+		{
+			return value.data ? std::string(value.data, value.len) : std::string();
+		}
+
+		template<typename T>
+		std::vector<T> span(const T *data, uint32_t count)
+		{
+			return data ? std::vector<T>(data, data + count) : std::vector<T>();
+		}
+
+		/*! The parsed model, freed with the loader */
+		struct Gltf : tg3_model {
+			Gltf() : tg3_model{} {}
+			~Gltf()
+			{
+				tg3_model_free(this);
+			}
+			Gltf(const Gltf &) = delete;
+			Gltf &operator=(const Gltf &) = delete;
+		};
+
 		/**
 		 * Read an accessor as floats (normalized integers are converted to 0..1 / -1..1)
 		 * @return count * components values
 		 */
-		std::vector<float> readFloats(const tinygltf::Model &gltf, int accessorIndex, int components)
+		std::vector<float> readFloats(const tg3_model &gltf, int accessorIndex, int components)
 		{
-			if (accessorIndex < 0 || accessorIndex >= int(gltf.accessors.size()))
+			if (accessorIndex < 0 || accessorIndex >= int(gltf.accessors_count))
 			{
 				throw mt_ex("Invalid accessor: " + std::to_string(accessorIndex));
 			}
 
 			const auto &accessor = gltf.accessors[accessorIndex];
-			if (accessor.sparse.isSparse)
+			if (accessor.sparse.is_sparse)
 			{
 				throw mt_ex("Sparse accessors are not supported");
 			}
 
-			if (tinygltf::GetNumComponentsInType(uint32_t(accessor.type)) != components)
+			if (tg3_num_components(accessor.type) != components)
 			{
 				throw mt_ex("Unexpected accessor type for accessor " + std::to_string(accessorIndex));
 			}
 
-			if (accessor.bufferView < 0 || accessor.bufferView >= int(gltf.bufferViews.size()))
+			if (accessor.buffer_view < 0 || accessor.buffer_view >= int(gltf.buffer_views_count))
 			{
 				throw mt_ex("Invalid buffer view in accessor " + std::to_string(accessorIndex));
 			}
 
-			const auto &view = gltf.bufferViews[accessor.bufferView];
-			if (view.buffer < 0 || view.buffer >= int(gltf.buffers.size()))
+			const auto &view = gltf.buffer_views[accessor.buffer_view];
+			if (view.buffer < 0 || view.buffer >= int(gltf.buffers_count))
 			{
-				throw mt_ex("Invalid buffer in buffer view " + std::to_string(accessor.bufferView));
+				throw mt_ex("Invalid buffer in buffer view " + std::to_string(accessor.buffer_view));
 			}
 
 			const auto &buffer = gltf.buffers[view.buffer].data;
-			const int componentSize = tinygltf::GetComponentSizeInBytes(uint32_t(accessor.componentType));
+			const int componentSize = tg3_component_size(accessor.component_type);
 			if (componentSize <= 0)
 			{
 				throw mt_ex("Invalid component type in accessor " + std::to_string(accessorIndex));
 			}
 
 			const size_t elementSize = size_t(componentSize) * size_t(components);
-			const size_t stride = view.byteStride ? view.byteStride : elementSize;
-			const size_t start = view.byteOffset + accessor.byteOffset;
+			const size_t stride = view.byte_stride ? size_t(view.byte_stride) : elementSize;
+			const size_t start = view.byte_offset + accessor.byte_offset;
 
 			if (accessor.count > 0
-				&& (start + stride * (accessor.count - 1) + elementSize > view.byteOffset + view.byteLength
-					|| view.byteOffset + view.byteLength > buffer.size()))
+				&& (start + stride * (accessor.count - 1) + elementSize > view.byte_offset + view.byte_length
+					|| view.byte_offset + view.byte_length > buffer.count))
 			{
 				throw mt_ex("Accessor " + std::to_string(accessorIndex) + " points outside its buffer");
 			}
@@ -71,33 +93,33 @@ namespace mt::model {
 
 			for (size_t i = 0; i < accessor.count; i++)
 			{
-				const unsigned char *element = buffer.data() + start + stride * i;
+				const unsigned char *element = buffer.data + start + stride * i;
 				for (int c = 0; c < components; c++)
 				{
 					const unsigned char *value = element + size_t(c) * size_t(componentSize);
 					float result = 0;
-					switch (accessor.componentType)
+					switch (accessor.component_type)
 					{
-					case TINYGLTF_COMPONENT_TYPE_FLOAT: std::memcpy(&result, value, 4); break;
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: result = float(*value) / (accessor.normalized ? 255.0f : 1.0f); break;
-					case TINYGLTF_COMPONENT_TYPE_BYTE: {
+					case TG3_COMPONENT_TYPE_FLOAT: std::memcpy(&result, value, 4); break;
+					case TG3_COMPONENT_TYPE_UNSIGNED_BYTE: result = float(*value) / (accessor.normalized ? 255.0f : 1.0f); break;
+					case TG3_COMPONENT_TYPE_BYTE: {
 						auto signedValue = float(int8_t(*value));
 						result = accessor.normalized ? std::max(signedValue / 127.0f, -1.0f) : signedValue;
 						break;
 					}
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+					case TG3_COMPONENT_TYPE_UNSIGNED_SHORT: {
 						uint16_t raw;
 						std::memcpy(&raw, value, 2);
 						result = float(raw) / (accessor.normalized ? 65535.0f : 1.0f);
 						break;
 					}
-					case TINYGLTF_COMPONENT_TYPE_SHORT: {
+					case TG3_COMPONENT_TYPE_SHORT: {
 						int16_t raw;
 						std::memcpy(&raw, value, 2);
 						result = accessor.normalized ? std::max(float(raw) / 32767.0f, -1.0f) : float(raw);
 						break;
 					}
-					case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
+					case TG3_COMPONENT_TYPE_UNSIGNED_INT: {
 						uint32_t raw;
 						std::memcpy(&raw, value, 4);
 						result = float(raw);
@@ -112,7 +134,7 @@ namespace mt::model {
 			return out;
 		}
 
-		std::vector<uint32_t> readIndices(const tinygltf::Model &gltf, int accessorIndex)
+		std::vector<uint32_t> readIndices(const tg3_model &gltf, int accessorIndex)
 		{
 			auto values = readFloats(gltf, accessorIndex, 1);
 			std::vector<uint32_t> out(values.size());
@@ -137,10 +159,10 @@ namespace mt::model {
 			}
 		};
 
-		TRS restTransform(const tinygltf::Node &node)
+		TRS restTransform(const tg3_node &node)
 		{
 			TRS out;
-			if (node.matrix.size() == 16)
+			if (node.has_matrix)
 			{
 				out.hasMatrix = true;
 				for (int i = 0; i < 16; i++)
@@ -150,25 +172,16 @@ namespace mt::model {
 				return out;
 			}
 
-			if (node.translation.size() == 3)
-			{
-				out.translation = {float(node.translation[0]), float(node.translation[1]), float(node.translation[2])};
-			}
-			if (node.rotation.size() == 4)
-			{
-				out.rotation = glm::normalize(
-					glm::quat(float(node.rotation[3]), float(node.rotation[0]), float(node.rotation[1]), float(node.rotation[2])));
-			}
-			if (node.scale.size() == 3)
-			{
-				out.scale = {float(node.scale[0]), float(node.scale[1]), float(node.scale[2])};
-			}
+			out.translation = {float(node.translation[0]), float(node.translation[1]), float(node.translation[2])};
+			out.rotation = glm::normalize(
+				glm::quat(float(node.rotation[3]), float(node.rotation[0]), float(node.rotation[1]), float(node.rotation[2])));
+			out.scale = {float(node.scale[0]), float(node.scale[1]), float(node.scale[2])};
 			return out;
 		}
 
 		class Converter {
 		  public:
-			Converter(const tinygltf::Model &gltf, import::Scene &target) : gltf(gltf), target(target) {}
+			Converter(const tg3_model &gltf, import::Scene &target) : gltf(gltf), target(target) {}
 
 			void convert()
 			{
@@ -185,9 +198,9 @@ namespace mt::model {
 				}
 
 				std::vector<TRS> rest;
-				for (const auto &node : gltf.nodes)
+				for (uint32_t i = 0; i < gltf.nodes_count; i++)
 				{
-					rest.push_back(restTransform(node));
+					rest.push_back(restTransform(gltf.nodes[i]));
 				}
 				restWorld = worldMatrices(rest);
 
@@ -207,12 +220,12 @@ namespace mt::model {
 			/*! Nodes of the scene, parents first */
 			void collectOrder()
 			{
-				parents.assign(gltf.nodes.size(), -1);
-				for (size_t i = 0; i < gltf.nodes.size(); i++)
+				parents.assign(gltf.nodes_count, -1);
+				for (size_t i = 0; i < gltf.nodes_count; i++)
 				{
-					for (int child : gltf.nodes[i].children)
+					for (int child : span(gltf.nodes[i].children, gltf.nodes[i].children_count))
 					{
-						if (child < 0 || child >= int(gltf.nodes.size()) || parents[child] >= 0)
+						if (child < 0 || child >= int(gltf.nodes_count) || parents[child] >= 0)
 						{
 							throw mt_ex("Invalid node hierarchy");
 						}
@@ -221,14 +234,14 @@ namespace mt::model {
 				}
 
 				std::vector<int> roots;
-				int sceneIndex = gltf.defaultScene >= 0 ? gltf.defaultScene : 0;
-				if (sceneIndex < int(gltf.scenes.size()))
+				int sceneIndex = gltf.default_scene >= 0 ? gltf.default_scene : 0;
+				if (sceneIndex < int(gltf.scenes_count))
 				{
-					roots = gltf.scenes[sceneIndex].nodes;
+					roots = span(gltf.scenes[sceneIndex].nodes, gltf.scenes[sceneIndex].nodes_count);
 				}
 				else
 				{
-					for (size_t i = 0; i < gltf.nodes.size(); i++)
+					for (size_t i = 0; i < gltf.nodes_count; i++)
 					{
 						if (parents[i] < 0)
 						{
@@ -238,19 +251,19 @@ namespace mt::model {
 				}
 
 				std::vector<int> stack(roots.rbegin(), roots.rend());
-				std::vector<bool> visited(gltf.nodes.size(), false);
+				std::vector<bool> visited(gltf.nodes_count, false);
 				while (!stack.empty())
 				{
 					int node = stack.back();
 					stack.pop_back();
-					if (node < 0 || node >= int(gltf.nodes.size()) || visited[node])
+					if (node < 0 || node >= int(gltf.nodes_count) || visited[node])
 					{
 						throw mt_ex("Invalid node hierarchy");
 					}
 					visited[node] = true;
 					order.push_back(node);
 
-					const auto &children = gltf.nodes[node].children;
+					const auto children = span(gltf.nodes[node].children, gltf.nodes[node].children_count);
 					for (auto it = children.rbegin(); it != children.rend(); ++it)
 					{
 						stack.push_back(*it);
@@ -260,7 +273,7 @@ namespace mt::model {
 
 			std::vector<glm::mat4> worldMatrices(const std::vector<TRS> &local) const
 			{
-				std::vector<glm::mat4> world(gltf.nodes.size(), glm::mat4{1.0f});
+				std::vector<glm::mat4> world(gltf.nodes_count, glm::mat4{1.0f});
 				for (int node : order)
 				{
 					glm::mat4 matrix = local[node].toMatrix();
@@ -271,7 +284,7 @@ namespace mt::model {
 
 			void collectJoints()
 			{
-				std::vector<bool> used(gltf.nodes.size(), false);
+				std::vector<bool> used(gltf.nodes_count, false);
 				auto markWithParents = [&](int node) {
 					for (int current = node; current >= 0; current = parents[current])
 					{
@@ -282,7 +295,7 @@ namespace mt::model {
 				for (int node : order)
 				{
 					const auto &source = gltf.nodes[node];
-					if (import::isTagName(source.name))
+					if (import::isTagName(str(source.name)))
 					{
 						markWithParents(node);
 					}
@@ -294,14 +307,15 @@ namespace mt::model {
 
 					if (source.skin >= 0)
 					{
-						if (source.skin >= int(gltf.skins.size()))
+						if (source.skin >= int(gltf.skins_count))
 						{
 							throw mt_ex("Invalid skin: " + std::to_string(source.skin));
 						}
 
-						for (int joint : gltf.skins[source.skin].joints)
+						const auto &skin = gltf.skins[source.skin];
+						for (int joint : span(skin.joints, skin.joints_count))
 						{
-							if (joint < 0 || joint >= int(gltf.nodes.size()))
+							if (joint < 0 || joint >= int(gltf.nodes_count))
 							{
 								throw mt_ex("Invalid skin joint: " + std::to_string(joint));
 							}
@@ -322,7 +336,11 @@ namespace mt::model {
 					}
 
 					import::Node joint;
-					joint.name = gltf.nodes[node].name.empty() ? "node" + std::to_string(node) : gltf.nodes[node].name;
+					joint.name = str(gltf.nodes[node].name);
+					if (joint.name.empty())
+					{
+						joint.name = "node" + std::to_string(node);
+					}
 					joint.bind = restWorld[node];
 					for (int parent = parents[node]; parent >= 0; parent = parents[parent])
 					{
@@ -343,20 +361,21 @@ namespace mt::model {
 				}
 
 				// Skinned bones bind at the inverse of their inverse bind matrix
-				for (const auto &skin : gltf.skins)
+				for (uint32_t s = 0; s < gltf.skins_count; s++)
 				{
-					if (skin.inverseBindMatrices < 0)
+					const auto &skin = gltf.skins[s];
+					if (skin.inverse_bind_matrices < 0)
 					{
 						continue;
 					}
 
-					auto matrices = readFloats(gltf, skin.inverseBindMatrices, 16);
-					if (matrices.size() < skin.joints.size() * 16)
+					auto matrices = readFloats(gltf, skin.inverse_bind_matrices, 16);
+					if (matrices.size() < size_t(skin.joints_count) * 16)
 					{
 						throw mt_ex("The skin has too few inverse bind matrices");
 					}
 
-					for (size_t j = 0; j < skin.joints.size(); j++)
+					for (size_t j = 0; j < skin.joints_count; j++)
 					{
 						auto found = nodeIndex.find(skin.joints[j]);
 						if (found == nodeIndex.end())
@@ -405,8 +424,10 @@ namespace mt::model {
 
 			void sampleAnimations(const std::vector<TRS> &rest)
 			{
-				for (const auto &animation : gltf.animations)
+				for (uint32_t a = 0; a < gltf.animations_count; a++)
 				{
+					const auto &animation = gltf.animations[a];
+					const std::string name = str(animation.name);
 					struct Channel {
 						int node;
 						std::string path;
@@ -420,27 +441,26 @@ namespace mt::model {
 					std::vector<Channel> channels;
 					float duration = 0;
 
-					for (const auto &channel : animation.channels)
+					for (uint32_t c = 0; c < animation.channels_count; c++)
 					{
-						if (channel.sampler < 0 || channel.sampler >= int(animation.samplers.size()) || channel.target_node < 0
-							|| channel.target_node >= int(gltf.nodes.size()))
+						const auto &channel = animation.channels[c];
+						if (channel.sampler < 0 || channel.sampler >= int(animation.samplers_count) || channel.target.node < 0
+							|| channel.target.node >= int(gltf.nodes_count))
 						{
-							throw mt_ex("Invalid animation channel in " + animation.name);
+							throw mt_ex("Invalid animation channel in " + name);
 						}
 
-						if (channel.target_path != "translation" && channel.target_path != "rotation" && channel.target_path != "scale")
+						const std::string path = str(channel.target.path);
+						if (path != "translation" && path != "rotation" && path != "scale")
 						{
 							continue; // morph target weights are not supported
 						}
 
 						const auto &sampler = animation.samplers[channel.sampler];
-						Channel out{channel.target_node,
-									channel.target_path,
-									readFloats(gltf, sampler.input, 1),
-									{},
-									{},
-									sampler.interpolation == "STEP",
-									sampler.interpolation == "CUBICSPLINE"};
+						const std::string interpolation = str(sampler.interpolation);
+						Channel out{
+							channel.target.node,		   path, readFloats(gltf, sampler.input, 1), {}, {}, interpolation == "STEP",
+							interpolation == "CUBICSPLINE"};
 
 						if (out.times.empty())
 						{
@@ -457,7 +477,7 @@ namespace mt::model {
 							}
 							if (out.rotations.size() < expected)
 							{
-								throw mt_ex("Too few animation values in " + animation.name);
+								throw mt_ex("Too few animation values in " + name);
 							}
 						}
 						else
@@ -469,7 +489,7 @@ namespace mt::model {
 							}
 							if (out.vectors.size() < expected)
 							{
-								throw mt_ex("Too few animation values in " + animation.name);
+								throw mt_ex("Too few animation values in " + name);
 							}
 						}
 
@@ -478,7 +498,7 @@ namespace mt::model {
 					}
 
 					import::Animation sequence;
-					sequence.name = animation.name;
+					sequence.name = name;
 					sequence.startFrame = target.numFrames;
 					sequence.numFrames = int(std::lround(duration * import::DEFAULT_FPS)) + 1;
 					sequence.fps = import::DEFAULT_FPS;
@@ -521,62 +541,69 @@ namespace mt::model {
 
 			std::string materialName(int index) const
 			{
-				if (index < 0 || index >= int(gltf.materials.size()))
+				if (index < 0 || index >= int(gltf.materials_count))
 				{
 					return "";
 				}
 
 				const auto &material = gltf.materials[index];
-				int texture = material.pbrMetallicRoughness.baseColorTexture.index;
-				if (texture >= 0 && texture < int(gltf.textures.size()))
+				int texture = material.pbr_metallic_roughness.base_color_texture.index;
+				if (texture >= 0 && texture < int(gltf.textures_count))
 				{
 					int image = gltf.textures[texture].source;
-					if (image >= 0 && image < int(gltf.images.size()))
+					if (image >= 0 && image < int(gltf.images_count))
 					{
-						const std::string &uri = gltf.images[image].uri;
+						const std::string uri = str(gltf.images[image].uri);
 						if (!uri.empty() && uri.rfind("data:", 0) != 0)
 						{
 							return uri;
 						}
-						if (!gltf.images[image].name.empty())
+						if (gltf.images[image].name.len > 0)
 						{
-							return gltf.images[image].name;
+							return str(gltf.images[image].name);
 						}
 					}
 				}
 
-				return material.name;
+				return str(material.name);
 			}
 
 			void addMesh(int nodeIndexValue)
 			{
 				const auto &node = gltf.nodes[nodeIndexValue];
-				if (node.mesh >= int(gltf.meshes.size()))
+				if (node.mesh >= int(gltf.meshes_count))
 				{
 					throw mt_ex("Invalid mesh: " + std::to_string(node.mesh));
 				}
 
 				const auto &mesh = gltf.meshes[node.mesh];
+				const std::string meshName = str(mesh.name);
 				const bool skinnedMesh = node.skin >= 0;
 				const glm::mat4 world = restWorld[nodeIndexValue];
 				const glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(world)));
 
-				for (size_t p = 0; p < mesh.primitives.size(); p++)
+				for (size_t p = 0; p < mesh.primitives_count; p++)
 				{
 					const auto &primitive = mesh.primitives[p];
-					if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
+					if (primitive.mode != TG3_MODE_TRIANGLES && primitive.mode != -1)
 					{
 						continue;
 					}
 
 					auto attribute = [&](const char *name) {
-						auto found = primitive.attributes.find(name);
-						return found == primitive.attributes.end() ? -1 : found->second;
+						for (uint32_t a = 0; a < primitive.attributes_count; a++)
+						{
+							if (tg3_str_equals_cstr(primitive.attributes[a].key, name))
+							{
+								return int(primitive.attributes[a].value);
+							}
+						}
+						return -1;
 					};
 
 					if (attribute("POSITION") < 0)
 					{
-						throw mt_ex("Mesh " + mesh.name + " has no positions");
+						throw mt_ex("Mesh " + meshName + " has no positions");
 					}
 
 					auto positions = readFloats(gltf, attribute("POSITION"), 3);
@@ -589,7 +616,7 @@ namespace mt::model {
 					{
 						if (attribute("JOINTS_0") < 0 || attribute("WEIGHTS_0") < 0)
 						{
-							throw mt_ex("Skinned mesh " + mesh.name + " has no joints or weights");
+							throw mt_ex("Skinned mesh " + meshName + " has no joints or weights");
 						}
 						joints = readFloats(gltf, attribute("JOINTS_0"), 4);
 						weights = readFloats(gltf, attribute("WEIGHTS_0"), 4);
@@ -598,12 +625,12 @@ namespace mt::model {
 					if ((!normals.empty() && normals.size() != numVertices * 3) || (!uvs.empty() && uvs.size() != numVertices * 2)
 						|| (skinnedMesh && (joints.size() != numVertices * 4 || weights.size() != numVertices * 4)))
 					{
-						throw mt_ex("Mesh " + mesh.name + " has attributes with different vertex counts");
+						throw mt_ex("Mesh " + meshName + " has attributes with different vertex counts");
 					}
 
 					import::Mesh out;
-					out.name = mesh.name.empty() ? node.name : mesh.name;
-					if (mesh.primitives.size() > 1)
+					out.name = meshName.empty() ? str(node.name) : meshName;
+					if (mesh.primitives_count > 1)
 					{
 						out.name += "_" + std::to_string(p);
 					}
@@ -634,7 +661,7 @@ namespace mt::model {
 									continue;
 								}
 								auto joint = size_t(joints[v * 4 + i]);
-								if (joint >= skin.joints.size())
+								if (joint >= skin.joints_count)
 								{
 									throw mt_ex("Vertex has an invalid joint: " + std::to_string(joint));
 								}
@@ -669,7 +696,7 @@ namespace mt::model {
 					{
 						if (indices[i] >= numVertices || indices[i + 1] >= numVertices || indices[i + 2] >= numVertices)
 						{
-							throw mt_ex("Mesh " + mesh.name + " has an invalid index");
+							throw mt_ex("Mesh " + meshName + " has an invalid index");
 						}
 						// glTF triangles are counter-clockwise, idTech is clockwise
 						out.tris.emplace_back(int(indices[i]), int(indices[i + 2]), int(indices[i + 1]));
@@ -699,7 +726,7 @@ namespace mt::model {
 				}
 			}
 
-			const tinygltf::Model &gltf;
+			const tg3_model &gltf;
 			import::Scene &target;
 			std::vector<int> parents{};
 			std::vector<int> order{};
@@ -716,48 +743,45 @@ namespace mt::model {
 			throw mt_ex("File not found");
 		}
 
-		tinygltf::TinyGLTF loader;
-		loader.SetImageLoader(
-			[](tinygltf::Image *, const int, std::string *, std::string *, int, int, const unsigned char *, int, void *) { return true; },
-			nullptr);
+		tg3_parse_options options;
+		tg3_parse_options_init(&options);
+		options.images_as_is = 1; // textures are loaded by the renderer, not from the glTF
 
-		tinygltf::FsCallbacks callbacks{};
-		// Report every file as existing, so tinygltf asks ReadWholeFile and the user gets a clear message
-		callbacks.FileExists = [](const std::string &, void *) { return true; };
-		callbacks.ExpandFilePath = [](const std::string &path, void *) { return path; };
-		auto externalFile = [](std::string *err, const std::string &path) {
-			if (err)
-			{
-				*err = "External files are not supported, embed the buffers or use .glb: " + path;
-			}
-			return false;
+		// External buffers are refused with a clear message (the name is kept for it)
+		std::string externalPath;
+		options.fs.user_data = &externalPath;
+		options.fs.file_exists = [](const char *, uint32_t, void *) -> int32_t { return 1; };
+		options.fs.read_file = [](uint8_t **, uint64_t *, const char *path, uint32_t length, void *user) -> int32_t {
+			*static_cast<std::string *>(user) = std::string(path, length);
+			return 0;
 		};
-		callbacks.ReadWholeFile = [externalFile](std::vector<unsigned char> *, std::string *err, const std::string &path, void *) {
-			return externalFile(err, path);
-		};
-		callbacks.GetFileSizeInBytes
-			= [externalFile](size_t *, std::string *err, const std::string &path, void *) { return externalFile(err, path); };
-		callbacks.WriteWholeFile = [](std::string *, const std::string &, const std::vector<unsigned char> &, void *) { return false; };
-		loader.SetFsCallbacks(callbacks);
 
 		const size_t length = file->len ? std::min(file->len, file->data->size()) : file->data->size();
-		const unsigned char *data = file->data->data();
+		const auto *data = reinterpret_cast<const uint8_t *>(file->data->data());
 
-		tinygltf::Model gltf;
-		std::string err, warn;
-		bool ok;
-		if (length >= 4 && std::memcmp(data, "glTF", 4) == 0)
-		{
-			ok = loader.LoadBinaryFromMemory(&gltf, &err, &warn, data, unsigned(length), "");
-		}
-		else
-		{
-			ok = loader.LoadASCIIFromString(&gltf, &err, &warn, reinterpret_cast<const char *>(data), unsigned(length), "");
-		}
+		Gltf gltf;
+		tg3_error_stack errors;
+		tg3_error_stack_init(&errors);
+		tg3_error_code result = tg3_parse_auto(&gltf, &errors, data, length, "", 0, &options);
 
-		if (!ok)
+		std::string message;
+		for (uint32_t i = 0; i < errors.count; i++)
 		{
-			throw mt_ex("Failed to load " + file->name + ": " + err);
+			if (errors.entries[i].severity == TG3_SEVERITY_ERROR && errors.entries[i].message)
+			{
+				message += (message.empty() ? "" : "; ") + std::string(errors.entries[i].message);
+			}
+		}
+		const bool failed = result != TG3_OK || errors.has_error;
+		tg3_error_stack_free(&errors);
+
+		if (!externalPath.empty())
+		{
+			throw mt_ex("External files are not supported, embed the buffers or use .glb: " + externalPath);
+		}
+		if (failed)
+		{
+			throw mt_ex("Failed to load " + file->name + ": " + message);
 		}
 
 		import::Scene scene;

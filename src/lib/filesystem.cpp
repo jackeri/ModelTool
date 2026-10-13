@@ -346,6 +346,8 @@ namespace mt::io {
 
 		auto file = make_ref<MTFile>();
 		file->data = data;
+		// FileRead adds a terminating null byte, which is not part of the file
+		file->len = data->size() - 1;
 		file->name = name;
 		file->ext = sysPath.extension().string();
 

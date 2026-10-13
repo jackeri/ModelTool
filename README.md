@@ -154,7 +154,7 @@ Exit codes: 0 ok, 1 failed, 2 invalid command line.
 
 ## Compile
 
-Needs CMake 3.20 or newer and a C++17 compiler. The build works on Windows, macOS and Linux (OpenGL 4.1).
+Needs CMake 4.1 or newer and a C++17 compiler. The build works on Windows, macOS and Linux (OpenGL 4.1).
 
 Fetch the submodules:
 
@@ -190,7 +190,7 @@ cmake --build build --config Release
 | [GLM](https://github.com/g-truc/glm)                              | 0.9.9.8                                                                             | Math                                                | MIT                               | submodule `libs/glm`               |
 | [stb](https://github.com/nothings/stb)                            | stb_image 2.30, stb_image_write 1.16                                                | Loading textures, writing screenshots               | MIT / public domain               | submodule `libs/stb`               |
 | [spdlog](https://github.com/gabime/spdlog)                        | 1.14.1                                                                              | Logging                                             | MIT                               | submodule `libs/spdlog`            |
-| [tinygltf](https://github.com/syoyo/tinygltf)                     | 2.9                                                                                 | glTF and GLB import                                 | MIT                               | submodule `libs/tinygltf`          |
+| [tinygltf](https://github.com/syoyo/tinygltf)                     | 3.0.1 (C11)                                                                         | glTF and GLB import                                 | MIT                               | submodule `libs/tinygltf`          |
 | [ufbx](https://github.com/ufbx/ufbx)                              | 0.23.1                                                                              | FBX and OBJ import                                  | MIT / public domain               | vendored `libs/ufbx`               |
 | [zlib](https://github.com/madler/zlib) + minizip                  | 1.3.2                                                                               | Reading `.pk3` (zip) files                          | zlib                              | submodule `libs/zlib`              |
 | [imgui-filebrowser](https://github.com/jackeri/imgui-filebrowser) | fork of [AirGuanZ/imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser) | File dialogs for the disk                           | MIT                               | submodule `libs/imgui-filebrowser` |

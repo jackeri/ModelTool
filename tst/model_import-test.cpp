@@ -7,8 +7,11 @@
 #include "morph_model.h"
 #include "normals.h"
 #include "mt_path.h"
+#include "filesystem.h"
 
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 
 using namespace mt;
 using namespace mt::model;
@@ -444,6 +447,20 @@ TEST(ImportGLTFTest, binary)
 	ASSERT_TRUE(model);
 	ASSERT_EQ(model->numFrames(), 25);
 	expectVec(model->meshes[0].frames[24][1].pos, {3, 0, 0});
+
+	// From the disk, the terminating null byte of the read file is not part of the GLB
+	std::filesystem::create_directories("tmp/gltf");
+	auto data = glb(json, buffers.bin);
+	{
+		std::ofstream out("tmp/gltf/triangle.glb", std::ios::binary);
+		out.write(reinterpret_cast<const char *>(data.data()), std::streamsize(data.size()));
+	}
+	mt::io::FileSystem disk;
+	auto file = disk.loadFile(std::filesystem::absolute("tmp/gltf/triangle.glb").string());
+	ASSERT_TRUE(file);
+	EXPECT_EQ(file->len, data.size());
+	EXPECT_NO_THROW(std::unique_ptr<Model>(mt::model::io::loadModel(file)));
+	std::filesystem::remove_all("tmp");
 }
 
 TEST(ImportGLTFTest, errors)
