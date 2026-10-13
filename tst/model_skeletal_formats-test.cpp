@@ -36,13 +36,13 @@ namespace {
 		return file;
 	}
 
-	std::unique_ptr<SkeletalModel> loadMedic(bool withAnimation = true)
+	std::unique_ptr<SkeletalModel> loadMannequin(bool withAnimation = true)
 	{
 		mt::io::MTPath data("data");
-		std::unique_ptr<Model> loaded(model::io::loadModel(data.loadFile("models/mdm/medic.mdm")));
+		std::unique_ptr<Model> loaded(model::io::loadModel(data.loadFile("models/mdm/mannequin.mdm")));
 		if (withAnimation)
 		{
-			model::io::loadAnimation(loaded.get(), data.loadFile("models/mdm/medic.mdx"));
+			model::io::loadAnimation(loaded.get(), data.loadFile("models/mdm/mannequin.mdx"));
 		}
 		return std::unique_ptr<SkeletalModel>(dynamic_cast<SkeletalModel *>(loaded.release()));
 	}
@@ -178,10 +178,11 @@ namespace {
 
 TEST(SkeletalFormatsTest, mdmWithoutAnimation)
 {
-	auto model = loadMedic(false);
+	auto model = loadMannequin(false);
 	ASSERT_TRUE(model);
 
-	ASSERT_EQ(model->name, "output/models/players/temperate/allied/engineer\\body.mdm");
+	// Generated test model (tools/fixtures): a mannequin on the default ET armature
+	ASSERT_EQ(model->name, "models/players/mannequin/body.mdm");
 	ASSERT_FALSE(model->hasBindPose);
 	ASSERT_FALSE(model->hasFrames());
 	ASSERT_TRUE(model->joints.empty());
@@ -190,10 +191,10 @@ TEST(SkeletalFormatsTest, mdmWithoutAnimation)
 	ASSERT_EQ(model->meshes.size(), 4);
 	const auto &body = model->meshes[0];
 	ASSERT_EQ(body.name, "u_body");
-	ASSERT_EQ(body.vertices.size(), 305);
-	ASSERT_EQ(body.tris.size(), 450);
-	ASSERT_EQ(body.weights.size(), 338);
-	ASSERT_EQ(body.minLod, 161);
+	ASSERT_EQ(body.vertices.size(), 384);
+	ASSERT_EQ(body.tris.size(), 320);
+	ASSERT_EQ(body.weights.size(), 564);
+	ASSERT_EQ(body.minLod, 364);
 	ASSERT_EQ(body.collapseMap.size(), body.vertices.size());
 
 	ASSERT_EQ(model->tags.size(), 17);
@@ -202,15 +203,15 @@ TEST(SkeletalFormatsTest, mdmWithoutAnimation)
 
 TEST(SkeletalFormatsTest, mdxAnimation)
 {
-	auto model = loadMedic();
+	auto model = loadMannequin();
 	ASSERT_TRUE(model);
 
 	ASSERT_EQ(model->joints.size(), 53);
 	ASSERT_EQ(model->joints[0].name, "Bip01 Pelvis");
 	ASSERT_EQ(model->joints[0].parentId, -1);
 	ASSERT_EQ(model->torsoParent, 1);
-	ASSERT_EQ(model->numFrames(), 4887);
-	ASSERT_EQ(model->bounds.size(), 4887);
+	ASSERT_EQ(model->numFrames(), 116);
+	ASSERT_EQ(model->bounds.size(), 116);
 	ASSERT_EQ(model->currentFrame, 0);
 
 	for (const auto &bounds : model->bounds)
@@ -235,15 +236,17 @@ TEST(SkeletalFormatsTest, mdxAnimation)
 		const Point &bone = model->joints[tag->parentBone].frames[0];
 		return bone.location + bone.rotation * tag->location;
 	};
-	ASSERT_GT(tagPosition("tag_head").z, 30.0f);
-	ASSERT_LT(tagPosition("tag_footleft").z, -15.0f);
+	ASSERT_GT(tagPosition("tag_head").z, 20.0f);
+	ASSERT_LT(tagPosition("tag_footleft").z, -20.0f);
 }
 
 TEST(SkeletalFormatsTest, boneRotationConvention)
 {
 	// ET applies the bone matrices with the axis as rows. With the right convention the weights of a vertex agree on
-	// where the vertex is, with the transposed matrices they are clearly further apart.
-	auto model = loadMedic();
+	// where the vertex is, with the transposed matrices they are clearly further apart. Frame 110 is the fallen pose
+	// of the death sequence, the bones are turned a lot there.
+	auto model = loadMannequin();
+	const int frame = 110;
 
 	auto spread = [&](bool inverse) {
 		double total = 0;
@@ -257,11 +260,11 @@ TEST(SkeletalFormatsTest, boneRotationConvention)
 					continue;
 				}
 
-				glm::vec3 pos = posedVertex(*model, mesh, vert, 0, inverse);
+				glm::vec3 pos = posedVertex(*model, mesh, vert, frame, inverse);
 				for (int i = 0; i < vert.weightCount; i++)
 				{
 					const auto &weight = mesh.weights[vert.startWeight + i];
-					const auto &joint = model->joints[weight.jointId].frames[0];
+					const auto &joint = model->joints[weight.jointId].frames[frame];
 					glm::quat rotation = inverse ? glm::inverse(joint.rotation) : joint.rotation;
 					total += glm::distance(joint.location + rotation * weight.pos, pos);
 					count++;
@@ -271,11 +274,11 @@ TEST(SkeletalFormatsTest, boneRotationConvention)
 		return total / count;
 	};
 
-	ASSERT_LT(spread(false), 4.0);
-	ASSERT_GT(spread(true), 6.0);
+	ASSERT_LT(spread(false), 0.1);
+	ASSERT_GT(spread(true), 2.0);
 
 	// Every vertex lies inside the frame bounds stored in the MDX
-	for (int frame : {0, 1000, 4000})
+	for (int frame : {0, 50, 110})
 	{
 		const auto &bounds = model->bounds[frame];
 		for (const auto &mesh : model->meshes)
@@ -295,42 +298,42 @@ TEST(SkeletalFormatsTest, mdxErrors)
 	mt::io::MTPath data("data");
 
 	// The bones need to match the model
-	auto model = loadMedic();
+	auto model = loadMannequin();
 	model->joints[5].name = "renamed";
 	auto frames = model->numFrames();
-	ASSERT_THROW(model::io::loadAnimation(model.get(), data.loadFile("models/mdm/medic.mdx")), mt_exception);
+	ASSERT_THROW(model::io::loadAnimation(model.get(), data.loadFile("models/mdm/mannequin.mdx")), mt_exception);
 	// The model is left as it was
 	ASSERT_EQ(model->joints[5].name, "renamed");
 	ASSERT_EQ(model->numFrames(), frames);
 
 	// MDX needs a skeletal model
 	morph::MorphModel morph;
-	ASSERT_THROW(model::io::loadAnimation(&morph, data.loadFile("models/mdm/medic.mdx")), mt_exception);
+	ASSERT_THROW(model::io::loadAnimation(&morph, data.loadFile("models/mdm/mannequin.mdx")), mt_exception);
 
 	// MDX alone loads as a skeleton
-	std::unique_ptr<Model> skeleton(model::io::loadModel(data.loadFile("models/mdm/medic.mdx")));
+	std::unique_ptr<Model> skeleton(model::io::loadModel(data.loadFile("models/mdm/mannequin.mdx")));
 	auto *skeletal = dynamic_cast<SkeletalModel *>(skeleton.get());
 	ASSERT_TRUE(skeletal);
 	ASSERT_TRUE(skeletal->meshes.empty());
 	ASSERT_EQ(skeletal->joints.size(), 53);
 
 	// Truncated animation
-	auto file = data.loadFile("models/mdm/medic.mdx");
+	auto file = data.loadFile("models/mdm/mannequin.mdx");
 	file->len /= 2;
-	auto medic = loadMedic(false);
-	ASSERT_THROW(model::io::loadAnimation(medic.get(), file), mt_exception);
-	ASSERT_TRUE(medic->joints.empty());
+	auto mannequin = loadMannequin(false);
+	ASSERT_THROW(model::io::loadAnimation(mannequin.get(), file), mt_exception);
+	ASSERT_TRUE(mannequin->joints.empty());
 }
 
 TEST(SkeletalFormatsTest, mdmErrors)
 {
 	mt::io::MTPath data("data");
 
-	auto file = data.loadFile("models/mdm/medic.mdm");
+	auto file = data.loadFile("models/mdm/mannequin.mdm");
 	file->len = 1000;
 	ASSERT_THROW(loadMDM(file), mt_exception);
 
-	ASSERT_THROW(loadMDM(data.loadFile("models/mdm/medic.mdx")), mt_exception);
+	ASSERT_THROW(loadMDM(data.loadFile("models/mdm/mannequin.mdx")), mt_exception);
 }
 
 TEST(SkeletalFormatsTest, mds)
@@ -409,20 +412,22 @@ TEST(SkeletalFormatsTest, mdsErrors)
 
 TEST(SkeletalFormatsTest, aninc)
 {
-	auto model = loadMedic();
+	auto model = loadMannequin();
 	mt::io::MTPath data("data");
-	model::io::loadAnimation(model.get(), data.loadFile("models/mdm/medic.aninc"));
+	model::io::loadAnimation(model.get(), data.loadFile("models/mdm/mannequin.aninc"));
 
-	ASSERT_EQ(model->animations.size(), 194);
+	ASSERT_EQ(model->animations.size(), 7);
 	const auto &first = model->animations[0];
-	ASSERT_EQ(first.name, "death_machinegun_1");
+	ASSERT_EQ(first.name, "idle");
 	ASSERT_EQ(first.startFrame, 0);
-	ASSERT_EQ(first.numFrames, 32);
-	ASSERT_FALSE(first.loop);
+	ASSERT_EQ(first.numFrames, 20);
+	ASSERT_TRUE(first.loop);
 	ASSERT_EQ(first.fps, 20);
-	ASSERT_EQ(model->animations[1].name, "dead_machinegun_1");
-	ASSERT_TRUE(model->animations[1].loop);
-	ASSERT_EQ(model->animations.back().name, "prone_legs");
+	ASSERT_EQ(model->animations[1].name, "walk");
+	ASSERT_EQ(model->animations[1].moveSpeed, 60);
+	ASSERT_EQ(model->animations[1].transition, 100);
+	ASSERT_FALSE(model->animations[3].loop); // wave
+	ASSERT_EQ(model->animations.back().name, "dead");
 
 	for (const auto &animation : model->animations)
 	{
@@ -446,14 +451,14 @@ TEST(SkeletalFormatsTest, aninc)
 
 TEST(SkeletalFormatsTest, tagsFile)
 {
-	auto model = loadMedic();
+	auto model = loadMannequin();
 	size_t tags = model->tags.size();
 
-	loadTags(*model, textFile("medic.tag", "// File Generated by LegacyModelView\n"
-										   "tags {\n"
-										   "\t\"tag_hat\" \"Bip01 Head\" ( 1 2 3 ) ( 0 0 0 1 )\n"
-										   "\t\"tag_belt\" \"bip01 spine\" ( 0 0 0 ) ( 0 0 0.7071068 0.7071068 )\n"
-										   "}\n"));
+	loadTags(*model, textFile("mannequin.tag", "// File Generated by LegacyModelView\n"
+											   "tags {\n"
+											   "\t\"tag_hat\" \"Bip01 Head\" ( 1 2 3 ) ( 0 0 0 1 )\n"
+											   "\t\"tag_belt\" \"bip01 spine\" ( 0 0 0 ) ( 0 0 0.7071068 0.7071068 )\n"
+											   "}\n"));
 
 	ASSERT_EQ(model->tags.size(), tags + 2);
 	const auto &hat = model->tags[tags];
@@ -477,26 +482,26 @@ TEST(SkeletalFormatsTest, tagsFile)
 TEST(SkeletalFormatsTest, legacyHitboxes)
 {
 	std::vector<Hitbox> hitboxes;
-	Hitbox::loadHitboxes(textFile("medic.htx", "// File Generated by LegacyModelView\n"
-											   "hitbox {\n"
-											   "\tname \"head\"\n"
-											   "\tmodifiers {\n"
-											   "\t\theadShot true\n"
-											   "\t}\n"
-											   "\tlocation ( 1 2 3 ) ( 0 0 0 1 )\n"
-											   "\tmin ( -4 -4 -4 )\n"
-											   "\tmax ( 4 4 5 )\n"
-											   "\tjoint 12\n"
-											   "}\n"
-											   "hitbox {\n"
-											   "\tmodifiers {\n"
-											   "\t\theadShot false\n"
-											   "\t}\n"
-											   "\tlocation ( 0 0 0 ) ( 0 0 0 1 )\n"
-											   "\tmin ( -1 -1 -1 )\n"
-											   "\tmax ( 1 1 1 )\n"
-											   "\tjoint 0\n"
-											   "}\n"),
+	Hitbox::loadHitboxes(textFile("mannequin.htx", "// File Generated by LegacyModelView\n"
+												   "hitbox {\n"
+												   "\tname \"head\"\n"
+												   "\tmodifiers {\n"
+												   "\t\theadShot true\n"
+												   "\t}\n"
+												   "\tlocation ( 1 2 3 ) ( 0 0 0 1 )\n"
+												   "\tmin ( -4 -4 -4 )\n"
+												   "\tmax ( 4 4 5 )\n"
+												   "\tjoint 12\n"
+												   "}\n"
+												   "hitbox {\n"
+												   "\tmodifiers {\n"
+												   "\t\theadShot false\n"
+												   "\t}\n"
+												   "\tlocation ( 0 0 0 ) ( 0 0 0 1 )\n"
+												   "\tmin ( -1 -1 -1 )\n"
+												   "\tmax ( 1 1 1 )\n"
+												   "\tjoint 0\n"
+												   "}\n"),
 						 hitboxes);
 
 	ASSERT_EQ(hitboxes.size(), 2);

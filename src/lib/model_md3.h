@@ -66,6 +66,31 @@ namespace mt::model {
 	 */
 	void writeMD3(const Model &model, const std::string &path);
 
+	/*! MDC writing options */
+	struct MdcOptions {
+		/**
+		 * Store frames as small offsets (up to +-6.35 units, 0.05 steps) from the last full frame when they fit, else as
+		 * a new full frame. The compressed frames carry no normals: the game looks them up from a normal table that is
+		 * not part of ModelTool, so it would light those frames wrongly. Off: every frame is a full frame like in MD3.
+		 */
+		bool compress = false;
+	};
+
+	/**
+	 * Encode a level of detail of a model as MDC (compressed MD3), see encodeMD3
+	 * @param model model to encode
+	 * @param level level of detail (0 for the base meshes)
+	 * @param options writing options
+	 * @return file data
+	 * @throws mt::mt_exception if the model does not fit in the MDC limits
+	 */
+	std::vector<byte> encodeMDC(const Model &model, int level = 0, const MdcOptions &options = {});
+
+	/**
+	 * Write a model as MDC, extra levels of detail go to path_1.mdc, path_2.mdc, ...
+	 */
+	void writeMDC(const Model &model, const std::string &path, const MdcOptions &options = {});
+
 	/**
 	 * Write only the tags of a model as an MD3 (tag animation)
 	 */

@@ -112,24 +112,24 @@ TEST(LodTest, flatGrid)
 
 TEST(LodTest, skeletalModel)
 {
-	auto medic = load("models/mdm/medic.mdm", "models/mdm/medic.mdx");
-	auto &mesh = medic->meshes[0];
+	auto mannequin = load("models/mdm/mannequin.mdm", "models/mdm/mannequin.mdx");
+	auto &mesh = mannequin->meshes[0];
 	const size_t numTris = mesh.tris.size();
 
 	std::vector<glm::vec3> before;
 	for (const auto &vert : mesh.vertices)
 	{
-		before.push_back(posedVertex(*medic, mesh, vert, 0));
+		before.push_back(posedVertex(*mannequin, mesh, vert, 0));
 	}
 
-	medic->currentFrame = 0;
-	ASSERT_TRUE(calculateLod(*medic));
+	mannequin->currentFrame = 0;
+	ASSERT_TRUE(calculateLod(*mannequin));
 
 	// Same vertices in a new order, same triangles
 	std::vector<glm::vec3> after;
 	for (const auto &vert : mesh.vertices)
 	{
-		after.push_back(posedVertex(*medic, mesh, vert, 0));
+		after.push_back(posedVertex(*mannequin, mesh, vert, 0));
 	}
 	ASSERT_EQ(positionSet(before), positionSet(after));
 	ASSERT_EQ(mesh.tris.size(), numTris);
@@ -146,7 +146,7 @@ TEST(LodTest, skeletalModel)
 TEST(LodTest, morphModel)
 {
 	mt::io::MTPath data("data");
-	std::unique_ptr<Model> loaded(model::io::loadModel(data.loadFile("models/players/grunt/head.md3")));
+	std::unique_ptr<Model> loaded(model::io::loadModel(data.loadFile("models/players/robot/head.md3")));
 	auto *head = dynamic_cast<morph::MorphModel *>(loaded.get());
 	ASSERT_TRUE(head);
 
@@ -167,25 +167,25 @@ TEST(LodTest, invalidTriangles)
 
 TEST(EditingTest, bakeBindPose)
 {
-	auto medic = load("models/mdm/medic.mdm", "models/mdm/medic.mdx");
-	ASSERT_FALSE(medic->hasBindPose);
+	auto mannequin = load("models/mdm/mannequin.mdm", "models/mdm/mannequin.mdx");
+	ASSERT_FALSE(mannequin->hasBindPose);
 
-	auto &mesh = medic->meshes[0];
-	glm::vec3 framePosition = posedVertex(*medic, mesh, mesh.vertices[10], 100);
+	auto &mesh = mannequin->meshes[0];
+	glm::vec3 framePosition = posedVertex(*mannequin, mesh, mesh.vertices[10], 100);
 
-	bakeBindPose(*medic, 100);
-	ASSERT_TRUE(medic->hasBindPose);
+	bakeBindPose(*mannequin, 100);
+	ASSERT_TRUE(mannequin->hasBindPose);
 	expectVec(mesh.vertices[10].pos, framePosition);
-	expectVec(posedVertex(*medic, mesh, mesh.vertices[10], FRAME_BIND_POSE), framePosition);
-	expectVec(medic->joints[5].location, medic->joints[5].frames[100].location);
+	expectVec(posedVertex(*mannequin, mesh, mesh.vertices[10], FRAME_BIND_POSE), framePosition);
+	expectVec(mannequin->joints[5].location, mannequin->joints[5].frames[100].location);
 	ASSERT_NEAR(glm::length(mesh.vertices[10].bindNormal), 1.0f, 1e-4f);
 
 	// The other frames still work
 	PoseOptions options;
 	options.frame = options.nextFrame = 200;
-	ASSERT_EQ(poseModel(*medic, options).meshes.size(), 4);
+	ASSERT_EQ(poseModel(*mannequin, options).meshes.size(), 4);
 
-	ASSERT_THROW(bakeBindPose(*medic, 99999), mt_exception);
+	ASSERT_THROW(bakeBindPose(*mannequin, 99999), mt_exception);
 }
 
 TEST(EditingTest, bakeTagsRemapsEverything)
@@ -305,16 +305,16 @@ TEST(EditingTest, reorderJoints)
 
 TEST(EditingTest, scaleBounds)
 {
-	auto medic = load("models/mdm/medic.mdm", "models/mdm/medic.mdx");
-	Bounds original = medic->bounds[3];
+	auto mannequin = load("models/mdm/mannequin.mdm", "models/mdm/mannequin.mdx");
+	Bounds original = mannequin->bounds[3];
 
-	scaleBounds(*medic, 2.0f, BoundsAxes::Z);
-	expectVec(medic->bounds[3].min, original.min * glm::vec3{1, 1, 2});
-	scaleBounds(*medic, 0.5f, BoundsAxes::All);
-	expectVec(medic->bounds[3].max, original.max * glm::vec3{0.5f, 0.5f, 1.0f});
+	scaleBounds(*mannequin, 2.0f, BoundsAxes::Z);
+	expectVec(mannequin->bounds[3].min, original.min * glm::vec3{1, 1, 2});
+	scaleBounds(*mannequin, 0.5f, BoundsAxes::All);
+	expectVec(mannequin->bounds[3].max, original.max * glm::vec3{0.5f, 0.5f, 1.0f});
 
 	mt::io::MTPath data("data");
-	std::unique_ptr<Model> head(model::io::loadModel(data.loadFile("models/players/grunt/head.md3")));
+	std::unique_ptr<Model> head(model::io::loadModel(data.loadFile("models/players/robot/head.md3")));
 	auto *morph = dynamic_cast<morph::MorphModel *>(head.get());
 	Bounds bounds = morph->frames[0].bounds;
 	scaleBounds(*morph, 3.0f, BoundsAxes::XY);

@@ -57,9 +57,11 @@ namespace mt::model::io {
 		static Registry<ModelWriter> writers{
 			{".md3", model::writeMD3},
 			{".md5mesh", model::writeMD5Mesh},
+			{".mdc", [](const Model &model, const std::string &path) { model::writeMDC(model, path); }},
 			{".mdm", model::writeMDM},
 			{".mds", model::writeMDS},
 			{".mdx", model::writeMDX},
+			{".ms3d", model::writeMS3D},
 			{".stl", [](const Model &model, const std::string &path) { model::writeSTL(model, path, true); }},
 			{".tag", model::writeTags},
 		};

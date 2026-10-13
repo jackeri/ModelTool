@@ -173,17 +173,18 @@ TEST(ModelMS3DTest, loads)
 	ASSERT_EQ(model->numFrames(), 96);
 	ASSERT_EQ(model->bounds.size(), 96);
 
-	// The file is the ET medic mesh with the default armature and the tags as extra bones
+	// Generated test model (tools/fixtures): the mannequin on the default armature with the tags as extra bones
 	ASSERT_EQ(model->meshes.size(), 4);
 	ASSERT_EQ(model->meshes[0].name, "u_body");
-	ASSERT_EQ(model->meshes[0].vertices.size(), 305);
-	ASSERT_EQ(model->meshes[0].minLod, 305);
+	ASSERT_EQ(model->meshes[0].vertices.size(), 384);
+	ASSERT_EQ(model->meshes[0].minLod, 384);
 	ASSERT_EQ(model->meshes[2].name, "l_legs");
-	ASSERT_EQ(model->meshes[2].vertices.size(), 280);
+	ASSERT_EQ(model->meshes[2].vertices.size(), 248);
 	ASSERT_TRUE(et::checkArmature(*model).empty());
 	ASSERT_EQ(std::count_if(model->joints.begin(), model->joints.end(), [](const Joint &joint) { return joint.asTag; }), 17);
 	ASSERT_EQ(model->joints[model->torsoParent].name, "Bip01 Spine");
-	ASSERT_FLOAT_EQ(model->joints[3].torsoWeight, 0.55f); // Bip01 Spine2
+	auto spine2 = std::find_if(model->joints.begin(), model->joints.end(), [](const Joint &joint) { return joint.name == "Bip01 Spine2"; });
+	ASSERT_FLOAT_EQ(spine2->torsoWeight, 0.55f);
 
 	ASSERT_EQ(model->animations.size(), 1);
 	ASSERT_EQ(model->animations[0].name, "test");
@@ -219,9 +220,9 @@ TEST(ModelMS3DTest, appendAnimation)
 	ASSERT_EQ(model->joints[5].frames[96].location, frameZero.location);
 
 	// The joints need to match
-	auto medic = loadSkeletal("models/mdm/medic.mdx");
-	ASSERT_THROW(model::io::loadAnimation(medic.get(), data.loadFile("models/ms3d/test.ms3d")), mt_exception);
-	ASSERT_EQ(medic->numFrames(), 4887);
+	auto mannequin = loadSkeletal("models/mdm/mannequin.mdx");
+	ASSERT_THROW(model::io::loadAnimation(mannequin.get(), data.loadFile("models/ms3d/test.ms3d")), mt_exception);
+	ASSERT_EQ(mannequin->numFrames(), 116);
 }
 
 TEST(ModelMS3DTest, errors)
@@ -291,35 +292,35 @@ TEST(SkeletalToolsTest, optimizeVertices)
 TEST(SkeletalToolsTest, calculateBounds)
 {
 	mt::io::MTPath data("data");
-	std::unique_ptr<Model> mesh(model::io::loadModel(data.loadFile("models/mdm/medic.mdm")));
-	model::io::loadAnimation(mesh.get(), data.loadFile("models/mdm/medic.mdx"));
-	auto *medic = dynamic_cast<SkeletalModel *>(mesh.get());
+	std::unique_ptr<Model> mesh(model::io::loadModel(data.loadFile("models/mdm/mannequin.mdm")));
+	model::io::loadAnimation(mesh.get(), data.loadFile("models/mdm/mannequin.mdx"));
+	auto *mannequin = dynamic_cast<SkeletalModel *>(mesh.get());
 
-	auto stored = medic->bounds;
-	calculateBounds(*medic);
-	ASSERT_EQ(medic->bounds.size(), stored.size());
+	auto stored = mannequin->bounds;
+	calculateBounds(*mannequin);
+	ASSERT_EQ(mannequin->bounds.size(), stored.size());
 
 	// The calculated bounds are tight, the stored ones contain them
-	for (int frame : {0, 2000})
+	for (int frame : {0, 100})
 	{
-		ASSERT_TRUE(glm::all(glm::greaterThanEqual(medic->bounds[frame].min, stored[frame].min - 0.5f)));
-		ASSERT_TRUE(glm::all(glm::lessThanEqual(medic->bounds[frame].max, stored[frame].max + 0.5f)));
+		ASSERT_TRUE(glm::all(glm::greaterThanEqual(mannequin->bounds[frame].min, stored[frame].min - 0.5f)));
+		ASSERT_TRUE(glm::all(glm::lessThanEqual(mannequin->bounds[frame].max, stored[frame].max + 0.5f)));
 	}
 
 	// Only the requested frames are recalculated, with the scale applied
-	Bounds unscaled = medic->bounds[0];
-	medic->bounds[1] = {};
-	calculateBounds(*medic, 2.0f, 0, 1);
-	ASSERT_EQ(medic->bounds[0].min, unscaled.min * 2.0f);
-	ASSERT_EQ(medic->bounds[0].max, unscaled.max * 2.0f);
-	ASSERT_EQ(medic->bounds[1].max, glm::vec3(0));
+	Bounds unscaled = mannequin->bounds[0];
+	mannequin->bounds[1] = {};
+	calculateBounds(*mannequin, 2.0f, 0, 1);
+	ASSERT_EQ(mannequin->bounds[0].min, unscaled.min * 2.0f);
+	ASSERT_EQ(mannequin->bounds[0].max, unscaled.max * 2.0f);
+	ASSERT_EQ(mannequin->bounds[1].max, glm::vec3(0));
 }
 
 TEST(EtArmatureTest, defaultArmature)
 {
-	auto model = loadSkeletal("models/mdm/medic.mdx");
+	auto model = loadSkeletal("models/mdm/mannequin.mdx");
 
-	// The medic uses the default armature
+	// The mannequin uses the default armature
 	ASSERT_EQ(et::defaultArmature().size(), 53);
 	ASSERT_TRUE(et::checkArmature(*model).empty());
 

@@ -81,7 +81,7 @@ TEST(SettingsTest, saveAndLoad)
 
 	AppSettings settings;
 	settings.basePaths = {"data"};
-	settings.addRecentFile("models/md3/pf.md3");
+	settings.addRecentFile("models/md3/tube.md3");
 	ASSERT_TRUE(settings.save((folder / "nested" / "settings.cfg").string()));
 
 	AppSettings loaded = AppSettings::load((folder / "nested" / "settings.cfg").string());

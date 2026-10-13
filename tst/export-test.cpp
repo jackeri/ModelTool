@@ -1,4 +1,6 @@
 #include "gtest/gtest.h"
+#include "et_armature.h"
+#include "model_ms3d.h"
 #include "model_mdm.h"
 #include "model_mdx.h"
 #include "model_md3.h"
@@ -47,12 +49,12 @@ namespace {
 		return std::unique_ptr<T>(typed);
 	}
 
-	std::unique_ptr<SkeletalModel> loadMedic()
+	std::unique_ptr<SkeletalModel> loadMannequin()
 	{
 		mt::io::MTPath data("data");
-		auto model = loadModel<SkeletalModel>(data.loadFile("models/mdm/medic.mdm"));
-		model::io::loadAnimation(model.get(), data.loadFile("models/mdm/medic.mdx"));
-		model::io::loadAnimation(model.get(), data.loadFile("models/mdm/medic.aninc"));
+		auto model = loadModel<SkeletalModel>(data.loadFile("models/mdm/mannequin.mdm"));
+		model::io::loadAnimation(model.get(), data.loadFile("models/mdm/mannequin.mdx"));
+		model::io::loadAnimation(model.get(), data.loadFile("models/mdm/mannequin.aninc"));
 		return model;
 	}
 
@@ -120,36 +122,36 @@ namespace {
 
 TEST(ExportTest, mdmAndMdxRoundTrip)
 {
-	auto medic = loadMedic();
+	auto mannequin = loadMannequin();
 
-	auto loaded = loadModel<SkeletalModel>(memoryFile("medic.mdm", encodeMDM(*medic)));
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.mdm", encodeMDM(*mannequin)));
 	ASSERT_TRUE(loaded);
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.mdx", encodeMDX(*medic)));
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.mdx", encodeMDX(*mannequin)));
 
-	ASSERT_EQ(loaded->name, medic->name);
-	ASSERT_EQ(loaded->numFrames(), medic->numFrames());
-	ASSERT_EQ(loaded->joints.size(), medic->joints.size());
-	ASSERT_EQ(loaded->torsoParent, medic->torsoParent);
-	for (size_t i = 0; i < medic->joints.size(); i++)
+	ASSERT_EQ(loaded->name, mannequin->name);
+	ASSERT_EQ(loaded->numFrames(), mannequin->numFrames());
+	ASSERT_EQ(loaded->joints.size(), mannequin->joints.size());
+	ASSERT_EQ(loaded->torsoParent, mannequin->torsoParent);
+	for (size_t i = 0; i < mannequin->joints.size(); i++)
 	{
-		ASSERT_EQ(loaded->joints[i].name, medic->joints[i].name);
-		ASSERT_EQ(loaded->joints[i].parentId, medic->joints[i].parentId);
+		ASSERT_EQ(loaded->joints[i].name, mannequin->joints[i].name);
+		ASSERT_EQ(loaded->joints[i].parentId, mannequin->joints[i].parentId);
 	}
 
-	for (size_t m = 0; m < medic->meshes.size(); m++)
+	for (size_t m = 0; m < mannequin->meshes.size(); m++)
 	{
-		ASSERT_EQ(loaded->meshes[m].name, medic->meshes[m].name);
-		ASSERT_EQ(loaded->meshes[m].tris, medic->meshes[m].tris);
-		ASSERT_EQ(loaded->meshes[m].collapseMap, medic->meshes[m].collapseMap);
-		ASSERT_EQ(loaded->meshes[m].minLod, medic->meshes[m].minLod);
+		ASSERT_EQ(loaded->meshes[m].name, mannequin->meshes[m].name);
+		ASSERT_EQ(loaded->meshes[m].tris, mannequin->meshes[m].tris);
+		ASSERT_EQ(loaded->meshes[m].collapseMap, mannequin->meshes[m].collapseMap);
+		ASSERT_EQ(loaded->meshes[m].minLod, mannequin->meshes[m].minLod);
 		// MDM normals are written back as they were read
-		ASSERT_EQ(loaded->meshes[m].vertices[3].normal, medic->meshes[m].vertices[3].normal);
+		ASSERT_EQ(loaded->meshes[m].vertices[3].normal, mannequin->meshes[m].vertices[3].normal);
 	}
 
 	// The bone angles and directions are stored as 16 bit angles, so the result is close but not exact
-	for (int frame : {0, 700, 2000, 4886})
+	for (int frame : {0, 30, 70, 110, 115})
 	{
-		auto a = pose(*medic, frame);
+		auto a = pose(*mannequin, frame);
 		auto b = pose(*loaded, frame);
 		EXPECT_LT(maxVertexDistance(a, b), 0.05f) << "frame " << frame;
 
@@ -165,7 +167,7 @@ TEST(ExportTest, mdmAndMdxRoundTrip)
 
 	// An MDM without its MDX writes the same file again (the bone references come from the file)
 	mt::io::MTPath data("data");
-	auto bare = loadModel<SkeletalModel>(data.loadFile("models/mdm/medic.mdm"));
+	auto bare = loadModel<SkeletalModel>(data.loadFile("models/mdm/mannequin.mdm"));
 	auto rewritten = encodeMDM(*bare);
 	auto bareAgain = loadModel<SkeletalModel>(memoryFile("again.mdm", rewritten));
 	ASSERT_EQ(bareAgain->meshes[0].boneReferences, bare->meshes[0].boneReferences);
@@ -182,18 +184,22 @@ TEST(ExportTest, mdmAndMdxRoundTrip)
 
 TEST(ExportTest, mdsRoundTrip)
 {
-	auto medic = loadMedic();
-	auto loaded = loadModel<SkeletalModel>(memoryFile("medic.mds", encodeMDS(*medic)));
+	auto mannequin = loadMannequin();
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.mds", encodeMDS(*mannequin)));
 	ASSERT_TRUE(loaded);
 
-	ASSERT_EQ(loaded->numFrames(), medic->numFrames());
-	// The 17 MDM tags become tag bones
-	ASSERT_EQ(loaded->joints.size(), medic->joints.size() + 17);
+	ASSERT_EQ(loaded->numFrames(), mannequin->numFrames());
+	// MDS tags are bones: the tags with an offset from their bone become new tag bones, the others use their bone
+	const auto withOffset = std::count_if(mannequin->tags.begin(), mannequin->tags.end(), [](const BoneTag &tag) {
+		return glm::length(tag.location) > 1e-4f || std::abs(std::abs(tag.rotation.w) - 1.0f) > 1e-5f;
+	});
+	ASSERT_EQ(withOffset, 15); // tag_head and tag_torso sit on their bones
+	ASSERT_EQ(loaded->joints.size(), mannequin->joints.size() + size_t(withOffset));
 	ASSERT_EQ(loaded->tags.size(), 17);
 
-	for (int frame : {0, 2000})
+	for (int frame : {0, 100})
 	{
-		auto a = pose(*medic, frame);
+		auto a = pose(*mannequin, frame);
 		auto b = pose(*loaded, frame);
 		EXPECT_LT(maxVertexDistance(a, b), 0.05f) << "frame " << frame;
 
@@ -230,17 +236,17 @@ TEST(ExportTest, md5RoundTrip)
 
 TEST(ExportTest, md5FromModelWithoutBindPose)
 {
-	// The medic has no bind pose, the first frame becomes the MD5 bind pose
-	auto medic = loadMedic();
-	medic->firstExportFrame = 100;
-	medic->lastExportFrame = 109;
+	// The mannequin has no bind pose, the first frame becomes the MD5 bind pose
+	auto mannequin = loadMannequin();
+	mannequin->firstExportFrame = 100;
+	mannequin->lastExportFrame = 109;
 
-	auto loaded = loadModel<SkeletalModel>(memoryFile("medic.md5mesh", encodeMD5Mesh(*medic)));
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.md5anim", encodeMD5Anim(*medic)));
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.md5mesh", encodeMD5Mesh(*mannequin)));
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.md5anim", encodeMD5Anim(*mannequin)));
 
 	ASSERT_EQ(loaded->numFrames(), 10);
-	EXPECT_LT(maxVertexDistance(pose(*medic, 100), pose(*loaded, FRAME_BIND_POSE)), 1e-3f);
-	EXPECT_LT(maxVertexDistance(pose(*medic, 105), pose(*loaded, 5)), 1e-3f);
+	EXPECT_LT(maxVertexDistance(pose(*mannequin, 100), pose(*loaded, FRAME_BIND_POSE)), 1e-3f);
+	EXPECT_LT(maxVertexDistance(pose(*mannequin, 105), pose(*loaded, 5)), 1e-3f);
 }
 
 TEST(ExportTest, md5BaseFrame)
@@ -273,7 +279,7 @@ TEST(ExportTest, md5BaseFrame)
 TEST(ExportTest, md3RoundTrip)
 {
 	mt::io::MTPath data("data");
-	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/grunt/head.md3"));
+	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/robot/head.md3"));
 	auto loaded = loadModel<morph::MorphModel>(memoryFile("head.md3", encodeMD3(*head)));
 	ASSERT_TRUE(loaded);
 
@@ -295,8 +301,8 @@ TEST(ExportTest, md3RoundTrip)
 TEST(ExportTest, md3LevelsOfDetailAndTagsOnly)
 {
 	mt::io::MTPath data("data");
-	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/grunt/head.md3"));
-	addMorphLod(*head, data.loadFile("models/players/grunt/head_1.md3"));
+	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/robot/head.md3"));
+	addMorphLod(*head, data.loadFile("models/players/robot/head_1.md3"));
 
 	TempFolder folder;
 	writeMD3(*head, folder.file("head.md3"));
@@ -305,7 +311,8 @@ TEST(ExportTest, md3LevelsOfDetailAndTagsOnly)
 
 	mt::io::MTPath written(folder.path.string());
 	auto lod = loadModel<morph::MorphModel>(written.loadFile("head_1.md3"));
-	ASSERT_EQ(lod->meshes[0].name, "h_head_1");
+	ASSERT_EQ(lod->meshes[0].name, "h_head");
+	ASSERT_EQ(lod->meshes[0].numVertices(), 111); // the level, not the base mesh (165 vertices)
 
 	writeMD3Tags(*head, folder.file("tags.md3"));
 	auto tags = loadModel<morph::MorphModel>(written.loadFile("tags.md3"));
@@ -330,41 +337,41 @@ TEST(ExportTest, skeletalToMd3)
 
 TEST(ExportTest, transformIsApplied)
 {
-	auto medic = loadMedic();
-	auto original = pose(*medic, 300);
+	auto mannequin = loadMannequin();
+	auto original = pose(*mannequin, 100);
 
-	medic->firstExportFrame = 295; // fewer frames to keep the test fast
-	medic->lastExportFrame = 305;
-	medic->scale = 2.0f;
-	medic->transform.rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3{0, 0, 1});
-	medic->transform.location = {10, 0, 5};
+	mannequin->firstExportFrame = 95; // fewer frames to keep the test fast
+	mannequin->lastExportFrame = 105;
+	mannequin->scale = 2.0f;
+	mannequin->transform.rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3{0, 0, 1});
+	mannequin->transform.location = {10, 0, 5};
 	const glm::mat4 transform
-		= glm::translate(medic->transform.location) * glm::toMat4(medic->transform.rotation) * glm::scale(glm::vec3(2.0f));
+		= glm::translate(mannequin->transform.location) * glm::toMat4(mannequin->transform.rotation) * glm::scale(glm::vec3(2.0f));
 
-	auto loaded = loadModel<SkeletalModel>(memoryFile("medic.mdm", encodeMDM(*medic)));
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.mdx", encodeMDX(*medic)));
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.mdm", encodeMDM(*mannequin)));
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.mdx", encodeMDX(*mannequin)));
 	EXPECT_LT(maxVertexDistance(original, pose(*loaded, 5), transform), 0.1f);
 
-	auto md5 = loadModel<SkeletalModel>(memoryFile("medic.md5mesh", encodeMD5Mesh(*medic)));
-	model::io::loadAnimation(md5.get(), memoryFile("medic.md5anim", encodeMD5Anim(*medic)));
+	auto md5 = loadModel<SkeletalModel>(memoryFile("mannequin.md5mesh", encodeMD5Mesh(*mannequin)));
+	model::io::loadAnimation(md5.get(), memoryFile("mannequin.md5anim", encodeMD5Anim(*mannequin)));
 	EXPECT_LT(maxVertexDistance(original, pose(*md5, 5), transform), 1e-3f);
 
 	// The model itself is not changed
-	ASSERT_FLOAT_EQ(medic->scale, 2.0f);
+	ASSERT_FLOAT_EQ(mannequin->scale, 2.0f);
 }
 
 TEST(ExportTest, exportFrames)
 {
-	auto medic = loadMedic();
-	medic->firstExportFrame = 32;
-	medic->lastExportFrame = 63;
+	auto mannequin = loadMannequin();
+	mannequin->firstExportFrame = 32;
+	mannequin->lastExportFrame = 63;
 
-	auto loaded = loadModel<SkeletalModel>(memoryFile("medic.mdm", encodeMDM(*medic)));
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.mdx", encodeMDX(*medic)));
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.aninc", encodeAninc(*medic)));
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.mdm", encodeMDM(*mannequin)));
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.mdx", encodeMDX(*mannequin)));
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.aninc", encodeAninc(*mannequin)));
 
 	ASSERT_EQ(loaded->numFrames(), 32);
-	EXPECT_LT(maxVertexDistance(pose(*medic, 40), pose(*loaded, 8)), 0.05f);
+	EXPECT_LT(maxVertexDistance(pose(*mannequin, 40), pose(*loaded, 8)), 0.05f);
 
 	// Only the sequences in the range are kept, moved to the new frame numbers
 	for (const auto &animation : loaded->animations)
@@ -373,41 +380,41 @@ TEST(ExportTest, exportFrames)
 		ASSERT_LT(animation.lastFrame(), 32);
 	}
 	ASSERT_FALSE(loaded->animations.empty());
-	ASSERT_LT(loaded->animations.size(), medic->animations.size());
+	ASSERT_LT(loaded->animations.size(), mannequin->animations.size());
 }
 
 TEST(ExportTest, cropFramesClipsSequences)
 {
-	auto medic = loadMedic();
-	medic->animations = {{"inside", 10, 5, 20, true}, {"across", 5, 10, 20}, {"outside", 50, 5, 20}};
+	auto mannequin = loadMannequin();
+	mannequin->animations = {{"inside", 10, 5, 20, true}, {"across", 5, 10, 20}, {"outside", 50, 5, 20}};
 	Animation reversed{"back", 30, 15, 20};
 	reversed.reversed = true; // frames 30 down to 16
-	medic->animations.push_back(reversed);
+	mannequin->animations.push_back(reversed);
 
-	cropFrames(*medic, 8, 20);
-	ASSERT_EQ(medic->numFrames(), 13);
-	ASSERT_EQ(medic->animations.size(), 3);
-	ASSERT_EQ(medic->animations[0].startFrame, 2);
-	ASSERT_EQ(medic->animations[0].numFrames, 5);
-	ASSERT_EQ(medic->animations[1].startFrame, 0); // frames 8 - 14
-	ASSERT_EQ(medic->animations[1].numFrames, 7);
-	ASSERT_EQ(medic->animations[2].name, "back"); // frames 20 down to 16
-	ASSERT_EQ(medic->animations[2].startFrame, 12);
-	ASSERT_EQ(medic->animations[2].lastFrame(), 8);
+	cropFrames(*mannequin, 8, 20);
+	ASSERT_EQ(mannequin->numFrames(), 13);
+	ASSERT_EQ(mannequin->animations.size(), 3);
+	ASSERT_EQ(mannequin->animations[0].startFrame, 2);
+	ASSERT_EQ(mannequin->animations[0].numFrames, 5);
+	ASSERT_EQ(mannequin->animations[1].startFrame, 0); // frames 8 - 14
+	ASSERT_EQ(mannequin->animations[1].numFrames, 7);
+	ASSERT_EQ(mannequin->animations[2].name, "back"); // frames 20 down to 16
+	ASSERT_EQ(mannequin->animations[2].startFrame, 12);
+	ASSERT_EQ(mannequin->animations[2].lastFrame(), 8);
 }
 
 TEST(ExportTest, aninc)
 {
-	auto medic = loadMedic();
-	medic->animations[3].reversed = true;
-	medic->animations[3].moveSpeed = 160;
+	auto mannequin = loadMannequin();
+	mannequin->animations[3].reversed = true;
+	mannequin->animations[3].moveSpeed = 160;
 
-	auto loaded = loadMedic();
-	model::io::loadAnimation(loaded.get(), memoryFile("medic.aninc", encodeAninc(*medic)));
-	ASSERT_EQ(loaded->animations.size(), medic->animations.size());
-	for (size_t i = 0; i < medic->animations.size(); i++)
+	auto loaded = loadMannequin();
+	model::io::loadAnimation(loaded.get(), memoryFile("mannequin.aninc", encodeAninc(*mannequin)));
+	ASSERT_EQ(loaded->animations.size(), mannequin->animations.size());
+	for (size_t i = 0; i < mannequin->animations.size(); i++)
 	{
-		const auto &a = medic->animations[i];
+		const auto &a = mannequin->animations[i];
 		const auto &b = loaded->animations[i];
 		ASSERT_EQ(b.name, a.name);
 		ASSERT_EQ(b.startFrame, a.startFrame);
@@ -418,31 +425,31 @@ TEST(ExportTest, aninc)
 		ASSERT_EQ(b.reversed, a.reversed);
 	}
 
-	medic->animations[0].name = "has space";
-	ASSERT_THROW(encodeAninc(*medic), mt_exception);
+	mannequin->animations[0].name = "has space";
+	ASSERT_THROW(encodeAninc(*mannequin), mt_exception);
 }
 
 TEST(ExportTest, tagsFile)
 {
-	auto medic = loadMedic();
-	auto target = loadMedic();
+	auto mannequin = loadMannequin();
+	auto target = loadMannequin();
 	target->tags.clear();
 
-	loadTags(*target, memoryFile("medic.tag", encodeTags(*medic)));
-	ASSERT_EQ(target->tags.size(), medic->tags.size());
-	for (size_t i = 0; i < medic->tags.size(); i++)
+	loadTags(*target, memoryFile("mannequin.tag", encodeTags(*mannequin)));
+	ASSERT_EQ(target->tags.size(), mannequin->tags.size());
+	for (size_t i = 0; i < mannequin->tags.size(); i++)
 	{
-		ASSERT_EQ(target->tags[i].name, medic->tags[i].name);
-		ASSERT_EQ(target->tags[i].parentBone, medic->tags[i].parentBone);
-		EXPECT_LT(glm::distance(target->tags[i].location, medic->tags[i].location), 1e-5f);
-		EXPECT_GT(std::abs(glm::dot(target->tags[i].rotation, medic->tags[i].rotation)), 0.99999f);
+		ASSERT_EQ(target->tags[i].name, mannequin->tags[i].name);
+		ASSERT_EQ(target->tags[i].parentBone, mannequin->tags[i].parentBone);
+		EXPECT_LT(glm::distance(target->tags[i].location, mannequin->tags[i].location), 1e-5f);
+		EXPECT_GT(std::abs(glm::dot(target->tags[i].rotation, mannequin->tags[i].rotation)), 0.99999f);
 	}
 }
 
 TEST(ExportTest, stl)
 {
 	mt::io::MTPath data("data");
-	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/grunt/head.md3"));
+	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/robot/head.md3"));
 	const size_t triangles = head->meshes[0].tris.size();
 
 	auto binary = encodeSTL(*head, true);
@@ -477,19 +484,19 @@ TEST(ExportTest, stl)
 
 TEST(ExportTest, registryWriters)
 {
-	auto medic = loadMedic();
+	auto mannequin = loadMannequin();
 	TempFolder folder;
 
-	model::io::writeModel(*medic, folder.file("medic.mdm"));
-	model::io::writeAnimation(*medic, folder.file("medic.mdx"));
-	model::io::writeAnimation(*medic, folder.file("medic.aninc"));
+	model::io::writeModel(*mannequin, folder.file("mannequin.mdm"));
+	model::io::writeAnimation(*mannequin, folder.file("mannequin.mdx"));
+	model::io::writeAnimation(*mannequin, folder.file("mannequin.aninc"));
 
 	mt::io::MTPath written(folder.path.string());
-	auto loaded = loadModel<SkeletalModel>(written.loadFile("medic.mdm"));
-	model::io::loadAnimation(loaded.get(), written.loadFile("medic.mdx"));
-	model::io::loadAnimation(loaded.get(), written.loadFile("medic.aninc"));
-	ASSERT_EQ(loaded->numFrames(), medic->numFrames());
-	ASSERT_EQ(loaded->animations.size(), medic->animations.size());
+	auto loaded = loadModel<SkeletalModel>(written.loadFile("mannequin.mdm"));
+	model::io::loadAnimation(loaded.get(), written.loadFile("mannequin.mdx"));
+	model::io::loadAnimation(loaded.get(), written.loadFile("mannequin.aninc"));
+	ASSERT_EQ(loaded->numFrames(), mannequin->numFrames());
+	ASSERT_EQ(loaded->animations.size(), mannequin->animations.size());
 
 	auto writers = model::io::modelWriterExtensions();
 	for (const char *ext : {".md3", ".md5mesh", ".mdm", ".mds", ".mdx", ".stl", ".tag"})
@@ -507,12 +514,12 @@ TEST(ExportTest, errors)
 	ASSERT_THROW(encodeMDX(*fixit), mt_exception);
 
 	// Names longer than the file format allows
-	auto medic = loadMedic();
-	medic->meshes[0].name = std::string(80, 'x');
-	ASSERT_THROW(encodeMDM(*medic), mt_exception);
+	auto mannequin = loadMannequin();
+	mannequin->meshes[0].name = std::string(80, 'x');
+	ASSERT_THROW(encodeMDM(*mannequin), mt_exception);
 
 	// Morph models are not skeletal
-	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/grunt/head.md3"));
+	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/robot/head.md3"));
 	ASSERT_THROW(encodeMDM(*head), mt_exception);
 	ASSERT_THROW(encodeMD5Mesh(*head), mt_exception);
 }
@@ -534,4 +541,153 @@ TEST(ExportTest, generatedLodForMeshesWithoutCollapseMaps)
 	}
 	// The original model is not changed
 	ASSERT_TRUE(bob->meshes[0].collapseMap.empty());
+}
+
+TEST(ExportTest, mdcRoundTrip)
+{
+	mt::io::MTPath data("data");
+	auto tube = loadModel<morph::MorphModel>(data.loadFile("models/md3/tube.md3"));
+
+	// Full frames: the same as MD3
+	auto full = loadModel<morph::MorphModel>(memoryFile("tube.mdc", encodeMDC(*tube)));
+	ASSERT_TRUE(full);
+	ASSERT_EQ(full->numFrames(), 3);
+	ASSERT_EQ(full->meshes[0].name, "w_tube");
+	ASSERT_EQ(full->meshes[0].tris, tube->meshes[0].tris);
+	for (int frame = 0; frame < 3; frame++)
+	{
+		for (size_t v = 0; v < tube->meshes[0].numVertices(); v++)
+		{
+			ASSERT_EQ(full->meshes[0].frames[frame][v].pos, tube->meshes[0].frames[frame][v].pos);
+		}
+		const Point &a = tube->tags[0].frames[frame], &b = full->tags[0].frames[frame];
+		EXPECT_LT(glm::distance(a.location, b.location), 0.02f);
+		EXPECT_GT(std::abs(glm::dot(a.rotation, b.rotation)), 0.9999f);
+	}
+
+	// Compressed frames are within 0.05 units, and smaller
+	MdcOptions compress;
+	compress.compress = true;
+	auto compressedData = encodeMDC(*tube, 0, compress);
+	EXPECT_LT(compressedData.size(), encodeMDC(*tube).size());
+	auto compressed = loadModel<morph::MorphModel>(memoryFile("tube.mdc", compressedData));
+	for (int frame = 0; frame < 3; frame++)
+	{
+		for (size_t v = 0; v < tube->meshes[0].numVertices(); v++)
+		{
+			ASSERT_LT(glm::distance(compressed->meshes[0].frames[frame][v].pos, tube->meshes[0].frames[frame][v].pos), 0.05f);
+		}
+	}
+
+	// A frame that moves further than the compression reaches is stored as a full frame
+	auto moved = *tube;
+	for (auto &vert : moved.meshes[0].frames[2])
+	{
+		vert.pos.x += 20.0f;
+	}
+	auto far = loadModel<morph::MorphModel>(memoryFile("moved.mdc", encodeMDC(moved, 0, compress)));
+	ASSERT_EQ(far->meshes[0].frames[2][0].pos, moved.meshes[0].frames[2][0].pos);
+
+	// Skeletal models are baked into frames like for MD3
+	auto mannequin = loadMannequin();
+	mannequin->firstExportFrame = 20;
+	mannequin->lastExportFrame = 25;
+	ASSERT_THROW(encodeMDC(*mannequin), mt_exception); // 17 tags, MDC allows 16 like MD3
+	mannequin->tags.pop_back();
+	auto baked = loadModel<morph::MorphModel>(memoryFile("mannequin.mdc", encodeMDC(*mannequin)));
+	ASSERT_EQ(baked->numFrames(), 6);
+	ASSERT_EQ(baked->tags.size(), 16);
+
+	// The level of detail files
+	auto head = loadModel<morph::MorphModel>(data.loadFile("models/players/robot/head.md3"));
+	addMorphLod(*head, data.loadFile("models/players/robot/head_1.md3"));
+	TempFolder folder;
+	writeMDC(*head, folder.file("head.mdc"));
+	ASSERT_TRUE(std::filesystem::exists(folder.file("head_1.mdc")));
+}
+
+TEST(ExportTest, ms3dRoundTrip)
+{
+	auto mannequin = loadMannequin();
+	mannequin->firstExportFrame = 0;
+	mannequin->lastExportFrame = 115;
+
+	auto loaded = loadModel<SkeletalModel>(memoryFile("mannequin.ms3d", encodeMS3D(*mannequin)));
+	ASSERT_TRUE(loaded);
+	ASSERT_EQ(loaded->name, "mannequin");
+	ASSERT_EQ(loaded->numFrames(), 116);
+	ASSERT_EQ(loaded->animations.size(), 1);
+	ASSERT_EQ(loaded->animations[0].fps, 20);
+	ASSERT_EQ(loaded->meshes.size(), 4);
+	ASSERT_EQ(loaded->meshes[0].name, "u_body");
+
+	// The tags are tag bones after the bones, the loader marks them
+	ASSERT_EQ(loaded->joints.size(), mannequin->joints.size() + mannequin->tags.size());
+	ASSERT_EQ(std::count_if(loaded->joints.begin(), loaded->joints.end(), [](const Joint &joint) { return joint.asTag; }), 17);
+	ASSERT_TRUE(et::checkArmature(*loaded).empty());
+
+	// The file is Y-up, the loader turns it back. MS3D has one bind position per vertex: the MDM has no bind pose, so
+	// the writer binds at frame 0. That pose is exact, the other frames blend the bones from the new bind pose and
+	// land close by (linear blend skinning is not the same after a new bind pose).
+	bakeTransform(*loaded);
+	auto compare = [&](const SkeletalModel &expected, const SkeletalModel &actual, int frame, float vertexTolerance) {
+		auto a = pose(expected, frame);
+		auto b = pose(actual, frame);
+		ASSERT_EQ(a.meshes.size(), b.meshes.size());
+		// The loader orders the vertices by the triangles, every vertex is compared with the nearest one
+		float worst = 0;
+		for (size_t m = 0; m < a.meshes.size(); m++)
+		{
+			for (const auto &position : b.meshes[m].positions)
+			{
+				float nearest = std::numeric_limits<float>::max();
+				for (const auto &other : a.meshes[m].positions)
+				{
+					nearest = std::min(nearest, glm::distance(position, other));
+				}
+				worst = std::max(worst, nearest);
+			}
+		}
+		EXPECT_LT(worst, vertexTolerance) << "frame " << frame;
+
+		for (const auto &tag : a.tags)
+		{
+			auto *other = findTag(b, tag.name);
+			ASSERT_TRUE(other) << tag.name;
+			EXPECT_LT(glm::distance(tag.point.location, other->point.location), 1e-3f) << tag.name;
+			EXPECT_GT(std::abs(glm::dot(tag.point.rotation, other->point.rotation)), 0.9999f) << tag.name;
+		}
+	};
+	compare(*mannequin, *loaded, 0, 1e-3f);
+	for (int frame : {30, 70, 110})
+	{
+		compare(*mannequin, *loaded, frame, 0.1f);
+	}
+
+	// A model with a bind pose comes back exactly in every frame
+	mt::io::MTPath fixtures("data");
+	auto ms3d = loadModel<SkeletalModel>(fixtures.loadFile("models/ms3d/test.ms3d"));
+	bakeTransform(*ms3d);
+	auto again = loadModel<SkeletalModel>(memoryFile("again.ms3d", encodeMS3D(*ms3d)));
+	bakeTransform(*again);
+	ASSERT_EQ(again->joints.size(), ms3d->joints.size());
+	for (int frame : {0, 30, 70, 95})
+	{
+		compare(*ms3d, *again, frame, 1e-3f);
+	}
+
+	// Errors
+	mt::io::MTPath data("data");
+	auto tube = loadModel<morph::MorphModel>(data.loadFile("models/md3/tube.md3"));
+	ASSERT_THROW(encodeMS3D(*tube), mt_exception);
+	auto longName = loadMannequin();
+	longName->meshes[0].name = std::string(40, 'x');
+	ASSERT_THROW(encodeMS3D(*longName), mt_exception);
+
+	// Through the registry
+	TempFolder folder;
+	model::io::writeModel(*mannequin, folder.file("mannequin.ms3d"));
+	model::io::writeModel(*tube, folder.file("tube.mdc"));
+	ASSERT_TRUE(std::filesystem::exists(folder.file("mannequin.ms3d")));
+	ASSERT_TRUE(std::filesystem::exists(folder.file("tube.mdc")));
 }

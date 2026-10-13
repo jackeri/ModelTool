@@ -1,4 +1,5 @@
 #include "imgui_view.h"
+#include "model_ms3d.h"
 #include <ImGuizmo.h>
 #include "icons_font_awesome.h"
 #include "gl_window.h"
@@ -654,6 +655,9 @@ namespace mt {
 				{"MD5 animation", ".md5anim", model::writeMD5Anim, true, true},
 				{"MD3", ".md3", model::writeMD3, false, false},
 				{"MD3 tags only", ".md3", model::writeMD3Tags, false, false},
+				{"MDC (compressed MD3, full frames)", ".mdc", [](const Model &m, const std::string &p) { model::writeMDC(m, p); }, false,
+				 false},
+				{"MS3D (MilkShape 3D)", ".ms3d", model::writeMS3D, true, false},
 				{"Animation sequences (.aninc)", ".aninc", model::writeAninc, false, false},
 				{"Tags file", ".tag", model::writeTags, true, false},
 				{"STL (binary)", ".stl", [](const Model &m, const std::string &p) { model::writeSTL(m, p, true); }, false, false},

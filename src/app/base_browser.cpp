@@ -360,7 +360,7 @@ namespace mt {
 			ImGui::SetKeyboardFocusHere();
 			focusSearch = false;
 		}
-		searchSubmitted = ImGui::InputTextWithHint("##search", ICON_FA_SEARCH " Search all files (fuzzy), like grunt head md3", &search,
+		searchSubmitted = ImGui::InputTextWithHint("##search", ICON_FA_SEARCH " Search all files (fuzzy), like robot head md3", &search,
 												   ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::SetItemTooltip("Searches every folder, pk3 and pk3dir from the root. Up / Down pick a result, Enter opens it");
 	}

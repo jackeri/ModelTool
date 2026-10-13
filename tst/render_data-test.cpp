@@ -103,17 +103,17 @@ TEST(PosedModelTest, skeletalWithoutPose)
 {
 	// An MDM without an animation has nothing to draw
 	mt::io::MTPath data("data");
-	std::unique_ptr<Model> mdm(model::io::loadModel(data.loadFile("models/mdm/medic.mdm")));
+	std::unique_ptr<Model> mdm(model::io::loadModel(data.loadFile("models/mdm/mannequin.mdm")));
 	auto posed = poseModel(*mdm, PoseOptions{});
 	ASSERT_TRUE(posed.meshes.empty());
 
 	// With the animation the tags follow their bones
-	model::io::loadAnimation(mdm.get(), data.loadFile("models/mdm/medic.mdx"));
+	model::io::loadAnimation(mdm.get(), data.loadFile("models/mdm/mannequin.mdx"));
 	posed = poseModel(*mdm, PoseOptions{});
 	ASSERT_EQ(posed.meshes.size(), 4);
 	ASSERT_EQ(posed.tags.size(), 17);
 	ASSERT_EQ(posed.tags[0].name, "tag_head");
-	ASSERT_GT(posed.tags[0].point.location.z, 30.0f);
+	ASSERT_GT(posed.tags[0].point.location.z, 20.0f);
 }
 
 TEST(PosedModelTest, boneTagsAndHitboxes)
@@ -231,14 +231,14 @@ TEST(PosedModelTest, collapseMaps)
 TEST(PosedModelTest, dynamicLodOnRealModel)
 {
 	mt::io::MTPath data("data");
-	std::unique_ptr<Model> medic(model::io::loadModel(data.loadFile("models/mdm/medic.mdm")));
-	model::io::loadAnimation(medic.get(), data.loadFile("models/mdm/medic.mdx"));
+	std::unique_ptr<Model> mannequin(model::io::loadModel(data.loadFile("models/mdm/mannequin.mdm")));
+	model::io::loadAnimation(mannequin.get(), data.loadFile("models/mdm/mannequin.mdx"));
 
 	PoseOptions full, reduced;
 	reduced.dynamicLod = true;
 	reduced.lodRatio = 0.0f;
-	size_t fullTris = poseModel(*medic, full).meshes[0].tris.size();
-	size_t lodTris = poseModel(*medic, reduced).meshes[0].tris.size();
+	size_t fullTris = poseModel(*mannequin, full).meshes[0].tris.size();
+	size_t lodTris = poseModel(*mannequin, reduced).meshes[0].tris.size();
 	ASSERT_GT(lodTris, 0);
 	ASSERT_LT(lodTris, fullTris);
 }
@@ -313,9 +313,9 @@ TEST(PlaybackTest, reversedAndSeek)
 
 TEST(TextureLookupTest, candidates)
 {
-	auto list = mt::io::textureCandidates("models\\weapons2\\pf.tga", "models/weapons2/pf.md3");
-	ASSERT_EQ(list[0], "models/weapons2/pf.tga");
-	ASSERT_NE(std::find(list.begin(), list.end(), "models/weapons2/pf.jpg"), list.end());
+	auto list = mt::io::textureCandidates("models\\weapons\\tube.tga", "models/weapons/tube.md3");
+	ASSERT_EQ(list[0], "models/weapons/tube.tga");
+	ASSERT_NE(std::find(list.begin(), list.end(), "models/weapons/tube.jpg"), list.end());
 
 	// Absolute paths from the artist's machine
 	list = mt::io::textureCandidates("C:\\mapping\\etmain\\models/players/body.tga", "");

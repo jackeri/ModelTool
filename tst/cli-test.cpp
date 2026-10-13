@@ -47,9 +47,9 @@ TEST(CliTest, Usage)
 	EXPECT_EQ(run({"nothing"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"info", "--what"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"info"}).code, cli::EXIT_USAGE);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "--frames", "3"}).code, cli::EXIT_USAGE);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "out.md3", "--scale", "-1"}).code, cli::EXIT_USAGE);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "out.md3", "--normals", "round"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "--frames", "3"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--scale", "-1"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--normals", "round"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"list"}).code, cli::EXIT_USAGE);
 }
 
@@ -63,33 +63,34 @@ TEST(CliTest, Formats)
 
 TEST(CliTest, Info)
 {
-	auto morph = run({"info", "data/models/md3/pf.md3"});
+	auto morph = run({"info", "data/models/md3/tube.md3"});
 	ASSERT_EQ(morph.code, cli::EXIT_OK) << morph.err;
 	EXPECT_TRUE(contains(morph.out, "Type: morph"));
-	EXPECT_TRUE(contains(morph.out, "w_panzer  vertices 254, triangles 271"));
+	EXPECT_TRUE(contains(morph.out, "w_tube  vertices 152, triangles 120"));
 	EXPECT_TRUE(contains(morph.out, "tag_flash"));
 
 	// From a base folder, with animations
-	auto skeletal = run(
-		{"--base", "data", "info", "models/mdm/medic.mdm", "--animation", "models/mdm/medic.mdx", "--animation", "models/mdm/medic.aninc"});
+	auto skeletal = run({"--base", "data", "info", "models/mdm/mannequin.mdm", "--animation", "models/mdm/mannequin.mdx", "--animation",
+						 "models/mdm/mannequin.aninc"});
 	ASSERT_EQ(skeletal.code, cli::EXIT_OK) << skeletal.err;
 	EXPECT_TRUE(contains(skeletal.out, "Type: skeletal"));
 	EXPECT_TRUE(contains(skeletal.out, "Bones: 53"));
 	EXPECT_TRUE(contains(skeletal.out, "tag_torso  bone Bip01 Spine"));
-	EXPECT_TRUE(contains(skeletal.out, "Frames: 4887"));
-	EXPECT_TRUE(contains(skeletal.out, "death_gut"));
+	EXPECT_TRUE(contains(skeletal.out, "Frames: 116"));
+	EXPECT_TRUE(contains(skeletal.out, "  run  frames 44-59, 20 fps, loops"));
 	EXPECT_TRUE(contains(skeletal.out, "Mesh bounds"));
 
 	// Levels of detail next to the model are loaded like in the game
-	auto lods = run({"--base", "data", "info", "models/players/grunt/head.md3"});
+	auto lods = run({"--base", "data", "info", "models/players/robot/head.md3"});
 	ASSERT_EQ(lods.code, cli::EXIT_OK) << lods.err;
 	EXPECT_TRUE(contains(lods.out, "Levels of detail: 3"));
 
-	auto player = run({"--base", "data", "info", "models/players/grunt/animation.cfg"});
+	auto player = run({"--base", "data", "info", "models/players/robot/animation.cfg"});
 	ASSERT_EQ(player.code, cli::EXIT_OK) << player.err;
-	EXPECT_TRUE(contains(player.out, "Upper: models/players/grunt/upper.md3"));
+	EXPECT_TRUE(contains(player.out, "Upper: models/players/robot/upper.md3"));
 	EXPECT_TRUE(contains(player.out, "Skins: default blue red stripe"));
-	EXPECT_TRUE(contains(player.out, "LEGS_WALKCR  legs frames 90-97, 20 fps, loops"));
+	EXPECT_TRUE(contains(player.out, "LEGS_WALKCR  legs frames 30-37, 20 fps, loops"));
+	EXPECT_TRUE(contains(player.out, "Sex: n, footsteps: mech"));
 	EXPECT_EQ(run({"info", "data/models/md5/animation.cfg"}).code, cli::EXIT_FAILED);
 
 	auto missing = run({"info", "data/models/missing.md3"});
@@ -120,18 +121,18 @@ TEST(CliTest, Convert)
 	EXPECT_TRUE(std::filesystem::exists("tmp/cli/bob.md5anim"));
 
 	// Hitboxes in and out
-	auto hitboxes = run({"convert", "data/models/mdm/medic.mdm", "--animation", "data/models/mdm/medic.mdx", "--hitboxes",
-						 "data/test/test.hitbox", "--save-hitboxes", "tmp/cli/medic.hitboxes", "--optimize"});
+	auto hitboxes = run({"convert", "data/models/mdm/mannequin.mdm", "--animation", "data/models/mdm/mannequin.mdx", "--hitboxes",
+						 "data/test/test.hitbox", "--save-hitboxes", "tmp/cli/mannequin.hitboxes", "--optimize"});
 	ASSERT_EQ(hitboxes.code, cli::EXIT_OK) << hitboxes.err;
-	EXPECT_TRUE(std::filesystem::exists("tmp/cli/medic.hitboxes"));
-	auto info = run({"info", "data/models/mdm/medic.mdm", "--hitboxes", "tmp/cli/medic.hitboxes"});
+	EXPECT_TRUE(std::filesystem::exists("tmp/cli/mannequin.hitboxes"));
+	auto info = run({"info", "data/models/mdm/mannequin.mdm", "--hitboxes", "tmp/cli/mannequin.hitboxes"});
 	EXPECT_TRUE(contains(info.out, "Hitboxes: 3"));
 
 	// Errors
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "tmp/cli/pf.xyz"}).code, cli::EXIT_FAILED);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "tmp/cli/pf.md3", "--frames", "0:5"}).code, cli::EXIT_FAILED);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "tmp/cli/pf.md3", "--optimize"}).code, cli::EXIT_FAILED);
-	EXPECT_EQ(run({"convert", "data/models/md3/pf.md3", "--save-hitboxes", "tmp/cli/pf.hitboxes"}).code, cli::EXIT_FAILED);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.xyz"}).code, cli::EXIT_FAILED);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--frames", "0:5"}).code, cli::EXIT_FAILED);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--optimize"}).code, cli::EXIT_FAILED);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "--save-hitboxes", "tmp/cli/tube.hitboxes"}).code, cli::EXIT_FAILED);
 
 	std::filesystem::remove_all("tmp");
 }
@@ -140,8 +141,8 @@ TEST(CliTest, List)
 {
 	auto all = run({"--base", "data", "list"});
 	ASSERT_EQ(all.code, cli::EXIT_OK) << all.err;
-	EXPECT_TRUE(contains(all.out, "models/md3/pf.md3\n"));
-	EXPECT_TRUE(contains(all.out, "models/mdm/medic.mdx\n"));
+	EXPECT_TRUE(contains(all.out, "models/md3/tube.md3\n"));
+	EXPECT_TRUE(contains(all.out, "models/mdm/mannequin.mdx\n"));
 	EXPECT_FALSE(contains(all.out, ".tga"));
 
 	auto folder = run({"--base", "data", "list", "models/md5/"});
@@ -152,9 +153,9 @@ TEST(CliTest, List)
 
 TEST(CliTest, CaseSensitive)
 {
-	auto any = run({"--base", "data", "info", "MODELS/MD3/PF.md3"});
+	auto any = run({"--base", "data", "info", "MODELS/MD3/TUBE.md3"});
 	EXPECT_EQ(any.code, cli::EXIT_OK) << any.err;
 
-	auto exact = run({"--base", "data", "--case-sensitive", "info", "MODELS/MD3/PF.md3"});
+	auto exact = run({"--base", "data", "--case-sensitive", "info", "MODELS/MD3/TUBE.md3"});
 	EXPECT_EQ(exact.code, cli::EXIT_FAILED);
 }

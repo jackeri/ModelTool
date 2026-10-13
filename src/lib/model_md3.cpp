@@ -508,6 +508,212 @@ namespace mt::model {
 		return out.data;
 	}
 
+	std::vector<byte> encodeMDC(const Model &source, int level, const MdcOptions &options)
+	{
+		auto model = morphForExport(source);
+		const auto &meshes = model->lod(level);
+		const int numFrames = model->numFrames();
+
+		auto limit = [](const char *what, size_t count, int max) {
+			if (int(count) > max)
+			{
+				throw mt_ex("The model has " + std::to_string(count) + " " + what + ", MDC allows " + std::to_string(max)
+							+ " (use the export frames or remove " + what + ")");
+			}
+		};
+		limit("frames", size_t(numFrames), MD3_MAX_FRAMES);
+		limit("tags", model->tags.size(), MD3_MAX_TAGS);
+		limit("meshes", meshes.size(), MD3_MAX_SURFACES);
+
+		BinaryWriter out;
+		mdcHeader_t header{};
+		header.ident = MDC_IDENT;
+		header.version = MDC_VERSION;
+		BinaryWriter::setStringTruncated(header.name, model->name);
+		header.numFrames = numFrames;
+		header.numTags = int32_t(model->tags.size());
+		header.numSurfaces = int32_t(meshes.size());
+		out.write(header);
+
+		header.ofsFrames = out.tell();
+		for (const auto &frame : model->frames)
+		{
+			md3Frame_t entry{};
+			std::memcpy(entry.bounds[0], glm::value_ptr(frame.bounds.min), sizeof(entry.bounds[0]));
+			std::memcpy(entry.bounds[1], glm::value_ptr(frame.bounds.max), sizeof(entry.bounds[1]));
+			std::memcpy(entry.localOrigin, glm::value_ptr(frame.localOrigin), sizeof(entry.localOrigin));
+			entry.radius = frame.radius;
+			BinaryWriter::setStringTruncated(entry.name, frame.name);
+			out.write(entry);
+		}
+
+		// Tags: names once, then location and angles per frame
+		header.ofsTagNames = out.tell();
+		for (const auto &tag : model->tags)
+		{
+			mdcTagName_t entry{};
+			BinaryWriter::setString(entry.name, tag.name, "tag name");
+			out.write(entry);
+		}
+		header.ofsTags = out.tell();
+		for (int frame = 0; frame < numFrames; frame++)
+		{
+			for (const auto &tag : model->tags)
+			{
+				const Point &point = tag.frames.at(size_t(frame));
+				const glm::vec3 angles = axisToAngles(point.axis());
+				mdcTag_t entry{};
+				for (int i = 0; i < 3; i++)
+				{
+					entry.xyz[i] = encodeCoordinate(point.location[i]);
+					entry.angles[i] = int16_t(std::lround(angles[i] / MDC_TAG_ANGLE_SCALE));
+				}
+				out.write(entry);
+			}
+		}
+
+		header.ofsSurfaces = out.tell();
+		for (const auto &mesh : meshes)
+		{
+			if (int(mesh.numVertices()) > MD3_MAX_VERTS || int(mesh.tris.size()) > MD3_MAX_TRIANGLES)
+			{
+				throw mt_ex("Mesh " + mesh.name + " does not fit in MDC: max " + std::to_string(MD3_MAX_VERTS) + " vertices and "
+							+ std::to_string(MD3_MAX_TRIANGLES) + " triangles");
+			}
+			const size_t numVerts = mesh.numVertices();
+
+			// Full frames, and the frames stored as offsets from the last full frame when they fit
+			std::vector<int> fullFrames, compressedFrames;
+			std::vector<int16_t> frameBase(static_cast<size_t>(numFrames), 0);
+			std::vector<int16_t> frameCompressed(static_cast<size_t>(numFrames), -1);
+			auto quantized = [](const glm::vec3 &pos) {
+				return glm::vec3{encodeCoordinate(pos.x), encodeCoordinate(pos.y), encodeCoordinate(pos.z)} * MD3_XYZ_SCALE;
+			};
+			auto offsetCode = [](float offset) { return std::lround(offset / MDC_DIST_SCALE + MDC_MAX_OFS); };
+			for (int frame = 0; frame < numFrames; frame++)
+			{
+				bool fits = options.compress && !fullFrames.empty();
+				for (size_t v = 0; fits && v < numVerts; v++)
+				{
+					const glm::vec3 offset = mesh.frames[size_t(frame)][v].pos - quantized(mesh.frames[size_t(fullFrames.back())][v].pos);
+					for (int i = 0; i < 3; i++)
+					{
+						const long code = offsetCode(offset[i]);
+						fits = fits && code >= 0 && code <= 255;
+					}
+				}
+				if (fits)
+				{
+					frameBase[size_t(frame)] = int16_t(fullFrames.size() - 1);
+					frameCompressed[size_t(frame)] = int16_t(compressedFrames.size());
+					compressedFrames.push_back(frame);
+				}
+				else
+				{
+					frameBase[size_t(frame)] = int16_t(fullFrames.size());
+					fullFrames.push_back(frame);
+				}
+			}
+
+			const int32_t start = out.tell();
+			mdcSurface_t surface{};
+			surface.ident = MDC_IDENT;
+			BinaryWriter::setString(surface.name, mesh.name, "mesh name");
+			surface.flags = mesh.flags;
+			surface.numCompFrames = int32_t(compressedFrames.size());
+			surface.numBaseFrames = int32_t(fullFrames.size());
+			surface.numShaders = 1;
+			surface.numVerts = int32_t(numVerts);
+			surface.numTriangles = int32_t(mesh.tris.size());
+			out.write(surface);
+
+			surface.ofsTriangles = out.tell() - start;
+			for (const auto &tri : mesh.tris)
+			{
+				out.write(md3Triangle_t{{tri.x, tri.y, tri.z}});
+			}
+
+			surface.ofsShaders = out.tell() - start;
+			md3Shader_t shader{};
+			BinaryWriter::setString(shader.name, mesh.materialName, "material name");
+			out.write(shader);
+
+			surface.ofsSt = out.tell() - start;
+			for (const auto &tex : mesh.texCoords)
+			{
+				out.write(md3St_t{{tex.x, tex.y}});
+			}
+
+			surface.ofsXyzNormals = out.tell() - start;
+			for (int frame : fullFrames)
+			{
+				for (const auto &vert : mesh.frames[size_t(frame)])
+				{
+					md3XyzNormal_t entry{};
+					for (int i = 0; i < 3; i++)
+					{
+						entry.xyz[i] = encodeCoordinate(vert.pos[i]);
+					}
+					entry.normal = normalToLatLng(vert.normal);
+					out.write(entry);
+				}
+			}
+
+			surface.ofsXyzCompressed = out.tell() - start;
+			for (int frame : compressedFrames)
+			{
+				const auto &base = mesh.frames[size_t(fullFrames[size_t(frameBase[size_t(frame)])])];
+				for (size_t v = 0; v < numVerts; v++)
+				{
+					const glm::vec3 offset = mesh.frames[size_t(frame)][v].pos - quantized(base[v].pos);
+					uint32_t packed = 0;
+					for (int i = 0; i < 3; i++)
+					{
+						packed |= uint32_t(offsetCode(offset[i])) << (8 * i);
+					}
+					out.write(packed); // the normal index (top 8 bits) is left at 0
+				}
+			}
+
+			surface.ofsFrameBaseFrames = out.tell() - start;
+			for (int16_t base : frameBase)
+			{
+				out.write(base);
+			}
+			surface.ofsFrameCompFrames = out.tell() - start;
+			for (int16_t compressed : frameCompressed)
+			{
+				out.write(compressed);
+			}
+
+			surface.ofsEnd = out.tell() - start;
+			out.patch(start, surface);
+		}
+
+		header.ofsEnd = out.tell();
+		out.patch(0, header);
+		return out.data;
+	}
+
+	void writeMDC(const Model &model, const std::string &path, const MdcOptions &options)
+	{
+		int levels = 1;
+		if (const auto *morph = dynamic_cast<const morph::MorphModel *>(&model))
+		{
+			levels = morph->lodCount();
+		}
+
+		std::vector<std::vector<byte>> files;
+		for (int level = 0; level < levels; level++)
+		{
+			files.push_back(encodeMDC(model, level, options));
+		}
+		for (int level = 0; level < levels; level++)
+		{
+			mt::io::saveFile(level == 0 ? path : morphLodPath(path, level), files[level]);
+		}
+	}
+
 	void writeMD3(const Model &model, const std::string &path)
 	{
 		int levels = 1;

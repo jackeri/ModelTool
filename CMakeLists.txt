@@ -254,6 +254,10 @@ set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
 target_compile_definitions(ModelToolCLI PRIVATE MT_VERSION="${PROJECT_VERSION}")
 
+# Test data generator (tools/fixtures), not part of the normal build: cmake --build build --target generate_fixtures
+add_executable(generate_fixtures EXCLUDE_FROM_ALL "tools/fixtures/generate_fixtures.cpp")
+target_link_libraries(generate_fixtures ModelToolLib)
+
 set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 # Application icon
 set(MODEL_TOOL_RESOURCES "")

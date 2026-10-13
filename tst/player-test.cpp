@@ -13,15 +13,15 @@ TEST(SkinTest, Parse)
 {
 	auto skin = model::parseSkin("tag_head,\n"
 								 "tag_weapon,\n"
-								 "u_torso,models/players/grunt/grunt.tga\r\n"
-								 "  U_LArm , \"models/players/grunt/arm.tga\" // comment\n"
+								 "u_torso,models/players/robot/robot.tga\r\n"
+								 "  U_LArm , \"models/players/robot/arm.tga\" // comment\n"
 								 "u_body \"models/players/temperate/body.tga\"\n"
 								 "md3_hat, \"models/players/temperate/acc/helmet.md3\"\n"
 								 "// u_skipped, nothing\n");
 	EXPECT_EQ(skin.surfaces.size(), 3);
-	EXPECT_EQ(skin.shader("u_torso"), "models/players/grunt/grunt.tga");
-	EXPECT_EQ(skin.shader("U_TORSO"), "models/players/grunt/grunt.tga");
-	EXPECT_EQ(skin.shader("u_larm"), "models/players/grunt/arm.tga");
+	EXPECT_EQ(skin.shader("u_torso"), "models/players/robot/robot.tga");
+	EXPECT_EQ(skin.shader("U_TORSO"), "models/players/robot/robot.tga");
+	EXPECT_EQ(skin.shader("u_larm"), "models/players/robot/arm.tga");
 	EXPECT_EQ(skin.shader("u_body"), "models/players/temperate/body.tga");
 	EXPECT_EQ(skin.shader("tag_head"), "");
 	EXPECT_EQ(skin.shader("u_skipped"), "");
@@ -30,29 +30,30 @@ TEST(SkinTest, Parse)
 
 	io::FileSystem files;
 	files.addPath("data");
-	auto lower = model::loadSkin(files.loadFile("models/players/grunt/lower_red.skin"));
-	EXPECT_EQ(lower.shader("l_legs"), "models/players/grunt/red.tga");
-	EXPECT_THROW(model::loadSkin(files.loadFile("models/players/grunt/lower_none.skin")), mt_exception);
+	auto lower = model::loadSkin(files.loadFile("models/players/robot/lower_red.skin"));
+	EXPECT_EQ(lower.shader("l_legs"), "models/players/robot/red.tga");
+	EXPECT_THROW(model::loadSkin(files.loadFile("models/players/robot/lower_none.skin")), mt_exception);
 }
 
 TEST(PlayerTest, Config)
 {
 	io::FileSystem files;
 	files.addPath("data");
-	auto config = model::parsePlayerConfig(model::fileText(files.loadFile("models/players/grunt/animation.cfg")));
+	auto config = model::parsePlayerConfig(model::fileText(files.loadFile("models/players/robot/animation.cfg")));
 
-	EXPECT_EQ(config.sex, "m");
-	EXPECT_FLOAT_EQ(config.headOffset.x, -3);
+	EXPECT_EQ(config.sex, "n");
+	EXPECT_EQ(config.footsteps, "mech");
+	EXPECT_FLOAT_EQ(config.headOffset.x, -2);
 	ASSERT_EQ(config.animations.size(), 25);
 	EXPECT_EQ(config.animations[0].name, "BOTH_DEATH1");
 	EXPECT_EQ(config.animations[24].name, "LEGS_TURN");
 
-	// LEGS_WALKCR is 153 in the file, the 63 torso only frames (90 - 152) are not in lower.md3
+	// LEGS_WALKCR is 65 in the file, the 35 torso only frames (30 - 64) are not in lower.md3
 	EXPECT_EQ(config.animations[13].name, "LEGS_WALKCR");
-	EXPECT_EQ(config.animations[13].firstFrame, 90);
+	EXPECT_EQ(config.animations[13].firstFrame, 30);
 	EXPECT_EQ(config.animations[13].loopFrames, 8);
 	EXPECT_EQ(config.animations[11].name, "TORSO_STAND");
-	EXPECT_EQ(config.animations[11].firstFrame, 151);
+	EXPECT_EQ(config.animations[11].firstFrame, 63);
 
 	auto legs = config.legsAnimations();
 	auto torso = config.torsoAnimations();
@@ -60,8 +61,8 @@ TEST(PlayerTest, Config)
 	EXPECT_EQ(torso.size(), 6 + 7);
 
 	// The sequences fit the models' frames
-	std::unique_ptr<Model> lower(model::io::loadModel(files.loadFile("models/players/grunt/lower.md3")));
-	std::unique_ptr<Model> upper(model::io::loadModel(files.loadFile("models/players/grunt/upper.md3")));
+	std::unique_ptr<Model> lower(model::io::loadModel(files.loadFile("models/players/robot/lower.md3")));
+	std::unique_ptr<Model> upper(model::io::loadModel(files.loadFile("models/players/robot/upper.md3")));
 	for (const auto &animation : legs)
 	{
 		EXPECT_LT(std::max(animation.startFrame, animation.lastFrame()), lower->numFrames()) << animation.name;
@@ -109,21 +110,21 @@ TEST(PlayerTest, Files)
 	files.addPath("data");
 
 	model::PlayerFiles player;
-	ASSERT_TRUE(model::findPlayerFiles(files, "models/players/grunt/animation.cfg", player));
-	EXPECT_EQ(player.folder, "models/players/grunt");
-	EXPECT_EQ(player.upper, "models/players/grunt/upper.md3");
+	ASSERT_TRUE(model::findPlayerFiles(files, "models/players/robot/animation.cfg", player));
+	EXPECT_EQ(player.folder, "models/players/robot");
+	EXPECT_EQ(player.upper, "models/players/robot/upper.md3");
 	ASSERT_EQ(player.skins.size(), 4);
 	EXPECT_EQ(player.skins[0], "default");
 	EXPECT_EQ(player.skins[1], "blue");
-	EXPECT_EQ(player.skinPath("head", "red"), "models/players/grunt/head_red.skin");
+	EXPECT_EQ(player.skinPath("head", "red"), "models/players/robot/head_red.skin");
 
-	EXPECT_TRUE(model::findPlayerFiles(files, "models/players/grunt/head.md3", player));
-	EXPECT_FALSE(model::findPlayerFiles(files, "models/players/grunt/head_1.md3", player));
-	EXPECT_FALSE(model::findPlayerFiles(files, "models/md3/pf.md3", player));
+	EXPECT_TRUE(model::findPlayerFiles(files, "models/players/robot/head.md3", player));
+	EXPECT_FALSE(model::findPlayerFiles(files, "models/players/robot/head_1.md3", player));
+	EXPECT_FALSE(model::findPlayerFiles(files, "models/md3/tube.md3", player));
 
 	// From the disk
 	io::FileSystem disk;
-	ASSERT_TRUE(model::findPlayerFiles(disk, std::filesystem::absolute("data/models/players/grunt/lower.md3").string(), player));
+	ASSERT_TRUE(model::findPlayerFiles(disk, std::filesystem::absolute("data/models/players/robot/lower.md3").string(), player));
 	EXPECT_EQ(player.skins.size(), 4);
 }
 
@@ -131,8 +132,8 @@ TEST(PlayerTest, Attachment)
 {
 	io::FileSystem files;
 	files.addPath("data");
-	std::unique_ptr<Model> lower(model::io::loadModel(files.loadFile("models/players/grunt/lower.md3")));
-	std::unique_ptr<Model> upper(model::io::loadModel(files.loadFile("models/players/grunt/upper.md3")));
+	std::unique_ptr<Model> lower(model::io::loadModel(files.loadFile("models/players/robot/lower.md3")));
+	std::unique_ptr<Model> upper(model::io::loadModel(files.loadFile("models/players/robot/upper.md3")));
 
 	model::PoseOptions options;
 	options.frame = 100;
@@ -157,8 +158,8 @@ TEST(PlayerTest, Attachment)
 	EXPECT_GT(headOnLower.z, origin.z);
 
 	// Skins replace the materials of the meshes they name
-	model::applySkin(posedLower, model::parseSkin("l_legs,models/players/grunt/red.tga\n"));
-	EXPECT_EQ(posedLower.meshes[0].material, "models/players/grunt/red.tga");
+	model::applySkin(posedLower, model::parseSkin("l_legs,models/players/robot/red.tga\n"));
+	EXPECT_EQ(posedLower.meshes[0].material, "models/players/robot/red.tga");
 }
 
 TEST(PlayerTest, StateLoadsPlayer)
@@ -168,19 +169,19 @@ TEST(PlayerTest, StateLoadsPlayer)
 	state.filesystem.clear();
 	ASSERT_TRUE(state.filesystem.addPath("data"));
 
-	state.loadModel("models/players/grunt/animation.cfg");
+	state.loadModel("models/players/robot/animation.cfg");
 	ASSERT_TRUE(state.isPlayer);
 	ASSERT_EQ(state.attachments.size(), 2);
 	EXPECT_EQ(state.attachments[0].tag, "tag_torso");
 	EXPECT_EQ(state.attachments[1].parent, 0);
 	EXPECT_EQ(state.attachments[1].tag, "tag_head");
 	EXPECT_EQ(state.playerSkin, "default");
-	EXPECT_EQ(state.skin.shader("l_legs"), "models/players/grunt/grunt.tga");
-	EXPECT_EQ(state.attachments[1].skin.shader("h_head"), "models/players/grunt/grunt_h.tga");
+	EXPECT_EQ(state.skin.shader("l_legs"), "models/players/robot/robot.tga");
+	EXPECT_EQ(state.attachments[1].skin.shader("h_head"), "models/players/robot/robot_h.tga");
 
 	// Idle sequences, played together
-	EXPECT_EQ(state.model->currentFrame, 90 + 74);
-	EXPECT_EQ(state.attachments[0].model->currentFrame, 151);
+	EXPECT_EQ(state.model->currentFrame, 136 - 35);			 // LEGS_IDLE
+	EXPECT_EQ(state.attachments[0].model->currentFrame, 63); // TORSO_STAND
 	auto &legs = state.model->animations;
 	auto walk = std::find_if(legs.begin(), legs.end(), [](const auto &animation) { return animation.name == "LEGS_WALKCR"; });
 	ASSERT_NE(walk, legs.end());
@@ -188,13 +189,13 @@ TEST(PlayerTest, StateLoadsPlayer)
 	state.playback.play();
 	state.update(0.1);
 	EXPECT_TRUE(state.attachments[0].playback.isPlaying());
-	EXPECT_EQ(state.model->currentFrame, 92);
+	EXPECT_EQ(state.model->currentFrame, 32);
 
 	state.setPlayerSkin("red");
-	EXPECT_EQ(state.skin.shader("l_legs"), "models/players/grunt/red.tga");
+	EXPECT_EQ(state.skin.shader("l_legs"), "models/players/robot/red.tga");
 
 	// Attach, then remove the upper and everything on it
-	state.attachModel("models/md3/pf.md3", 1, "tag_head");
+	state.attachModel("models/md3/tube.md3", 1, "tag_head");
 	EXPECT_EQ(state.tagNames(0), std::vector<std::string>({"tag_head", "tag_weapon", "tag_torso"}));
 	state.removeAttachment(0);
 	EXPECT_TRUE(state.attachments.empty());
@@ -213,8 +214,8 @@ TEST(PlayerTest, AttachToBone)
 	state.filesystem.clear();
 	ASSERT_TRUE(state.filesystem.addPath("data"));
 
-	state.loadModel("models/mdm/medic.mdm");
-	state.loadAnimation("models/mdm/medic.mdx");
+	state.loadModel("models/mdm/mannequin.mdm");
+	state.loadAnimation("models/mdm/mannequin.mdx");
 
 	// Tags first, then the bones
 	auto points = state.attachPoints(-1);
@@ -222,7 +223,7 @@ TEST(PlayerTest, AttachToBone)
 	EXPECT_EQ(points.front(), "tag_head");
 	EXPECT_NE(std::find(points.begin(), points.end(), "Bip01 Head"), points.end());
 
-	state.attachModel("models/players/grunt/head.md3", -1, "Bip01 Head");
+	state.attachModel("models/players/robot/head.md3", -1, "Bip01 Head");
 	ASSERT_EQ(state.attachments.size(), 1);
 
 	// The posed bone gives the attachment's place
@@ -238,7 +239,7 @@ TEST(PlayerTest, AttachToBone)
 
 	// An attached model takes attachments on its own tags
 	EXPECT_EQ(state.attachPoints(0), std::vector<std::string>({"tag_head"}));
-	state.attachModel("models/md3/pf.md3", 0, "tag_head");
+	state.attachModel("models/md3/tube.md3", 0, "tag_head");
 	EXPECT_EQ(state.attachments[1].parent, 0);
 
 	state.clear();

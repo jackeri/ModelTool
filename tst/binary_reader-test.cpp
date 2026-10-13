@@ -95,11 +95,11 @@ TEST(BinaryReaderTest, subReaders)
 TEST(BinaryReaderTest, readsLoadedFiles)
 {
 	MTPath path("data");
-	auto file = path.loadFile("models/md3/pf.md3");
+	auto file = path.loadFile("models/md3/tube.md3");
 	ASSERT_TRUE(file);
 
 	// The terminating null byte added by the loader is not part of the file
 	BinaryReader reader(file);
-	ASSERT_EQ(reader.size(), 7768);
+	ASSERT_EQ(reader.size(), 7092);
 	ASSERT_EQ(reader.read<int>(), ('3' << 24) + ('P' << 16) + ('D' << 8) + 'I'); // "IDP3"
 }

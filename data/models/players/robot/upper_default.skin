@@ -1,0 +1,6 @@
+tag_head,
+tag_weapon,
+u_torso,models/players/robot/robot.tga
+tag_torso,
+u_larm,models/players/robot/robot.tga
+u_rarm,models/players/robot/robot.tga

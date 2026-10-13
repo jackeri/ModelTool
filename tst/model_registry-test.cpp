@@ -14,7 +14,7 @@ TEST(ModelRegistryTest, normalizeExtension)
 	ASSERT_EQ(model::io::normalizeExtension("md3"), ".md3");
 	ASSERT_EQ(model::io::normalizeExtension(".MD3"), ".md3");
 	ASSERT_EQ(model::io::normalizeExtension("models/players/head.MDC"), ".mdc");
-	ASSERT_EQ(model::io::normalizeExtension("medic.mdm"), ".mdm");
+	ASSERT_EQ(model::io::normalizeExtension("mannequin.mdm"), ".mdm");
 	ASSERT_EQ(model::io::normalizeExtension(""), "");
 }
 
