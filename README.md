@@ -175,6 +175,8 @@ cmake --build build --config Release
 - Application: `build/ModelTool` (`build/ModelTool.app` on macOS); on some unix platforms
   `LC_CTYPE=en_US.UTF-8 build/ModelTool` might be needed
 - Command line tool: `build/mt`
+- Version: taken from the latest `v<major>.<minor>.<patch>` git tag (`git describe`): `1.2.3` on the tagged commit,
+  `1.2.3-4-gabcdef0` after it, `0.0.0` without git or a tag. Releases are made by pushing a tag like `v1.2.3`
 - Packages: `cpack -G ZIP` in the build directory (DragNDrop on macOS, WIX on Windows and TGZ on Linux too)
 - `-DNATIVE_DIALOG=ON` uses the system's file dialogs (nativefiledialog)
 

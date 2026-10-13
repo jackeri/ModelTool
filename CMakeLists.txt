@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 include(CheckIncludeFile)
 include(ExternalProject)
 
-project(ModelTool VERSION 1.0.0 LANGUAGES C CXX)
+# The version comes from the latest v<major>.<minor>.<patch> git tag
+include(cmake/git_version.cmake)
+project(ModelTool VERSION ${MODELTOOL_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_TARGETS_FOLDER CMake)
 set(BUNDLED_TARGETS_FOLDER Bundled)
@@ -247,12 +249,15 @@ target_include_directories(glm INTERFACE libs/glm)
 
 add_library(ModelToolLib STATIC ${MODEL_TOOL_LIB_SRC})
 target_include_directories(ModelToolLib PUBLIC "src/lib")
+
+# mt_version.h: the version for the programs (window title, mt --version)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/mt_version.h.in" "${CMAKE_BINARY_DIR}/generated/mt_version.h" @ONLY)
+target_include_directories(ModelToolLib PUBLIC "${CMAKE_BINARY_DIR}/generated")
 target_link_libraries(ModelToolLib PUBLIC tinygltf glm bundled_minizip PRIVATE bundled_ufbx)
 
 add_executable(ModelToolCLI "src/cli/main.cpp" ${MODEL_TOOL_CLI_SRC})
 set_target_properties(ModelToolCLI PROPERTIES OUTPUT_NAME "mt")
 target_link_libraries(ModelToolCLI ModelToolLib)
-target_compile_definitions(ModelToolCLI PRIVATE MT_VERSION="${PROJECT_VERSION}")
 
 # Test data generator (tools/fixtures), not part of the normal build: cmake --build build --target generate_fixtures
 add_executable(generate_fixtures EXCLUDE_FROM_ALL "tools/fixtures/generate_fixtures.cpp")
@@ -343,9 +348,14 @@ set(CPACK_PACKAGE_NAME "ModelTool")
 set(CPACK_PACKAGE_VENDOR "ModelTool contributors")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Model viewer and editor for Enemy Territory: Legacy")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-# The CI builds set the version from the git tag (v1.2.3 -> 1.2.3)
-set(MODELTOOL_PACKAGE_VERSION "${PROJECT_VERSION}" CACHE STRING "Version in the package file names")
-set(CPACK_PACKAGE_FILE_NAME "ModelTool-${MODELTOOL_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+# Package names have the full version from git (1.2.3 on a tag, 1.2.3-4-gabcdef after it), unless it is set here
+set(MODELTOOL_PACKAGE_VERSION "" CACHE STRING "Version in the package file names, empty for the git version")
+if (MODELTOOL_PACKAGE_VERSION)
+    set(package_version "${MODELTOOL_PACKAGE_VERSION}")
+else ()
+    set(package_version "${MODELTOOL_VERSION_FULL}")
+endif ()
+set(CPACK_PACKAGE_FILE_NAME "ModelTool-${package_version}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "ModelTool")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_EXECUTABLES "ModelTool" "Model Tool")

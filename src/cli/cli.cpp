@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "mt_version.h"
 #include "filesystem.h"
 #include "hitbox.h"
 #include "lod.h"
@@ -16,9 +17,6 @@
 #include <iomanip>
 #include <map>
 
-#ifndef MT_VERSION
-#define MT_VERSION "dev"
-#endif
 
 namespace mt::cli {
 

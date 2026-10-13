@@ -1,5 +1,6 @@
 #include "mt.h"
 #include "application.h"
+#include "mt_version.h"
 #include "log_panel.h"
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -29,7 +30,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	auto app = std::make_unique<mt::Application>("Model Tool", options);
+	logger->info("ModelTool {}", MT_VERSION);
+	auto app = std::make_unique<mt::Application>(std::string("Model Tool ") + MT_VERSION, options);
 
 	// Init windowing and other requirements
 	if (!app->init())

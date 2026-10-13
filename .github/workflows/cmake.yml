@@ -33,6 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 0 # the tags give the version
 
       - name: Install dependencies
         if: runner.os == 'Linux'
@@ -40,35 +41,35 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xorg-dev libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev
 
-      # The MSI installer is made with WiX 3 (CPack's WIX generator)
-      - name: Install WiX
+      # The MSI installer is made with WiX 3 (CPack's WIX generator). The runner images have it, it is only installed
+      # when it is missing.
+      - name: Find WiX
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install wixtoolset --version 3.14.1 --no-progress -y
-          $candle = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin\candle.exe" | Select-Object -First 1
-          if (-not $candle) { throw "WiX was not installed" }
-          $candle.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          function Find-Candle {
+            $onPath = Get-Command candle.exe -ErrorAction SilentlyContinue
+            if ($onPath) { return $onPath.Source }
+            if ($env:WIX -and (Test-Path (Join-Path $env:WIX "bin\candle.exe"))) { return Join-Path $env:WIX "bin\candle.exe" }
+            $installed = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin\candle.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($installed) { return $installed.FullName }
+            return $null
+          }
 
-      # Tag builds name the packages after the tag (v1.2.3 -> 1.2.3)
-      - name: Package version
-        id: version
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=" >> "$GITHUB_OUTPUT"
-          fi
+          $candle = Find-Candle
+          if ($candle) {
+            Write-Host "WiX is installed: $candle"
+          } else {
+            Write-Host "WiX is not installed, installing it"
+            choco install wixtoolset --version 3.14.1 --no-progress -y
+            $candle = Find-Candle
+            if (-not $candle) { throw "WiX was not installed" }
+          }
+          Split-Path $candle -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      # CMake takes the version from the latest v<version> tag
       - name: Configure CMake
-        shell: bash
-        run: |
-          args=(-B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }})
-          if [[ -n "${{ steps.version.outputs.version }}" ]]; then
-            args+=(-DMODELTOOL_PACKAGE_VERSION=${{ steps.version.outputs.version }})
-          fi
-          cmake "${args[@]}"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
