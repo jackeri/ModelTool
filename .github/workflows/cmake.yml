@@ -3,32 +3,114 @@ name: CMake
 on:
   push:
     branches: [main]
+    tags: ["*"]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: Release
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            packages: TGZ
+          - name: Windows
+            os: windows-latest
+            packages: ZIP;WIX
+          - name: macOS
+            os: macos-latest
+            packages: DragNDrop;ZIP
 
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Install dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y xorg-dev libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libxkbcommon-dev
 
+      # The MSI installer is made with WiX 3 (CPack's WIX generator)
+      - name: Install WiX
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install wixtoolset --version 3.14.1 --no-progress -y
+          $candle = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset v3*\bin\candle.exe" | Select-Object -First 1
+          if (-not $candle) { throw "WiX was not installed" }
+          $candle.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # Tag builds name the packages after the tag (v1.2.3 -> 1.2.3)
+      - name: Package version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        shell: bash
+        run: |
+          args=(-B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }})
+          if [[ -n "${{ steps.version.outputs.version }}" ]]; then
+            args+=(-DMODELTOOL_PACKAGE_VERSION=${{ steps.version.outputs.version }})
+          fi
+          cmake "${args[@]}"
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
       - name: Test
-        working-directory: ${{github.workspace}}/build
-        run: ctest -C ${{env.BUILD_TYPE}}
+        working-directory: build
+        run: ctest -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+      - name: Package
+        working-directory: build
+        run: cpack -C ${{ env.BUILD_TYPE }} -G "${{ matrix.packages }}"
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModelTool-${{ matrix.name }}
+          path: |
+            build/ModelTool-*.zip
+            build/ModelTool-*.dmg
+            build/ModelTool-*.tar.gz
+            build/ModelTool-*.msi
+          if-no-files-found: error
+
+  release:
+    name: GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Create the release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ModelTool ${{ github.ref_name }}
+          generate_release_notes: true
+          files: packages/*
+          fail_on_unmatched_files: true
