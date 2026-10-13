@@ -40,6 +40,10 @@ namespace mt {
 			{
 				section("Player", ImGuiTreeNodeFlags_DefaultOpen, [&] { drawPlayerMenu(); });
 			}
+			if (state.isCharacter)
+			{
+				section("Character", ImGuiTreeNodeFlags_DefaultOpen, [&] { drawCharacterMenu(); });
+			}
 			if (model)
 			{
 				section("Transform", 0, [&] { drawTransformMenu(); });
@@ -189,6 +193,61 @@ namespace mt {
 
 		ImGui::TextDisabled("Sex %s, footsteps %s", state.playerConfig.sex.c_str(), state.playerConfig.footsteps.c_str());
 		ImGui::TextDisabled("Play and pause in the Animation section");
+	}
+
+	void ModelPropertyPanel::drawCharacterMenu()
+	{
+		auto &state = singleton<State>();
+		const auto &character = state.character;
+
+		if (const Animation *body = sequenceCombo("Body", state.model->animations, state.playback))
+		{
+			state.playSequence(-1, *body);
+		}
+		auto head = std::find_if(state.attachments.begin(), state.attachments.end(),
+								 [](const Attachment &attachment) { return attachment.parent < 0 && attachment.name == "head"; });
+		if (head != state.attachments.end() && !head->model->animations.empty())
+		{
+			if (const Animation *animation = sequenceCombo("Head", head->model->animations, head->playback))
+			{
+				state.playSequence(int(head - state.attachments.begin()), *animation);
+			}
+		}
+
+		if (!character.undressedCorpseModel.empty())
+		{
+			bool undressed = state.characterUndressed;
+			if (ImGui::Checkbox("Undressed corpse", &undressed))
+			{
+				const std::string path = state.characterPath;
+				try
+				{
+					state.loadCharacter(path, undressed);
+				}
+				catch (const std::exception &ex)
+				{
+					if (auto logger = spdlog::get(MT_LOGGER))
+					{
+						logger->error("Failed to load {}: {}", path, ex.what());
+					}
+				}
+				return;
+			}
+			ImGui::SetItemTooltip("The looted corpse: the undressed model and skin, without accessories");
+		}
+
+		auto line = [](const char *label, const std::string &value) {
+			if (!value.empty())
+			{
+				ImGui::TextDisabled("%s: %s", label, value.c_str());
+			}
+		};
+		line("File", state.characterPath);
+		line("Skin", state.characterUndressed ? character.corpseSkinPath() : character.skinPath());
+		line("Animations", character.animationGroup);
+		line("Script", character.animationScript);
+		line("Head", character.hudHead);
+		ImGui::TextDisabled("Accessories are in the Attachments section");
 	}
 
 	void ModelPropertyPanel::drawAttachmentsMenu()

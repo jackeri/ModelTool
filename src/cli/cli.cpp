@@ -8,6 +8,7 @@
 #include "morph_model.h"
 #include "normals.h"
 #include "player.h"
+#include "et_character.h"
 #include "skin.h"
 #include "posed_model.h"
 #include "skeletal_model.h"
@@ -16,7 +17,6 @@
 #include <filesystem>
 #include <iomanip>
 #include <map>
-
 
 namespace mt::cli {
 
@@ -360,12 +360,77 @@ namespace mt::cli {
 			return EXIT_OK;
 		}
 
+		int characterInfo(Files &files, const std::string &path, std::ostream &out)
+		{
+			auto text = [&](const std::string &file) { return model::fileText(files.load(file)); };
+			const auto character = model::parseCharacter(text(path));
+
+			out << "Character: " << path << "\n";
+			out << "Mesh: " << character.mesh << "\n";
+			std::unique_ptr<Model> body(model::io::loadModel(files.load(character.mesh)));
+			auto *skeletal = dynamic_cast<model::skeletal::SkeletalModel *>(body.get());
+			if (!skeletal)
+			{
+				throw mt_ex("The character mesh is not a skeletal model: " + character.mesh);
+			}
+
+			const auto skin = model::loadSkin(files.load(character.skinPath()));
+			out << "Skin: " << character.skinPath() << "\n";
+			if (!character.undressedCorpseModel.empty())
+			{
+				out << "Undressed corpse: " << character.undressedCorpseModel << ", skin " << character.corpseSkinPath() << "\n";
+			}
+
+			if (!character.hudHead.empty())
+			{
+				std::unique_ptr<Model> head(model::io::loadModel(files.load(character.hudHead)));
+				out << "Head: " << character.hudHead << "  frames " << head->numFrames() << ", skin "
+					<< (character.hudHeadSkin.empty() ? "-" : character.hudHeadSkin) << "\n";
+				if (!character.hudHeadAnims.empty())
+				{
+					out << "Head sequences: " << model::parseHeadAnimations(text(character.hudHeadAnims)).size() << " ("
+						<< character.hudHeadAnims << ")\n";
+				}
+			}
+
+			const auto accessories = model::characterAccessories(skin);
+			out << "Accessories: " << accessories.size() << "\n";
+			for (const auto &accessory : accessories)
+			{
+				out << "  " << accessory.type << "  " << accessory.model << " on the " << (accessory.onHead ? "head" : "body") << "'s "
+					<< accessory.tag << "\n";
+			}
+
+			if (!character.animationGroup.empty())
+			{
+				const auto group = model::parseAnimationGroup(text(character.animationGroup), text);
+				model::loadAnimationGroup(*skeletal, group, [&](const std::string &file) { return files.load(file); });
+				out << "Animation group: " << character.animationGroup << "  files " << group.size() << ", frames " << skeletal->numFrames()
+					<< "\n";
+				out << "Sequences: " << skeletal->animations.size() << "\n";
+				for (const auto &animation : skeletal->animations)
+				{
+					out << "  " << animation.name << "  frames " << animation.startFrame << "-" << animation.lastFrame() << ", "
+						<< animation.fps << " fps" << (animation.loop ? ", loops" : "") << (animation.reversed ? ", reversed" : "") << "\n";
+				}
+			}
+			if (!character.animationScript.empty())
+			{
+				out << "Animation script: " << character.animationScript << " (not read)\n";
+			}
+			return EXIT_OK;
+		}
+
 		int infoCommand(const Options &options, std::ostream &out, std::ostream &err)
 		{
 			Files files(options.basePaths, options.caseSensitive);
 			if (!options.arguments.empty() && model::io::normalizeExtension(options.arguments[0]) == ".cfg")
 			{
 				return playerInfo(files, options.arguments[0], out);
+			}
+			if (!options.arguments.empty() && model::io::normalizeExtension(options.arguments[0]) == ".char")
+			{
+				return characterInfo(files, options.arguments[0], out);
 			}
 			auto loaded = loadModel(files, options, err);
 			const Model &model = *loaded;
@@ -553,7 +618,9 @@ namespace mt::cli {
 			   "Commands:\n"
 			   "  formats                        list the readable and writable formats\n"
 			   "  info <model>                   show the meshes, bones, tags, hitboxes and animation sequences;\n"
-			   "                                 animation.cfg shows a player model (parts, skins, sequences)\n"
+			   "                                 animation.cfg shows a player model (parts, skins, sequences),\n"
+			   "                                 an ET .char file the character (mesh, skin, head, accessories,\n"
+			   "                                 animation group)\n"
 			   "  convert <model> <output>...    write the model, the format comes from the output extension\n"
 			   "  list [folder]                  list the model files in the base folders and pk3 files\n"
 			   "\n"

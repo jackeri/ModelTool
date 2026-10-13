@@ -93,6 +93,14 @@ TEST(CliTest, Info)
 	EXPECT_TRUE(contains(player.out, "Sex: n, footsteps: mech"));
 	EXPECT_EQ(run({"info", "data/models/md5/animation.cfg"}).code, cli::EXIT_FAILED);
 
+	auto character = run({"--base", "data", "info", "characters/mannequin/soldier.char"});
+	ASSERT_EQ(character.code, cli::EXIT_OK) << character.err;
+	EXPECT_TRUE(contains(character.out, "Skin: models/mdm/mannequin_soldier.skin"));
+	EXPECT_TRUE(contains(character.out, "md3_hat  models/players/mannequin/helmet.md3 on the head's tag_mouth"));
+	EXPECT_TRUE(contains(character.out, "Animation group: animations/mannequin.anim  files 2, frames 136"));
+	EXPECT_TRUE(contains(character.out, "  salute  frames 116-135, 20 fps"));
+	EXPECT_TRUE(contains(character.out, "Head sequences: 16"));
+
 	auto missing = run({"info", "data/models/missing.md3"});
 	EXPECT_EQ(missing.code, cli::EXIT_FAILED);
 	EXPECT_TRUE(contains(missing.err, "File not found"));

@@ -842,9 +842,10 @@ namespace mt {
 
 	std::vector<std::string> ImGuiView::openExtensions()
 	{
-		// animation.cfg opens a player model
+		// animation.cfg opens a player model, .char an ET character
 		auto extensions = model::io::modelExtensions();
 		extensions.emplace_back(".cfg");
+		extensions.emplace_back(".char");
 		return extensions;
 	}
 

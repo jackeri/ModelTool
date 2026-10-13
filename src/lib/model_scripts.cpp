@@ -26,17 +26,11 @@ namespace mt::model {
 		throw mt_ex("Invalid " + field + ": '" + token + "' (line " + std::to_string(stream.line() + 1) + ")");
 	}
 
-	void loadAninc(Model *model, const Ref<mt::io::MTFile> &file)
+	std::vector<Animation> parseAnincLines(ScriptStream &stream)
 	{
-		if (!model)
-		{
-			throw mt_ex("No model to load the animation sequences into");
-		}
-
-		ScriptStream stream(file);
 		std::vector<Animation> animations;
 
-		while (stream.hasNext())
+		while (stream.hasNext() && stream.peekNext() != "}")
 		{
 			Animation animation;
 			animation.name = stream.token();
@@ -54,6 +48,23 @@ namespace mt::model {
 			}
 
 			animations.push_back(animation);
+		}
+
+		return animations;
+	}
+
+	void loadAninc(Model *model, const Ref<mt::io::MTFile> &file)
+	{
+		if (!model)
+		{
+			throw mt_ex("No model to load the animation sequences into");
+		}
+
+		ScriptStream stream(file);
+		auto animations = parseAnincLines(stream);
+		if (stream.hasNext())
+		{
+			throw mt_ex("Unexpected '" + stream.token() + "' in the animation sequences");
 		}
 
 		model->animations = std::move(animations);

@@ -43,6 +43,12 @@ namespace mt {
 
 	void State::loadModel(const std::string &path)
 	{
+		if (model::io::normalizeExtension(path) == ".char")
+		{
+			loadCharacter(path);
+			return;
+		}
+
 		model::PlayerFiles files;
 		if (fileName(path) == "animation.cfg")
 		{
@@ -85,6 +91,149 @@ namespace mt {
 
 		playSequence(-1, findSequence(model->animations, "LEGS_IDLE"));
 		playSequence(0, findSequence(attachments[0].model->animations, "TORSO_STAND"));
+		playback.pause();
+	}
+
+	void State::loadCharacter(const std::string &path, bool undressed)
+	{
+		auto text = [&](const std::string &file) {
+			auto loaded = filesystem.loadFile(file);
+			if (!loaded)
+			{
+				throw mt_ex("File not found: " + file);
+			}
+			return model::fileText(loaded);
+		};
+		auto warn = [](const std::string &message) {
+			if (auto logger = log())
+			{
+				logger->warn("{}", message);
+			}
+		};
+		auto loadSkin = [&](const std::string &file) {
+			try
+			{
+				return model::loadSkin(filesystem.loadFile(file));
+			}
+			catch (const std::exception &ex)
+			{
+				warn("Skin " + file + ": " + ex.what());
+				return model::Skin{};
+			}
+		};
+
+		const model::CharacterDef def = model::parseCharacter(text(path));
+		if (undressed && def.undressedCorpseModel.empty())
+		{
+			throw mt_ex("The character has no undressed corpse model: " + path);
+		}
+
+		loadSingleModel(undressed ? def.undressedCorpseModel : def.mesh, false);
+		settings.addRecentFile(path);
+
+		try
+		{
+			auto *body = dynamic_cast<model::skeletal::SkeletalModel *>(model.get());
+			if (!body)
+			{
+				throw mt_ex("The character mesh is not a skeletal model: " + def.mesh);
+			}
+
+			if (!def.animationGroup.empty())
+			{
+				auto files = model::parseAnimationGroup(text(def.animationGroup), text);
+				model::loadAnimationGroup(*body, files, [&](const std::string &file) { return filesystem.loadFile(file); });
+				resetPlayback();
+			}
+
+			skin = loadSkin(undressed ? def.corpseSkinPath() : def.skinPath());
+
+			int head = -1;
+			if (!def.hudHead.empty())
+			{
+				Attachment &attached = attachModel(def.hudHead, -1, "tag_head");
+				attached.name = "head";
+				if (!def.hudHeadSkin.empty())
+				{
+					attached.skin = loadSkin(def.hudHeadSkin);
+				}
+				if (!def.hudHeadAnims.empty())
+				{
+					try
+					{
+						attached.model->animations = model::parseHeadAnimations(text(def.hudHeadAnims));
+					}
+					catch (const std::exception &ex)
+					{
+						warn("Head animations " + def.hudHeadAnims + ": " + ex.what());
+					}
+				}
+				head = int(attachments.size()) - 1;
+			}
+
+			// Looted corpses have no accessories in the game
+			for (const auto &accessory : undressed ? std::vector<model::Accessory>() : model::characterAccessories(skin))
+			{
+				if (accessory.onHead && head < 0)
+				{
+					continue;
+				}
+				// The game draws the rank badge only for ranked players, with the rank's shader instead of the model's
+				if (accessory.type == "md3_rank")
+				{
+					if (auto logger = log())
+					{
+						logger->info("Rank badge {} is not drawn (only ranked players show it in the game)", accessory.model);
+					}
+					continue;
+				}
+				try
+				{
+					Attachment &attached = attachModel(accessory.model, accessory.onHead ? head : -1, accessory.tag);
+					attached.name = accessory.type;
+					// The accessory skin is optional
+					const std::string skinFile = accessory.skinPath(def.skin);
+					if (filesystem.findFile(skinFile))
+					{
+						attached.skin = loadSkin(skinFile);
+					}
+				}
+				catch (const std::exception &ex)
+				{
+					warn("Accessory " + accessory.model + ": " + ex.what());
+				}
+			}
+
+			if (head >= 0 && !attachments[size_t(head)].model->animations.empty())
+			{
+				playSequence(head, attachments[size_t(head)].model->animations.front()); // HD_IDLE1
+			}
+		}
+		catch (const std::exception &)
+		{
+			closeModels();
+			throw;
+		}
+
+		isCharacter = true;
+		characterPath = path;
+		character = def;
+		characterUndressed = undressed;
+
+		// The game picks the sequences with the animation script, start with an idle one
+		const auto &sequences = model->animations;
+		auto idle = std::find_if(sequences.begin(), sequences.end(), [](const auto &animation) {
+			return animation.name == "relaxed_idle_2h_1" || animation.name == "alert_idle_2h";
+		});
+		if (idle == sequences.end())
+		{
+			idle = std::find_if(sequences.begin(), sequences.end(),
+								[](const auto &animation) { return animation.name.find("idle") != std::string::npos; });
+		}
+		if (idle != sequences.end())
+		{
+			playSequence(-1, *idle);
+		}
 		playback.pause();
 	}
 

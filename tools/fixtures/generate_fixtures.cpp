@@ -1,5 +1,6 @@
 /*
- * Generates the test models and textures in data/models/{md3,mdc,mdm,players} from scratch, so the test data can be
+ * Generates the test models and textures in data/models/{md3,mdc,mdm,players}, the ET test character
+ * (data/characters, data/animations) and the FBX cube and cone from scratch, so the test data can be
  * distributed freely (MIT, like the rest of ModelTool). Every shape, animation and texture is made up here.
  *
  *   cmake --build build --target generate_fixtures
@@ -21,6 +22,7 @@
 #include "skeletal_model.h"
 #include "skeletal_tools.h"
 
+#include <cmath>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -631,6 +633,13 @@ namespace {
 		writeMDM(model, (folder / "mannequin.mdm").string());
 		writeMDX(model, (folder / "mannequin.mdx").string());
 		writeAninc(model, (folder / "mannequin.aninc").string());
+
+		// The second file of the ET character's animation group: the wave frames on their own
+		const auto data = folder.parent_path().parent_path();
+		std::filesystem::create_directories(data / "animations/mannequin");
+		model.firstExportFrame = 60;
+		model.lastExportFrame = 79;
+		writeMDX(model, (data / "animations/mannequin/salute.mdx").string());
 	}
 
 	/*
@@ -1338,6 +1347,173 @@ namespace {
 	}
 }
 
+namespace {
+
+	/*
+	==============================================================================
+	ET character: the mannequin as the body of two .char files (soldier and medic) with a hud head, accessories,
+	skins, an animation group of two MDX files and head animations
+	==============================================================================
+	*/
+
+	const int HEAD_FRAMES = 30;
+
+	/*! Hud head: frames 0-9 nod, 10-19 turn left, 20-29 turn right. tag_mouth moves with the head */
+	std::unique_ptr<morph::MorphModel> buildCharacterHead()
+	{
+		MorphMeshDefinition mesh{"h_head", "", {}};
+		mesh.shapes.push_back({sphere({0, 0, 4}, 4.0f, 8, 12), 0});
+		mesh.shapes.push_back({box({3.4f, 0, 4.0f}, {0.8f, 2.6f, 0.7f}), 0}); // visor like face plate
+		mesh.shapes.push_back({box({3.6f, 0, 1.6f}, {0.6f, 1.4f, 0.4f}), 0}); // mouth
+
+		std::vector<std::vector<glm::mat4>> frames;
+		for (int frame = 0; frame < HEAD_FRAMES; frame++)
+		{
+			const float t = float(frame % 10) / 9.0f;
+			const float wave = std::sin(t * PI);
+			glm::quat turn{1, 0, 0, 0};
+			if (frame < 10)
+			{
+				turn = rotation(8 * wave, {0, 1, 0});
+			}
+			else if (frame < 20)
+			{
+				turn = rotation(35 * wave, {0, 0, 1});
+			}
+			else
+			{
+				turn = rotation(-35 * wave, {0, 0, 1});
+			}
+			frames.push_back({glm::toMat4(turn)});
+		}
+
+		return buildMorph("models/players/mannequin/head.md3", {mesh}, {{"tag_mouth", 0, {3.0f, 0, 2.0f}, glm::quat{1, 0, 0, 0}}}, frames);
+	}
+
+	/*! Single frame accessory, the shapes are relative to the tag it goes on */
+	std::unique_ptr<morph::MorphModel>
+	buildAccessory(const std::string &path, const std::string &surface, const std::string &material, const std::vector<Shape> &shapes)
+	{
+		MorphMeshDefinition mesh{surface, material, {}};
+		for (const auto &shape : shapes)
+		{
+			mesh.shapes.push_back({shape, 0});
+		}
+		return buildMorph(path, {mesh}, {}, {{glm::mat4{1.0f}}});
+	}
+
+	void generateCharacter(const std::filesystem::path &data)
+	{
+		const std::string folder = "models/players/mannequin/";
+		std::filesystem::create_directories(data / folder);
+		std::filesystem::create_directories(data / "characters/mannequin");
+		std::filesystem::create_directories(data / "animations/scripts");
+
+		writeMD3(*buildCharacterHead(), (data / folder / "head.md3").string());
+		// Relative to the head's tag_mouth (3 forward, 2 up from the head origin)
+		writeMD3(*buildAccessory(folder + "helmet.md3", "helmet", folder + "helmet.tga",
+								 {sphere({-3, 0, 4.2f}, 4.4f, 6, 12), box({-3, 0, 3.8f}, {4.9f, 4.7f, 0.25f})}),
+				 (data / folder / "helmet.md3").string());
+		writeMD3(*buildAccessory(folder + "rank.md3", "rank", "", {box({-3, -4.4f, 5}, {0.8f, 0.2f, 0.8f})}),
+				 (data / folder / "rank.md3").string());
+		// Relative to tag_back (turned around: +X points away from the back)
+		writeMD3(*buildAccessory(folder + "backpack.md3", "backpack", folder + "gear.tga",
+								 {box({2.0f, 0, -1}, {2.0f, 3.6f, 4.2f}), box({2.0f, 0, 3.6f}, {1.6f, 3.0f, 0.8f})}),
+				 (data / folder / "backpack.md3").string());
+		writeMD3(*buildAccessory(folder + "pouch.md3", "pouch", folder + "gear.tga", {box({1.5f, -1.0f, -1}, {1.2f, 0.9f, 1.4f})}),
+				 (data / folder / "pouch.md3").string());
+
+		// Textures
+		auto plain = [&](const std::string &name, glm::vec3 color, glm::vec3 stripe) {
+			writeTga(data / folder / (name + ".tga"), 32,
+					 [=](float u, float v) { return std::fmod(std::floor(u * 8) + std::floor(v * 8), 2.0f) < 1.0f ? color : stripe; });
+		};
+		plain("soldier", {0.35f, 0.40f, 0.30f}, {0.30f, 0.34f, 0.26f});
+		plain("medic", {0.85f, 0.85f, 0.85f}, {0.80f, 0.20f, 0.20f});
+		plain("naked", {0.80f, 0.65f, 0.55f}, {0.76f, 0.61f, 0.52f});
+		plain("face", {0.85f, 0.70f, 0.60f}, {0.80f, 0.66f, 0.56f});
+		plain("helmet", {0.25f, 0.30f, 0.22f}, {0.22f, 0.27f, 0.20f});
+		plain("helmet_medic", {0.90f, 0.90f, 0.90f}, {0.85f, 0.15f, 0.15f});
+		plain("gear", {0.40f, 0.30f, 0.20f}, {0.36f, 0.27f, 0.18f});
+
+		const std::string header = "// Test character, generated by tools/fixtures/generate_fixtures.cpp\n";
+		auto body = [&](const std::string &texture) {
+			const std::string path = folder + texture + ".tga";
+			return "l_legs,\t\"" + path + "\"\nu_body,\t\"" + path + "\"\nu_rthand,\t\"" + path + "\"\nu_lfthand,\t\"" + path + "\"\n";
+		};
+
+		// Body skins: models/mdm/mannequin_<skin>.skin, with the accessories
+		writeText(data / "models/mdm/mannequin_soldier.skin", header + "md3_hat,\t\"" + folder + "helmet.md3\"\nmd3_rank,\t\"" + folder
+																  + "rank.md3\"\nmd3_back,\t\"" + folder + "backpack.md3\"\nmd3_beltr,\t\""
+																  + folder + "pouch.md3\"\n//md3_belt,\t\"" + folder + "pouch.md3\"\n\n"
+																  + body("soldier"));
+		writeText(data / "models/mdm/mannequin_medic.skin",
+				  header + "md3_hat,\t\"" + folder + "helmet.md3\"\nmd3_back,\t\"" + folder + "backpack.md3\"\n\n" + body("medic"));
+		writeText(data / "models/mdm/mannequin_naked.skin", header + body("naked"));
+
+		// Head skins and the optional accessory skin (<model>_<skin>.skin)
+		writeText(data / folder / "head_soldier.skin", "h_head, \"" + folder + "face\"\n");
+		writeText(data / folder / "head_medic.skin", "h_head, \"" + folder + "face\"\n");
+		writeText(data / folder / "helmet_medic.skin", "helmet, \"" + folder + "helmet_medic\"\n");
+
+		// Animation group: the mannequin's own MDX and sequences, then a second MDX with inline sequences
+		writeText(data / "animations/mannequin.anim",
+				  header
+					  + "animgroup\n{\n"
+						"\tanimfile \"models/mdm/mannequin.mdx\"\n\t{\n"
+						"\t\t#include \"models/mdm/mannequin.aninc\"\n\t}\n"
+						"\tanimfile \"animations/mannequin/salute.mdx\"\n\t{\n"
+						"\t\t// <animation name>\t<first frame> <length> <looping> <fps> <move speed> <transition> <reversed>\n"
+						"\t\tsalute\t\t0\t20\t0\t20\t0\t100\t0\n"
+						"\t\tsalute_hold\t19\t1\t1\t20\t0\t0\t0\n"
+						"\t}\n}\n");
+		// The movement script is listed in the .char but not read by ModelTool
+		writeText(data / "animations/scripts/mannequin.script", header + "// Movement states would go here (not read by ModelTool)\n");
+
+		// Head animations: first, length, fps, looping frames for HD_IDLE1 ... HD_PAIN (16 lines)
+		std::string head = header + "// first\tlength\tfps\tlooping\n";
+		const std::array<std::array<int, 4>, 16> headLines = {{
+			{0, 10, 10, 10}, // HD_IDLE1
+			{0, 5, 10, 0},	 // HD_IDLE2
+			{10, 10, 10, 0}, // HD_IDLE3
+			{0, 30, 10, 30}, // HD_IDLE4
+			{0, 10, 5, 0},	 // HD_IDLE5
+			{10, 20, 10, 0}, // HD_IDLE6
+			{20, 10, 5, 0},	 // HD_IDLE7
+			{4, 2, 10, 0},	 // HD_IDLE8
+			{0, 10, 10, 10}, // HD_DAMAGED_IDLE1
+			{10, 10, 10, 0}, // HD_DAMAGED_IDLE2
+			{20, 10, 10, 0}, // HD_DAMAGED_IDLE3
+			{10, 10, 10, 0}, // HD_LEFT
+			{20, 10, 10, 0}, // HD_RIGHT
+			{0, 5, 30, 2},	 // HD_ATTACK
+			{5, 5, 20, 0},	 // HD_ATTACK_END
+			{0, 10, 15, 0},	 // HD_PAIN
+		}};
+		for (const auto &line : headLines)
+		{
+			head += std::to_string(line[0]) + "\t" + std::to_string(line[1]) + "\t" + std::to_string(line[2]) + "\t"
+					+ std::to_string(line[3]) + "\n";
+		}
+		writeText(data / "animations/mannequin/head.anim", head);
+
+		auto character = [&](const std::string &skin) {
+			return header + "characterDef\n{\n\tskin\t\t\t\"" + skin
+				   + "\"\n\n"
+					 "\tmesh\t\t\t\"models/mdm/mannequin.mdm\"\n"
+					 "\tanimationgroup\t\t\"animations/mannequin.anim\"\n"
+					 "\tanimationscript\t\t\"animations/scripts/mannequin.script\"\n\n"
+					 "\tundressedCorpseModel\t\"models/mdm/mannequin.mdm\"\n"
+					 "\tundressedCorpseSkin\t\"naked\"\n\n"
+					 "\thudhead\t\t\t\""
+				   + folder + "head.md3\"\n\thudheadanims\t\t\"animations/mannequin/head.anim\"\n\thudheadskin\t\t\"" + folder + "head_"
+				   + skin + ".skin\"\n}\n";
+		};
+		writeText(data / "characters/mannequin/soldier.char", character("soldier"));
+		writeText(data / "characters/mannequin/medic.char", character("medic"));
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -1359,6 +1535,7 @@ int main(int argc, char *argv[])
 		writeText(data / "models/fbx/cube.fbx", fbxFile("Cube", fbxCube(), 0));
 		writeText(data / "models/fbx/cone.fbx", fbxFile("Cone", fbxCone(16), 24));
 		generateRobot(data / "models/players/robot");
+		generateCharacter(data);
 		std::cout << "Generated the fixtures in " << data.string() << "\n";
 		return 0;
 	}

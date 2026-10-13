@@ -15,11 +15,12 @@ TEST(FileSystemTest, test1)
 
 	io::FileList list = sys.getFiles("");
 
-	ASSERT_EQ(list->size(), 6);
-	ASSERT_EQ(list->at(0).name, "inner");
-	ASSERT_TRUE(list->at(0).isDirectory);
-	ASSERT_EQ(list->at(2).name, "pk3inner");
+	// animations, characters, inner, models, pk3inner, test, test2, unpacked.dir.cfg
+	ASSERT_EQ(list->size(), 8);
+	ASSERT_EQ(list->at(2).name, "inner");
 	ASSERT_TRUE(list->at(2).isDirectory);
+	ASSERT_EQ(list->at(4).name, "pk3inner");
+	ASSERT_TRUE(list->at(4).isDirectory);
 
 	// These files should be directly in the data folder and are accessed with normal system IO
 	ASSERT_TRUE(sys.findFile("test/test.cfg"));

@@ -5,7 +5,19 @@
 #include "skeletal_model.h"
 #include "files.h"
 
+namespace mt {
+	class ScriptStream;
+}
+
 namespace mt::model {
+
+	/**
+	 * Parse .aninc sequence lines until the end of the stream or a '}' (which is left in the stream)
+	 * @param stream script stream
+	 * @return the sequences
+	 * @throws mt::mt_exception if the data is invalid
+	 */
+	std::vector<Animation> parseAnincLines(ScriptStream &stream);
 
 	/**
 	 * Load animation sequences from an .aninc file into a model, replacing the existing sequences.

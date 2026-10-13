@@ -11,6 +11,7 @@
 #include "ui_theme.h"
 #include "player.h"
 #include "skin.h"
+#include "et_character.h"
 
 #include <filesystem>
 #include <optional>
@@ -105,6 +106,10 @@ namespace mt {
 		model::PlayerConfig playerConfig{};			  ///< animation.cfg of the player model
 		std::optional<AttachRequest> attachRequest{}; ///< attach a model to this tag or bone (handled by the menu view)
 		std::string playerSkin{};					  ///< skin name of the player model
+		bool isCharacter = false;					  ///< an ET character (.char) is loaded (the body is the main model)
+		std::string characterPath{};				  ///< the .char file
+		model::CharacterDef character{};			  ///< the parsed .char file
+		bool characterUndressed = false;			  ///< the undressed corpse model and skin are shown
 
 		/**
 		 * no copy for singletons
@@ -144,6 +149,14 @@ namespace mt {
 		 * @param files player files
 		 */
 		void loadPlayer(const model::PlayerFiles &files);
+
+		/**
+		 * Load an ET character: the body mesh with the animation group and the skin, the hud head on tag_head with its
+		 * skin and animations, and the skin's accessories on their tags (like the game draws a player)
+		 * @param path .char file
+		 * @param undressed show the undressed corpse model and skin instead (no accessories, like a looted corpse)
+		 */
+		void loadCharacter(const std::string &path, bool undressed = false);
 
 		/**
 		 * Use another skin of the player model
@@ -311,6 +324,10 @@ namespace mt {
 			player = {};
 			playerConfig = {};
 			playerSkin.clear();
+			isCharacter = false;
+			characterPath.clear();
+			character = {};
+			characterUndressed = false;
 		}
 
 	  private:
