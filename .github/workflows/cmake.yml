@@ -36,12 +36,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0 # the tags give the version
 
-      # CMakeLists.txt needs CMake 4.1, the runner images may have an older one
-      - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '4.1.x'
-
       - name: Install dependencies
         if: runner.os == 'Linux'
         run: |
