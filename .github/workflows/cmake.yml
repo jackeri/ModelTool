@@ -20,7 +20,7 @@ jobs:
       matrix:
         include:
           - name: Linux
-            os: ubuntu-latest
+            os: ubuntu-22.04
             packages: TGZ
           - name: Windows
             os: windows-latest
@@ -28,7 +28,7 @@ jobs:
           - name: macOS
             os: macos-latest
             packages: DragNDrop;ZIP
-            cmake-params: "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 -DCMAKE_OSX_ARCHITECTURES=x86_64;arm64"
+            cmake-params: "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \"-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64\""
 
     steps:
       - uses: actions/checkout@v7
