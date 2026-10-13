@@ -83,6 +83,7 @@ jobs:
         run: cpack -C ${{ env.BUILD_TYPE }} -G "${{ matrix.packages }}"
 
       - name: Upload packages
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v7
         with:
           name: ModelTool-${{ matrix.name }}
@@ -115,3 +116,10 @@ jobs:
           generate_release_notes: true
           files: packages/*
           fail_on_unmatched_files: true
+
+      - name: Cleanup
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          failOnError: false
+          name: |
+            packages/ModelTool-*
