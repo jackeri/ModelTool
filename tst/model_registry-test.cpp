@@ -106,6 +106,12 @@ TEST(ModelRegistryTest, fileSystemFindsAbsolutePaths)
 	std::string absolute = std::filesystem::absolute("data/models/md5/bob_body.tga").string();
 	ASSERT_TRUE(sys.findFile(absolute));
 	ASSERT_TRUE(sys.loadFile(absolute));
+	EXPECT_EQ(sys.loadFile(absolute)->len, std::filesystem::file_size(absolute));
+
+	// A folder source does not take absolute names (on Windows "D:\\..." replaced the folder in the path)
+	mt::io::MTPath folder(std::filesystem::absolute("data").string());
+	EXPECT_FALSE(folder.findFile(absolute));
+	EXPECT_FALSE(folder.loadFile(absolute));
 
 	// Relative paths only come from the sources
 	ASSERT_FALSE(sys.findFile("data/models/md5/bob_body.tga"));

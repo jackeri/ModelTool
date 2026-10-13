@@ -37,6 +37,13 @@ namespace mt::io {
 			return directory ? fixed : std::string();
 		}
 
+		// Names are relative to the folder. An absolute name ("D:\models\x.md3" on Windows) would replace the folder
+		// in `path / fixed` and be found here, but loadFile reads it below the folder and fails.
+		if (const std::filesystem::path asPath(fixed); asPath.has_root_name() || asPath.has_root_directory())
+		{
+			return {};
+		}
+
 		// Fast path: the name works as it is (ignoring the case, the disk's own rules are fine)
 		const bool exact = isWanted(std::filesystem::path(path) / fixed);
 		if (caseInsensitive && exact)
