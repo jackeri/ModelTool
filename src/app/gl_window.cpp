@@ -1,4 +1,5 @@
 #include "gl_window.h"
+#include "app_icon.h"
 #include "hitbox.h"
 #include "imgui_view.h"
 #include "state.h"
@@ -83,6 +84,7 @@ bool mt::GLWindow::init()
 		return false;
 	}
 	this->window = glfwWindow;
+	setAppIcon(glfwWindow);
 
 	if (state.persistSettings)
 	{

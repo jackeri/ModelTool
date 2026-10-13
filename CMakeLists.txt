@@ -5,6 +5,10 @@ include(ExternalProject)
 # The version comes from the latest v<major>.<minor>.<patch> git tag
 include(cmake/git_version.cmake)
 project(ModelTool VERSION ${MODELTOOL_VERSION} LANGUAGES C CXX)
+if (APPLE)
+    # src/app/app_icon_macos.mm sets the Dock icon through Cocoa. OBJC too, or GLFW's .m files are built as OBJCXX
+    enable_language(OBJC OBJCXX)
+endif ()
 
 set(CMAKE_TARGETS_FOLDER CMake)
 set(BUNDLED_TARGETS_FOLDER Bundled)
@@ -77,20 +81,24 @@ FILE(GLOB MODEL_TOOL_CLI_SRC "src/cli/*.*")
 
 # Remove main.cpp from the list of files to compile (for testing)
 list(FILTER MODEL_TOOL_APP_SRC EXCLUDE REGEX ".*/main.cpp$")
+if (NOT APPLE)
+    list(FILTER MODEL_TOOL_APP_SRC EXCLUDE REGEX ".*\\.mm$")
+endif ()
 list(FILTER MODEL_TOOL_LIB_SRC EXCLUDE REGEX ".*/main.cpp$")
 list(FILTER MODEL_TOOL_CLI_SRC EXCLUDE REGEX ".*/main.cpp$")
 
 list(APPEND MODEL_TOOL_APP_SRC ${MODEL_TOOL_SHADERS})
 
-# The UI fonts are built into the program (src/app/embedded_files.h)
-set(MODEL_TOOL_FONTS "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Hack-Regular.ttf" "${CMAKE_CURRENT_SOURCE_DIR}/fonts/fontawesome-webfont.ttf")
+# The UI fonts and the application icon are built into the program (src/app/embedded_files.h)
+set(MODEL_TOOL_FONTS "${CMAKE_CURRENT_SOURCE_DIR}/fonts/Hack-Regular.ttf" "${CMAKE_CURRENT_SOURCE_DIR}/fonts/fontawesome-webfont.ttf"
+        "${CMAKE_CURRENT_SOURCE_DIR}/res/icon.png")
 set(MODEL_TOOL_EMBEDDED "${CMAKE_BINARY_DIR}/generated/embedded_files.cpp")
 string(REPLACE ";" "|" MODEL_TOOL_FONTS_ARG "${MODEL_TOOL_FONTS}")
 add_custom_command(
         OUTPUT ${MODEL_TOOL_EMBEDDED}
         COMMAND ${CMAKE_COMMAND} "-DOUTPUT=${MODEL_TOOL_EMBEDDED}" "-DFILES=${MODEL_TOOL_FONTS_ARG}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_files.cmake"
         DEPENDS ${MODEL_TOOL_FONTS} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_files.cmake"
-        COMMENT "Embedding the fonts"
+        COMMENT "Embedding the fonts and the icon"
         VERBATIM)
 add_custom_target(embedded_files DEPENDS ${MODEL_TOOL_EMBEDDED})
 set_source_files_properties(${MODEL_TOOL_EMBEDDED} PROPERTIES GENERATED TRUE INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/src/app")
@@ -253,6 +261,9 @@ add_executable(generate_fixtures EXCLUDE_FROM_ALL "tools/fixtures/generate_fixtu
 target_link_libraries(generate_fixtures ModelToolLib)
 
 set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
+if (APPLE)
+    list(APPEND MTLINK_LIBRARIES "-framework Cocoa")
+endif ()
 # Application icon
 set(MODEL_TOOL_RESOURCES "")
 if (APPLE)
