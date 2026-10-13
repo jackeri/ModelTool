@@ -102,7 +102,7 @@ namespace mt {
 			for (const auto &tag : posed.tags)
 			{
 				renderer.push(glm::translate(tag.point.location) * glm::toMat4(tag.point.rotation));
-				renderer.axis(size * 0.05f);
+				renderer.axis(size * 0.025f);
 				renderer.pop();
 			}
 		}

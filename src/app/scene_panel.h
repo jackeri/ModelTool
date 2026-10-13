@@ -54,6 +54,14 @@ namespace mt {
 		void handleInput();
 
 		/**
+		 * Sizes of the grid steps and the overlays (tag axes, normals) from the model over all its frames (the stored
+		 * frame bounds), so they stay the same while the model animates
+		 * @param poseBounds scene bounds of the current pose, used when the model has no frame bounds
+		 * @param poseLocal model space bounds of the current pose, used when the model has no frame bounds
+		 */
+		void updateStableSizes(const Bounds &poseBounds, const Bounds &poseLocal);
+
+		/**
 		 * Draw the tag names on top of the scene image
 		 * @param origin screen position of the scene image
 		 */
@@ -91,6 +99,11 @@ namespace mt {
 		std::vector<model::PosedModel> posedAttachments{}; ///< attached models of the last frame
 		std::vector<glm::mat4> attachmentMatrices{};	   ///< scene matrices of the attached models
 		model::Hitbox scaleStart{};						   ///< the edited hitbox when the scale drag started
+		float gridSize = 120.0f;						   ///< size the grid steps follow, kept while the model animates
+		float overlaySize = 1.0f;						   ///< model size the overlays follow (tag axes, normals)
+		const Model *stableModel = nullptr;				   ///< model the sizes were taken from
+		int stableFrames = -1;							   ///< frame count of that model
+		glm::mat4 stableTransform{1.0f};				   ///< transform of that model
 		bool gizmoDrag = false;							   ///< the mouse button went down on the edit gizmo, the camera does not move
 		bool sceneHovered = false;						   ///< state flag for mouse hover scene panel
 	};

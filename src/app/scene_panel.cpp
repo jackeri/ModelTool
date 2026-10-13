@@ -95,7 +95,19 @@ namespace mt {
 		}
 		Bounds local{};
 		posedBounds(posed, local);
-		const float modelSize = std::max(glm::length(local.max - local.min), 1.0f);
+
+		// The grid and the overlays (tag axes, normals) follow the size of the whole animation, not the current pose, so
+		// they do not change while the model moves
+		const Model *current = state.model.get();
+		const int frames = current ? current->numFrames() : 0;
+		if (current != stableModel || frames != stableFrames || modelMatrix != stableTransform)
+		{
+			stableModel = current;
+			stableFrames = frames;
+			stableTransform = modelMatrix;
+			updateStableSizes(sceneBounds, local);
+		}
+		const float modelSize = overlaySize;
 
 		if (state.frameCamera)
 		{
@@ -111,10 +123,7 @@ namespace mt {
 
 		if (state.view.drawGrid)
 		{
-			renderer->grid(std::max(std::max(std::abs(sceneBounds.min.x), std::abs(sceneBounds.max.x)),
-									std::max(std::abs(sceneBounds.min.y), std::abs(sceneBounds.max.y)))
-							   * 2.5f,
-						   Renderer::gridColor({color.x, color.y, color.z, 1}));
+			renderer->grid(gridSize, Renderer::gridColor({color.x, color.y, color.z, 1}));
 		}
 
 		if (state.model)
@@ -134,6 +143,49 @@ namespace mt {
 
 		renderer->endFrame();
 		fbo->unbind();
+	}
+
+	void ScenePanel::updateStableSizes(const Bounds &poseBounds, const Bounds &poseLocal)
+	{
+		auto &state = singleton<State>();
+
+		// Every frame's bounds as stored in the model (the bounds the game uses), else the current pose
+		std::vector<Bounds> frames;
+		if (const auto *skeletal = dynamic_cast<const model::skeletal::SkeletalModel *>(state.model.get()))
+		{
+			frames = skeletal->bounds;
+		}
+		else if (const auto *morph = dynamic_cast<const model::morph::MorphModel *>(state.model.get()))
+		{
+			for (const auto &frame : morph->frames)
+			{
+				frames.push_back(frame.bounds);
+			}
+		}
+
+		float extent = 0;
+		auto add = [&](const glm::vec3 &point) { extent = std::max({extent, std::abs(point.x), std::abs(point.y)}); };
+		Bounds all{};
+		for (size_t i = 0; i < frames.size(); i++)
+		{
+			const Bounds &bounds = frames[i];
+			all.min = i ? glm::min(all.min, bounds.min) : bounds.min;
+			all.max = i ? glm::max(all.max, bounds.max) : bounds.max;
+			for (int corner = 0; corner < 8; corner++)
+			{
+				const glm::vec3 point{corner & 1 ? bounds.max.x : bounds.min.x, corner & 2 ? bounds.max.y : bounds.min.y,
+									  corner & 4 ? bounds.max.z : bounds.min.z};
+				add(glm::vec3(modelMatrix * glm::vec4(point, 1.0f)));
+			}
+		}
+		if (extent <= 0)
+		{
+			add(poseBounds.min);
+			add(poseBounds.max);
+			all = poseLocal;
+		}
+		gridSize = extent * 2.5f;
+		overlaySize = std::max(glm::length(all.max - all.min), 1.0f);
 	}
 
 	bool ScenePanel::saveImage(const std::string &path)
