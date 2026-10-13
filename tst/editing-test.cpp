@@ -8,6 +8,7 @@
 
 #include <numeric>
 #include <set>
+#include <tuple>
 
 using namespace mt;
 using namespace mt::model;

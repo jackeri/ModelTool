@@ -6,6 +6,7 @@
 #include "posed_model.h"
 #include "skin.h"
 #include "state.h"
+#include <filesystem>
 
 using namespace mt;
 

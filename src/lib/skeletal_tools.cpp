@@ -5,6 +5,8 @@
 
 #include <map>
 #include <tuple>
+#include <array>
+#include <limits>
 
 namespace mt::model::skeletal {
 

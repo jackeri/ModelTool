@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "unzip.h"
+#include <unordered_set>
 
 namespace mt::io {
 	/*! Zip or pk3 file as a file source */

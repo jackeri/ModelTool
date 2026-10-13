@@ -15,6 +15,7 @@
 #include "mt_path.h"
 
 #include <filesystem>
+#include <limits>
 
 using namespace mt;
 using namespace mt::model;

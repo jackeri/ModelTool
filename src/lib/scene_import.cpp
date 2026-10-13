@@ -6,6 +6,7 @@
 #include "et_armature.h"
 
 #include <glm/gtx/matrix_decompose.hpp>
+#include <limits>
 
 namespace mt::model::import {
 
