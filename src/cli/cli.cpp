@@ -38,7 +38,7 @@ namespace mt::cli {
 			bool hasFrames = false;				   ///< --frames was given
 			int firstFrame = 0, lastFrame = -1;	   ///< --frames first:last
 			float scale = 1.0f;					   ///< --scale
-			std::string normals{};				   ///< --normals smooth|flat
+			std::string normals{};				   ///< --normals smooth|seams|flat
 			bool optimize = false;				   ///< --optimize
 			bool caseSensitive = false;			   ///< --case-sensitive
 			bool lod = false;					   ///< --lod
@@ -143,9 +143,9 @@ namespace mt::cli {
 				else if (arg == "--normals")
 				{
 					options.normals = value();
-					if (options.normals != "smooth" && options.normals != "flat")
+					if (options.normals != "smooth" && options.normals != "seams" && options.normals != "flat")
 					{
-						throw UsageError("Invalid normals mode, expected smooth or flat: " + options.normals);
+						throw UsageError("Invalid normals mode, expected smooth, seams or flat: " + options.normals);
 					}
 				}
 				else if (arg == "--case-sensitive")
@@ -517,7 +517,9 @@ namespace mt::cli {
 
 			if (!options.normals.empty())
 			{
-				auto mode = options.normals == "flat" ? model::NormalMode::Flat : model::NormalMode::Smooth;
+				auto mode = options.normals == "flat"	 ? model::NormalMode::Flat
+							: options.normals == "seams" ? model::NormalMode::SmoothSeams
+														 : model::NormalMode::Smooth;
 				if (!model::calculateNormals(model, mode))
 				{
 					throw mt_ex("Normals can not be calculated for this model");
@@ -631,7 +633,7 @@ namespace mt::cli {
 			   "  --hitboxes file       load hitboxes into the model (.hitboxes or .htx)\n"
 			   "  --frames first:last   convert: frames to write\n"
 			   "  --scale s             convert: scale the model\n"
-			   "  --normals smooth|flat convert: recalculate the normals\n"
+			   "  --normals smooth|seams|flat convert: recalculate the normals (seams: smooth across texture seams too)\n"
 			   "  --optimize            convert: merge duplicate vertices (skeletal models)\n"
 			   "  --lod                 convert: calculate the level of detail collapse maps\n"
 			   "  --save-hitboxes file  convert: write the hitboxes\n"

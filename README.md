@@ -73,7 +73,7 @@ Every binary loader checks the file against its size, so broken files give an er
 - Model: name, transform (location, rotation, scale), export frame range
 - Meshes, tags (add, remove, rename, move to another bone), bones (rename, use as tag, torso weight), animation
   sequences (add, edit, remove)
-- Edit menu: recalculate normals, calculate the level of detail collapse maps, optimize vertices, scale the bounding
+- Edit menu: recalculate normals (smooth, smooth across texture seams, flat), calculate the level of detail collapse maps, optimize vertices, scale the bounding
   boxes, apply the transform, bake a pose into the bind pose, bake bone tags into tags, reorganize the armature to the
   ET player bones, check the armature
 - **Gizmos**: select a tag or a hitbox and move (G) or rotate (R) it in the 3D view, scale (S) hitboxes; local or
@@ -160,7 +160,7 @@ mt [--base folder]... <command> [options]
   convert <model> <output>...    write the model, the format comes from the output extension
   list [folder]                  list the model files in the base folders and pk3 files
 
-  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|flat,
+  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|seams|flat,
   --optimize, --lod, --save-hitboxes file, --case-sensitive, --help, --version
 ```
 

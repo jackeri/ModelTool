@@ -440,12 +440,31 @@ namespace mt {
 			return;
 		}
 
-		if (ImGui::MenuItem("Recalculate normals", nullptr, false, model != nullptr))
+		if (ImGui::BeginMenu("Recalculate normals", model != nullptr))
 		{
-			if (!model::calculateNormals(*model))
+			auto recalculate = [&](model::NormalMode mode) {
+				if (!model::calculateNormals(*model, mode))
+				{
+					logger->warn("The model has no bind pose or frames to calculate the normals from");
+				}
+			};
+			if (ImGui::MenuItem("Smooth"))
 			{
-				logger->warn("The model has no bind pose or frames to calculate the normals from");
+				recalculate(model::NormalMode::Smooth);
 			}
+			ImGui::SetItemTooltip("Average the triangle normals at each vertex");
+			if (ImGui::MenuItem("Smooth across seams"))
+			{
+				recalculate(model::NormalMode::SmoothSeams);
+			}
+			ImGui::SetItemTooltip("Like Smooth, and vertices at the same place (split for their texture coordinates) share "
+								  "the normal, so texture seams do not show; edges sharper than 60 degrees stay hard");
+			if (ImGui::MenuItem("Flat"))
+			{
+				recalculate(model::NormalMode::Flat);
+			}
+			ImGui::SetItemTooltip("One triangle's normal per vertex");
+			ImGui::EndMenu();
 		}
 
 		if (ImGui::MenuItem("Calculate LOD", nullptr, false, model != nullptr))

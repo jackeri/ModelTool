@@ -3,6 +3,8 @@
 #include "model_md5.h"
 #include "mt_path.h"
 
+#include <cmath>
+
 using namespace mt;
 using namespace mt::model;
 
@@ -120,6 +122,49 @@ TEST(NormalsTest, morphSmoothAndFlat)
 	// The last triangle using the vertex wins
 	expectVec(frame[0].normal, {0, -1, 0});
 	expectVec(frame[2].normal, {0, 0, -1});
+}
+
+TEST(NormalsTest, morphSmoothSeams)
+{
+	// Two triangles meeting at a gentle 30 degree fold, the edge vertices are split (like a texture seam), and two
+	// triangles at a 90 degree corner, also split
+	morph::MorphModel model;
+	model.frames.resize(1);
+	morph::Mesh mesh;
+	const float s = std::sin(glm::radians(30.0f)), c = std::cos(glm::radians(30.0f));
+	mesh.frames.push_back({
+		{{0, 0, 0}, {}},
+		{{1, 0, 0}, {}},
+		{{0, 1, 0}, {}}, // flat triangle
+		{{0, 0, 0}, {}},
+		{{0, -c, s}, {}},
+		{{1, 0, 0}, {}}, // folded up 30 degrees, split copies of 0 and 1
+		{{10, 0, 0}, {}},
+		{{11, 0, 0}, {}},
+		{{10, 1, 0}, {}}, // flat triangle
+		{{10, 0, 0}, {}},
+		{{10, 0, 1}, {}},
+		{{11, 0, 0}, {}}, // 90 degrees up, split copies of 6 and 7
+	});
+	mesh.texCoords.resize(12);
+	mesh.tris = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {9, 10, 11}};
+	model.meshes.push_back(mesh);
+
+	calculateNormals(model, NormalMode::Smooth);
+	auto &frame = model.meshes[0].frames[0];
+	// Split vertices keep their own triangle's normal: the seam shows
+	EXPECT_GT(glm::distance(frame[0].normal, frame[3].normal), 0.1f);
+
+	calculateNormals(model, NormalMode::SmoothSeams);
+	// The split copies share one normal, between the two triangles
+	expectVec(frame[0].normal, frame[3].normal);
+	expectVec(frame[1].normal, frame[5].normal);
+	EXPECT_NEAR(glm::dot(frame[0].normal, glm::vec3(0, 0, -1)), std::cos(glm::radians(15.0f)), 1e-4f);
+	// Not at the same place: unchanged
+	expectVec(frame[2].normal, {0, 0, -1});
+	// The 90 degree corner stays hard
+	expectVec(frame[6].normal, {0, 0, -1});
+	expectVec(frame[9].normal, {0, -1, 0});
 }
 
 TEST(NormalsTest, md5NormalsMatchBindPose)

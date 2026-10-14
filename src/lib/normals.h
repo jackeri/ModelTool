@@ -10,9 +10,16 @@ namespace mt::model {
 	/*! How vertex normals are calculated */
 	enum class NormalMode
 	{
-		Smooth, ///< average of the normals of every triangle using the vertex
-		Flat,	///< normal of a single triangle using the vertex (vertices are not split)
+		Smooth,		 ///< average of the normals of every triangle using the vertex
+		Flat,		 ///< normal of a single triangle using the vertex (vertices are not split)
+		SmoothSeams, ///< Smooth, and vertices at the same place (split for their texture coordinates) share the normal
 	};
+
+	/*! SmoothSeams: vertices closer than this are at the same place */
+	constexpr float SEAM_DISTANCE = 0.01f;
+
+	/*! SmoothSeams: vertices whose own normals differ more than this (degrees) keep the hard edge */
+	constexpr float SEAM_CREASE_ANGLE = 60.0f;
 
 	/**
 	 * Calculate the normals of a skeletal mesh in a pose. Sets the joint-local vertex normals used for animation, and the

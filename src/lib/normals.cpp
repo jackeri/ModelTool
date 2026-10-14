@@ -1,5 +1,10 @@
 #include "normals.h"
 
+#include <cmath>
+#include <map>
+#include <numeric>
+#include <tuple>
+
 namespace mt::model {
 	using morph::FrameVertex;
 	using morph::MorphModel;
@@ -19,6 +24,78 @@ namespace mt::model {
 	static glm::vec3 triangleNormal(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3)
 	{
 		return safeNormalize(glm::cross(v3 - v1, v2 - v1));
+	}
+
+	/**
+	 * Share the normals of vertices at the same place (texture seams split them): the triangle normal sums of each group
+	 * are added together. Vertices whose own normals differ more than the crease angle stay apart (hard edges).
+	 * @param positions vertex positions
+	 * @param sums triangle normal sum per vertex, changed in place
+	 */
+	static void shareSeamNormals(const std::vector<glm::vec3> &positions, std::vector<glm::vec3> &sums)
+	{
+		const float minDot = std::cos(glm::radians(SEAM_CREASE_ANGLE));
+		std::vector<int> parent(positions.size());
+		std::iota(parent.begin(), parent.end(), 0);
+		auto root = [&](int v) {
+			while (parent[size_t(v)] != v)
+			{
+				parent[size_t(v)] = parent[size_t(parent[size_t(v)])];
+				v = parent[size_t(v)];
+			}
+			return v;
+		};
+
+		// Vertices by grid cell, neighbours are in the same or the next cells
+		using Cell = std::tuple<int, int, int>;
+		std::map<Cell, std::vector<int>> cells;
+		auto cellOf = [](const glm::vec3 &pos) {
+			const glm::ivec3 cell = glm::ivec3(glm::floor(pos / SEAM_DISTANCE));
+			return Cell{cell.x, cell.y, cell.z};
+		};
+		for (size_t v = 0; v < positions.size(); v++)
+		{
+			cells[cellOf(positions[v])].push_back(int(v));
+		}
+
+		for (size_t v = 0; v < positions.size(); v++)
+		{
+			const auto [cx, cy, cz] = cellOf(positions[v]);
+			const glm::vec3 normal = safeNormalize(sums[v]);
+			for (int dx = -1; dx <= 1; dx++)
+			{
+				for (int dy = -1; dy <= 1; dy++)
+				{
+					for (int dz = -1; dz <= 1; dz++)
+					{
+						auto found = cells.find({cx + dx, cy + dy, cz + dz});
+						if (found == cells.end())
+						{
+							continue;
+						}
+						for (int other : found->second)
+						{
+							if (other <= int(v) || glm::distance(positions[v], positions[size_t(other)]) > SEAM_DISTANCE
+								|| glm::dot(normal, safeNormalize(sums[size_t(other)])) < minDot)
+							{
+								continue;
+							}
+							parent[size_t(root(other))] = root(int(v));
+						}
+					}
+				}
+			}
+		}
+
+		std::vector<glm::vec3> groups(positions.size(), glm::vec3{0, 0, 0});
+		for (size_t v = 0; v < positions.size(); v++)
+		{
+			groups[size_t(root(int(v)))] += sums[v];
+		}
+		for (size_t v = 0; v < positions.size(); v++)
+		{
+			sums[v] = groups[size_t(root(int(v)))];
+		}
 	}
 
 	/**
@@ -47,15 +124,20 @@ namespace mt::model {
 
 			for (int i = 0; i < 3; i++)
 			{
-				if (mode == NormalMode::Smooth)
-				{
-					normals[tri[i]] += normal;
-				}
-				else
+				if (mode == NormalMode::Flat)
 				{
 					normals[tri[i]] = normal;
 				}
+				else
+				{
+					normals[tri[i]] += normal;
+				}
 			}
+		}
+
+		if (mode == NormalMode::SmoothSeams)
+		{
+			shareSeamNormals(positions, normals);
 		}
 
 		for (auto &normal : normals)
