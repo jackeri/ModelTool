@@ -45,7 +45,7 @@ namespace mt {
 	}
 
 	void drawModel(Renderer &renderer, const model::PosedModel &posed, const ViewSettings &view, TextureCache &textures,
-				   io::FileSource &source, const std::string &modelPath, float size)
+				   io::FileSource &source, const std::string &modelPath, float size, const std::map<std::string, std::vector<byte>> *images)
 	{
 		// Opaque meshes first, then the blended ones over them
 		for (const bool blendedPass : {false, true})
@@ -69,7 +69,7 @@ namespace mt {
 				}
 				else if (view.textures)
 				{
-					style.texture = textures.get(source, mesh.material, modelPath);
+					style.texture = textures.get(source, mesh.material, modelPath, images);
 				}
 				if (!view.wireframe && !style.texture)
 				{

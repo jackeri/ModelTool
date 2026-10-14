@@ -32,9 +32,11 @@ namespace mt {
 	 * @param source file source for the textures
 	 * @param modelPath path of the model (textures are looked up next to it)
 	 * @param size size of the model (bounds diagonal), the overlays are scaled to it
+	 * @param images images carried in the model (embedded in a glTF file) by material
 	 */
-	void drawModel(Renderer &renderer, const model::PosedModel &posed, const ViewSettings &view, TextureCache &textures,
-				   io::FileSource &source, const std::string &modelPath, float size);
+	void
+	drawModel(Renderer &renderer, const model::PosedModel &posed, const ViewSettings &view, TextureCache &textures, io::FileSource &source,
+			  const std::string &modelPath, float size, const std::map<std::string, std::vector<byte>> *images = nullptr);
 
 	/**
 	 * Bounds of the posed meshes and joints

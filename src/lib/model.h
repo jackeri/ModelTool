@@ -1,6 +1,8 @@
 #pragma once
 
 #include "library.h"
+
+#include <map>
 #include "mt_path.h"
 
 namespace mt {
@@ -210,14 +212,15 @@ namespace mt {
 			return false;
 		}
 
-		Point origin{};								///< Origin point of this model
-		Point transform{};							///< Transforms applied to this model
-		float scale = 1.0f;							///< Scale of this model
-		std::string name;							///< Name of this model
-		std::vector<model::Animation> animations{}; ///< Animation sequences defined for this model
-		int currentFrame = FRAME_BIND_POSE;			///< Currently used frame
-		int firstExportFrame = 0;					///< first frame written by the exporters
-		int lastExportFrame = -1;					///< last frame written by the exporters, -1 for the last frame
+		Point origin{};									   ///< Origin point of this model
+		Point transform{};								   ///< Transforms applied to this model
+		float scale = 1.0f;								   ///< Scale of this model
+		std::string name;								   ///< Name of this model
+		std::vector<model::Animation> animations{};		   ///< Animation sequences defined for this model
+		std::map<std::string, std::vector<byte>> images{}; ///< material -> image file (PNG / JPEG) carried in the model (glTF)
+		int currentFrame = FRAME_BIND_POSE;				   ///< Currently used frame
+		int firstExportFrame = 0;						   ///< first frame written by the exporters
+		int lastExportFrame = -1;						   ///< last frame written by the exporters, -1 for the last frame
 	};
 
 }

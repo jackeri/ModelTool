@@ -2,7 +2,8 @@
 
 namespace mt {
 
-	Texture *TextureCache::get(io::FileSource &source, const std::string &material, const std::string &modelPath)
+	Texture *TextureCache::get(io::FileSource &source, const std::string &material, const std::string &modelPath,
+							   const std::map<std::string, std::vector<byte>> *images)
 	{
 		if (material.empty())
 		{
@@ -14,6 +15,25 @@ namespace mt {
 		if (found != textures.end())
 		{
 			return found->second.get();
+		}
+
+		// An image carried in the model (embedded in a glTF file)
+		if (auto embedded = images ? images->find(material) : decltype(images->end()){}; images && embedded != images->end())
+		{
+			std::unique_ptr<Texture> texture;
+			io::Image image;
+			if (Texture::decode(embedded->second.data(), embedded->second.size(), image))
+			{
+				texture = std::make_unique<Texture>(material);
+				texture->upload(io::applyPicmip(image, picmip), filter);
+			}
+			else if (auto logger = spdlog::get(MT_LOGGER))
+			{
+				logger->warn("Could not decode the embedded image of {}", material);
+			}
+			Texture *result = texture.get();
+			textures[key] = std::move(texture);
+			return result;
 		}
 
 		std::unique_ptr<Texture> texture;

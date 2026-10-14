@@ -312,7 +312,8 @@ namespace mt::model {
 				const ShaderDef *shader = shaders->find(name);
 				std::string json
 					= "{\"name\":" + jsonString(name) + ",\"pbrMetallicRoughness\":{\"metallicFactor\":0,\"roughnessFactor\":1";
-				const int texture = options.files && !name.empty() ? addTexture(part, name, shader) : -1;
+				const bool carried = part.model->images.count(name) > 0;
+				const int texture = (options.files || carried) && !name.empty() ? addTexture(part, name, shader) : -1;
 				if (texture >= 0)
 				{
 					json += ",\"baseColorTexture\":{\"index\":" + std::to_string(texture) + "}";
@@ -339,20 +340,35 @@ namespace mt::model {
 
 			int addTexture(const GltfPart &part, const std::string &material, const ShaderDef *shader)
 			{
-				const std::string path = findMaterialTexture(*options.files, *shaders, material, part.path);
-				if (auto known = textureIndex.find(path); !path.empty() && known != textureIndex.end())
+				// An image carried in the model (from a glTF file) comes first
+				if (auto carried = part.model->images.find(material); carried != part.model->images.end())
 				{
-					return known->second;
+					return addImage(carried->second.data(), carried->second.size(), material, shader,
+									"embedded:" + part.path + "|" + material);
 				}
+				if (!options.files)
+				{
+					return -1;
+				}
+				const std::string path = findMaterialTexture(*options.files, *shaders, material, part.path);
 				auto file = path.empty() ? nullptr : options.files->loadFile(path);
 				if (!file || !file->valid())
 				{
 					warn("No texture for " + material);
 					return -1;
 				}
-
-				const byte *data = file->data->data();
 				const size_t length = file->len ? std::min(file->len, file->data->size()) : file->data->size();
+				return addImage(file->data->data(), length, path, shader, path);
+			}
+
+			/*! Embed an image file once (by key): PNG and JPEG as they are, other formats (TGA, ...) converted to PNG */
+			int addImage(const byte *data, size_t length, const std::string &name, const ShaderDef *shader, const std::string &key)
+			{
+				if (auto known = textureIndex.find(key); known != textureIndex.end())
+				{
+					return known->second;
+				}
+
 				std::string mime = mt::io::imageMimeType(data, length);
 				std::vector<byte> bytes;
 				if (!mime.empty())
@@ -361,11 +377,10 @@ namespace mt::model {
 				}
 				else
 				{
-					// glTF images are PNG or JPEG: other formats (TGA, ...) are converted
 					mt::io::Image image;
 					if (!mt::io::decodeImage(data, length, image))
 					{
-						warn("Could not decode " + path);
+						warn("Could not decode " + name);
 						return -1;
 					}
 					bytes = mt::io::encodePNG(image);
@@ -373,13 +388,13 @@ namespace mt::model {
 				}
 
 				const int view = addView(bytes.data(), bytes.size(), 0);
-				images.push_back("{\"name\":" + jsonString(path) + ",\"bufferView\":" + std::to_string(view)
+				images.push_back("{\"name\":" + jsonString(name) + ",\"bufferView\":" + std::to_string(view)
 								 + ",\"mimeType\":" + jsonString(mime) + "}");
 				const int wrap = shader && shader->clamp ? GL_CLAMP_TO_EDGE_WRAP : GL_REPEAT_WRAP;
 				samplers.push_back("{\"wrapS\":" + std::to_string(wrap) + ",\"wrapT\":" + std::to_string(wrap) + "}");
 				textures.push_back("{\"source\":" + std::to_string(images.size() - 1)
 								   + ",\"sampler\":" + std::to_string(samplers.size() - 1) + "}");
-				textureIndex[path] = int(textures.size()) - 1;
+				textureIndex[key] = int(textures.size()) - 1;
 				return int(textures.size()) - 1;
 			}
 

@@ -328,6 +328,7 @@ namespace mt::model::import {
 			model->animations.push_back(animation);
 		}
 
+		model->images = std::move(scene.images);
 		return model.release();
 	}
 }

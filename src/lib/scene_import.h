@@ -57,9 +57,10 @@ namespace mt::model::import {
 		std::vector<int> tags{};   ///< nodes that are tags (named tag_*)
 		std::vector<Mesh> meshes{};
 		std::vector<Animation> animations{};
-		int numFrames = 0;				///< frames in Node::frames and Mesh::framePositions
-		glm::mat3 axisConversion{1.0f}; ///< rotation applied to the whole scene (to Z-up)
-		float unitScale = 1.0f;			///< scale applied to the whole scene (to game units)
+		int numFrames = 0;								   ///< frames in Node::frames and Mesh::framePositions
+		glm::mat3 axisConversion{1.0f};					   ///< rotation applied to the whole scene (to Z-up)
+		float unitScale = 1.0f;							   ///< scale applied to the whole scene (to game units)
+		std::map<std::string, std::vector<byte>> images{}; ///< material -> embedded image file, becomes Model::images
 	};
 
 	/**

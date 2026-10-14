@@ -18,9 +18,11 @@ namespace mt {
 		 * @param source file source to find the texture from
 		 * @param material material name of the mesh
 		 * @param modelPath path of the model, textures are also looked up next to it
+		 * @param images images carried in the model (embedded in a glTF file) by material, they come first
 		 * @return texture or nullptr if the texture was not found or could not be decoded
 		 */
-		Texture *get(io::FileSource &source, const std::string &material, const std::string &modelPath);
+		Texture *get(io::FileSource &source, const std::string &material, const std::string &modelPath,
+					 const std::map<std::string, std::vector<byte>> *images = nullptr);
 
 		/**
 		 * Change the picmip and filtering, the textures are reloaded when they are used next

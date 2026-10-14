@@ -149,14 +149,14 @@ namespace mt {
 		if (state.model)
 		{
 			renderer->push(modelMatrix);
-			drawModel(*renderer, posed, state.view, state.textures, state.filesystem, state.modelPath, modelSize);
+			drawModel(*renderer, posed, state.view, state.textures, state.filesystem, state.modelPath, modelSize, &state.model->images);
 			renderer->pop();
 
 			for (size_t i = 0; i < posedAttachments.size(); i++)
 			{
 				renderer->push(attachmentMatrices[i]);
 				drawModel(*renderer, posedAttachments[i], state.view, state.textures, state.filesystem, state.attachments[i].path,
-						  modelSize);
+						  modelSize, &state.attachments[i].model->images);
 				renderer->pop();
 			}
 		}

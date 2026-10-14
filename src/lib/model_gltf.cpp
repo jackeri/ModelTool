@@ -1,4 +1,5 @@
 #include "model_gltf.h"
+#include "image.h"
 #include "scene_import.h"
 
 #include <tiny_gltf_v3.h>
@@ -539,33 +540,169 @@ namespace mt::model {
 				}
 			}
 
-			std::string materialName(int index) const
+			/*! The file data of an image: its buffer view or its data URI (the bytes as they are, PNG or JPEG) */
+			std::vector<byte> imageData(int index) const
+			{
+				const auto &image = gltf.images[index];
+				if (image.image.count > 0)
+				{
+					return {image.image.data, image.image.data + image.image.count};
+				}
+				if (image.buffer_view >= 0 && image.buffer_view < int(gltf.buffer_views_count))
+				{
+					const auto &view = gltf.buffer_views[image.buffer_view];
+					if (view.buffer >= 0 && view.buffer < int(gltf.buffers_count))
+					{
+						const auto &buffer = gltf.buffers[view.buffer].data;
+						if (view.byte_offset + view.byte_length <= buffer.count)
+						{
+							return {buffer.data + view.byte_offset, buffer.data + view.byte_offset + view.byte_length};
+						}
+					}
+				}
+				const std::string uri = str(image.uri);
+				const size_t comma = uri.find(',');
+				if (uri.rfind("data:", 0) == 0 && comma != std::string::npos && uri.find(";base64") < comma)
+				{
+					return decodeBase64(uri.substr(comma + 1));
+				}
+				return {};
+			}
+
+			static std::vector<byte> decodeBase64(const std::string &text)
+			{
+				std::vector<byte> out;
+				uint32_t bits = 0;
+				int count = 0;
+				for (char c : text)
+				{
+					int value;
+					if (c >= 'A' && c <= 'Z')
+						value = c - 'A';
+					else if (c >= 'a' && c <= 'z')
+						value = c - 'a' + 26;
+					else if (c >= '0' && c <= '9')
+						value = c - '0' + 52;
+					else if (c == '+' || c == '-')
+						value = 62;
+					else if (c == '/' || c == '_')
+						value = 63;
+					else
+						continue;
+					bits = (bits << 6) | uint32_t(value);
+					count += 6;
+					if (count >= 8)
+					{
+						count -= 8;
+						out.push_back(byte((bits >> count) & 0xff));
+					}
+				}
+				return out;
+			}
+
+			/*! Keep an image for a material name; another image with a name in use gets the material index added */
+			std::string keepImage(std::string name, int index, std::vector<byte> data)
+			{
+				auto found = target.images.find(name);
+				if (found != target.images.end() && found->second != data)
+				{
+					name += " #" + std::to_string(index);
+				}
+				target.images[name] = std::move(data);
+				return name;
+			}
+
+			/**
+			 * Name of a material for the meshes. External images keep their file name (the textures are looked up like
+			 * any other). Embedded images are kept in the model under the name, tinted with the base color factor; a
+			 * material with only a color gets a small image of that color, so the tool shows it.
+			 */
+			std::string materialName(int index)
 			{
 				if (index < 0 || index >= int(gltf.materials_count))
 				{
 					return "";
 				}
+				if (auto known = materialNames.find(index); known != materialNames.end())
+				{
+					return known->second;
+				}
 
 				const auto &material = gltf.materials[index];
+				const double *factor = material.pbr_metallic_roughness.base_color_factor;
+				const glm::vec4 color{float(factor[0]), float(factor[1]), float(factor[2]), float(factor[3])};
+				const bool tinted = color != glm::vec4(1.0f);
+				std::string name = str(material.name);
+
 				int texture = material.pbr_metallic_roughness.base_color_texture.index;
-				if (texture >= 0 && texture < int(gltf.textures_count))
+				int imageIndex = texture >= 0 && texture < int(gltf.textures_count) ? gltf.textures[texture].source : -1;
+				if (imageIndex >= 0 && imageIndex < int(gltf.images_count))
 				{
-					int image = gltf.textures[texture].source;
-					if (image >= 0 && image < int(gltf.images_count))
+					const auto &image = gltf.images[imageIndex];
+					const std::string uri = str(image.uri);
+					if (!uri.empty() && uri.rfind("data:", 0) != 0)
 					{
-						const std::string uri = str(gltf.images[image].uri);
-						if (!uri.empty() && uri.rfind("data:", 0) != 0)
+						name = uri;
+					}
+					else
+					{
+						std::vector<byte> data = imageData(imageIndex);
+						if (image.name.len > 0)
 						{
-							return uri;
+							name = str(image.name);
 						}
-						if (gltf.images[image].name.len > 0)
+						if (name.empty())
 						{
-							return str(gltf.images[image].name);
+							name = "image " + std::to_string(imageIndex);
+						}
+						if (!data.empty() && tinted)
+						{
+							// The tool has no material colors: the color goes into the image
+							mt::io::Image pixels;
+							if (mt::io::decodeImage(data.data(), data.size(), pixels))
+							{
+								for (size_t p = 0; p + 3 < pixels.pixels.size(); p += 4)
+								{
+									for (int c = 0; c < 4; c++)
+									{
+										pixels.pixels[p + size_t(c)]
+											= byte(std::lround(float(pixels.pixels[p + size_t(c)]) * glm::clamp(color[c], 0.0f, 1.0f)));
+									}
+								}
+								data = mt::io::encodePNG(pixels);
+							}
+						}
+						if (!data.empty())
+						{
+							name = keepImage(name, index, std::move(data));
 						}
 					}
 				}
+				else
+				{
+					// Only a color: a 4 x 4 image of it
+					mt::io::Image pixels;
+					pixels.width = pixels.height = 4;
+					const glm::vec4 clamped = glm::clamp(color, 0.0f, 1.0f);
+					for (int p = 0; p < 16; p++)
+					{
+						for (int c = 0; c < 4; c++)
+						{
+							pixels.pixels.push_back(byte(std::lround(clamped[c] * 255.0f)));
+						}
+					}
+					if (name.empty())
+					{
+						char hex[16];
+						std::snprintf(hex, sizeof(hex), "#%02x%02x%02x", int(std::lround(clamped.r * 255)),
+									  int(std::lround(clamped.g * 255)), int(std::lround(clamped.b * 255)));
+						name = std::string("color ") + hex;
+					}
+					name = keepImage(name, index, mt::io::encodePNG(pixels));
+				}
 
-				return str(material.name);
+				materialNames[index] = name;
+				return name;
 			}
 
 			void addMesh(int nodeIndexValue)
@@ -728,6 +865,7 @@ namespace mt::model {
 
 			const tg3_model &gltf;
 			import::Scene &target;
+			std::map<int, std::string> materialNames{}; ///< material index -> name, the images are made once
 			std::vector<int> parents{};
 			std::vector<int> order{};
 			std::vector<glm::mat4> restWorld{};
