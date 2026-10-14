@@ -361,13 +361,25 @@ namespace mt::model {
 					target.nodes.push_back(joint);
 				}
 
-				// Skinned bones bind at the inverse of their inverse bind matrix
+				// Skinned bones bind at the inverse of their inverse bind matrix. The matrices are in the space of the
+				// skinned mesh's node (joint * inverse bind gives the mesh node's place at rest), and the vertices are
+				// placed with that node's world matrix, so the binds get it too
 				for (uint32_t s = 0; s < gltf.skins_count; s++)
 				{
 					const auto &skin = gltf.skins[s];
 					if (skin.inverse_bind_matrices < 0)
 					{
 						continue;
+					}
+
+					glm::mat4 meshWorld{1.0f};
+					for (int node : order)
+					{
+						if (gltf.nodes[node].skin == int(s) && gltf.nodes[node].mesh >= 0)
+						{
+							meshWorld = restWorld[node];
+							break;
+						}
 					}
 
 					auto matrices = readFloats(gltf, skin.inverse_bind_matrices, 16);
@@ -385,7 +397,7 @@ namespace mt::model {
 						}
 
 						glm::mat4 inverseBind = glm::make_mat4(matrices.data() + j * 16);
-						target.nodes[found->second].bind = glm::inverse(inverseBind);
+						target.nodes[found->second].bind = meshWorld * glm::inverse(inverseBind);
 					}
 				}
 			}
@@ -786,9 +798,10 @@ namespace mt::model {
 
 						if (skinnedMesh)
 						{
-							// Skinned vertices are in the bind pose already (the mesh node transform is not used)
-							vert.pos = pos;
-							vert.normal = normal;
+							// Skinned vertices are in the bind pose in the mesh node's space: like the bones' binds, they are
+							// placed with the node's world matrix (a Y-up root above the model turns them both)
+							vert.pos = glm::vec3(world * glm::vec4(pos, 1.0f));
+							vert.normal = normalMatrix * normal;
 							const auto &skin = gltf.skins[node.skin];
 							for (int i = 0; i < 4; i++)
 							{

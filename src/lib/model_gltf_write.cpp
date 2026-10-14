@@ -154,9 +154,8 @@ namespace mt::model {
 				// The root turns Z-up into Y-up (the reverse of the import's +90 degrees around X) and scales to meters
 				Node root;
 				root.name = "root";
-				root.rotation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(1, 0, 0));
-				// The scale is in the lengths (vertices, translations), not on the root: skeletons with a scaled parent
-				// break in many importers
+				// Every place and rotation is converted to Y-up and meters itself (see point()), the root has no transform:
+				// a rotation or scale on it turns the local axes of the bones and tags when importers convert to Z-up
 				scale = options.scale > 0.0f ? options.scale : 1.0f;
 				nodes.push_back(root);
 
@@ -200,6 +199,27 @@ namespace mt::model {
 			const GltfOptions &options;
 			ShaderLibrary noShaders{};
 			float scale = 1.0f; ///< meters per game unit, applied to every length
+			/*! idTech Z-up to glTF Y-up: the inverse of the import's +90 degrees around X */
+			const glm::quat toYUp = glm::angleAxis(glm::radians(-90.0f), glm::vec3(1, 0, 0));
+
+			[[nodiscard]] glm::vec3 position(const glm::vec3 &pos) const
+			{
+				return toYUp * pos * scale;
+			}
+
+			[[nodiscard]] glm::vec3 direction(const glm::vec3 &dir) const
+			{
+				return toYUp * dir;
+			}
+
+			/**
+			 * A place and rotation in glTF's space. The rotation is changed like a change of basis (C q C^-1), the way
+			 * importers (ours, Blender) turn it back, so the local axes of bones and tags come back as they were
+			 */
+			[[nodiscard]] Point point(const Point &source) const
+			{
+				return {position(source.location), glm::normalize(toYUp * source.rotation * glm::inverse(toYUp))};
+			}
 			const ShaderLibrary *shaders = &noShaders;
 
 			std::vector<Node> nodes;
@@ -460,9 +480,8 @@ namespace mt::model {
 				return animations[name];
 			}
 
-			void addPoint(Channel &translation, Channel &rotation, float time, Point point) const
+			static void addPoint(Channel &translation, Channel &rotation, float time, const Point &point)
 			{
-				point.location *= scale;
 				translation.times.push_back(time);
 				translation.values.insert(translation.values.end(), {point.location.x, point.location.y, point.location.z});
 				glm::quat q = glm::normalize(point.rotation);
@@ -485,8 +504,9 @@ namespace mt::model {
 			{
 				Node node;
 				node.name = part.name.empty() ? "part" + std::to_string(index) : part.name;
-				node.translation = part.model->transform.location * scale;
-				node.rotation = part.model->transform.rotation;
+				const Point transform = point(part.model->transform);
+				node.translation = transform.location;
+				node.rotation = transform.rotation;
 				node.scale = glm::vec3(part.model->scale);
 				PartNodes placed;
 				placed.node = addNode(node, parentNode);
@@ -571,10 +591,11 @@ namespace mt::model {
 					return;
 				}
 				const int rest = model.hasBindPose ? FRAME_BIND_POSE : restFrame(model, first, last);
-				auto pose = [&](size_t joint, int frame) -> Point {
+				auto rawPose = [&](size_t joint, int frame) -> const Point & {
 					const auto &bone = model.joints[joint];
 					return frame == FRAME_BIND_POSE || bone.frames.empty() ? static_cast<const Point &>(bone) : bone.frames[size_t(frame)];
 				};
+				auto pose = [&](size_t joint, int frame) { return point(rawPose(joint, frame)); };
 				auto local = [&](size_t joint, int frame) {
 					const int parent = model.joints[joint].parentId;
 					return parent >= 0 && parent < int(model.joints.size()) ? localPoint(pose(size_t(parent), frame), pose(joint, frame))
@@ -588,7 +609,7 @@ namespace mt::model {
 					Node joint;
 					joint.name = model.joints[j].name;
 					const Point point = local(j, rest);
-					joint.translation = point.location * scale;
+					joint.translation = point.location;
 					joint.rotation = point.rotation;
 					jointNodes[j] = addNode(joint, -1);
 					placed.attach[tools::lowercase(joint.name)] = jointNodes[j];
@@ -609,8 +630,9 @@ namespace mt::model {
 					}
 					Node tagNode;
 					tagNode.name = tag.name;
-					tagNode.translation = tag.location * scale;
-					tagNode.rotation = tag.rotation;
+					const Point offset = point(tag);
+					tagNode.translation = offset.location;
+					tagNode.rotation = offset.rotation;
 					placed.attach[tools::lowercase(tag.name)] = addNode(tagNode, jointNodes[size_t(tag.parentBone)]);
 				}
 
@@ -620,7 +642,7 @@ namespace mt::model {
 				for (size_t j = 0; j < model.joints.size(); j++)
 				{
 					const Point point = pose(j, rest);
-					const glm::mat4 matrix = glm::inverse(glm::translate(point.location * scale) * glm::toMat4(point.rotation));
+					const glm::mat4 matrix = glm::inverse(glm::translate(point.location) * glm::toMat4(point.rotation));
 					const float *values = glm::value_ptr(matrix);
 					inverseBind.insert(inverseBind.end(), values, values + 16);
 					jointList.push_back(std::to_string(jointNodes[j]));
@@ -646,8 +668,8 @@ namespace mt::model {
 					std::vector<uint16_t> joints;
 					for (const auto &vertex : mesh.vertices)
 					{
-						const glm::vec3 position = skeletal::posedVertex(model, mesh, vertex, rest);
-						positions.insert(positions.end(), {position.x * scale, position.y * scale, position.z * scale});
+						const glm::vec3 place = position(skeletal::posedVertex(model, mesh, vertex, rest));
+						positions.insert(positions.end(), {place.x, place.y, place.z});
 
 						glm::vec3 normal = rest == FRAME_BIND_POSE ? vertex.bindNormal : glm::vec3(0.0f);
 						std::map<int, float> influence;
@@ -662,11 +684,11 @@ namespace mt::model {
 							influence[weight.jointId] += weight.bias;
 							if (rest != FRAME_BIND_POSE && weight.jointId >= 0 && weight.jointId < int(model.joints.size()))
 							{
-								normal += (pose(size_t(weight.jointId), rest).rotation * vertex.normal) * weight.bias;
+								normal += (rawPose(size_t(weight.jointId), rest).rotation * vertex.normal) * weight.bias;
 							}
 						}
 						const float length = glm::length(normal);
-						normal = length > 0.0f ? normal / length : glm::vec3(0, 0, 1);
+						normal = direction(length > 0.0f ? normal / length : glm::vec3(0, 0, 1));
 						normals.insert(normals.end(), {normal.x, normal.y, normal.z});
 						texCoords.insert(texCoords.end(), {vertex.tex.x, vertex.tex.y});
 
@@ -762,8 +784,10 @@ namespace mt::model {
 					std::vector<float> positions, normals, texCoords;
 					for (size_t v = 0; v < base.size(); v++)
 					{
-						positions.insert(positions.end(), {base[v].pos.x * scale, base[v].pos.y * scale, base[v].pos.z * scale});
-						normals.insert(normals.end(), {base[v].normal.x, base[v].normal.y, base[v].normal.z});
+						const glm::vec3 place = position(base[v].pos);
+						const glm::vec3 normal = direction(base[v].normal);
+						positions.insert(positions.end(), {place.x, place.y, place.z});
+						normals.insert(normals.end(), {normal.x, normal.y, normal.z});
 						const glm::vec2 tex = v < mesh.texCoords.size() ? mesh.texCoords[v] : glm::vec2(0.0f);
 						texCoords.insert(texCoords.end(), {tex.x, tex.y});
 					}
@@ -785,8 +809,8 @@ namespace mt::model {
 							std::vector<float> deltaPositions, deltaNormals;
 							for (size_t v = 0; v < base.size(); v++)
 							{
-								const glm::vec3 dp = (vertices[v].pos - base[v].pos) * scale;
-								const glm::vec3 dn = vertices[v].normal - base[v].normal;
+								const glm::vec3 dp = position(vertices[v].pos - base[v].pos);
+								const glm::vec3 dn = direction(vertices[v].normal - base[v].normal);
 								deltaPositions.insert(deltaPositions.end(), {dp.x, dp.y, dp.z});
 								deltaNormals.insert(deltaNormals.end(), {dn.x, dn.y, dn.z});
 							}
@@ -817,8 +841,9 @@ namespace mt::model {
 					tagNode.name = tag.name;
 					if (size_t(first) < tag.frames.size())
 					{
-						tagNode.translation = tag.frames[size_t(first)].location * scale;
-						tagNode.rotation = tag.frames[size_t(first)].rotation;
+						const Point place = point(tag.frames[size_t(first)]);
+						tagNode.translation = place.location;
+						tagNode.rotation = place.rotation;
 					}
 					tagNodes.push_back(addNode(tagNode, placed.node));
 					placed.attach[tools::lowercase(tag.name)] = tagNodes.back();
@@ -853,7 +878,7 @@ namespace mt::model {
 							const size_t frame = size_t(sequence.frames[k]);
 							if (frame < model.tags[t].frames.size())
 							{
-								addPoint(translation, rotation, float(k) / sequence.fps, model.tags[t].frames[frame]);
+								addPoint(translation, rotation, float(k) / sequence.fps, point(model.tags[t].frames[frame]));
 							}
 						}
 						if (!translation.times.empty())

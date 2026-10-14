@@ -6,6 +6,7 @@
 #include "morph_model.h"
 #include "posed_model.h"
 #include "skeletal_model.h"
+#include "skeletal_tools.h"
 #include "skin.h"
 
 #include <filesystem>
@@ -127,6 +128,46 @@ TEST(GltfWriteTest, SkeletalRoundTrip)
 				}
 			}
 		}
+	}
+}
+
+TEST(GltfWriteTest, BindPoseKeepsItsPlace)
+{
+	// A frame baked as the bind pose (Edit > Bake pose): the imported bind pose must stand like the original, not turned
+	// by the export's Y-up root
+	Fixtures fixtures;
+	auto original = fixtures.load("models/mdm/mannequin.mdm");
+	loadMDXAnimation(original.get(), fixtures.files.loadFile("models/mdm/mannequin.mdx"));
+	auto &mannequin = dynamic_cast<skeletal::SkeletalModel &>(*original);
+	skeletal::bakeBindPose(mannequin, mannequin.numFrames() - 1);
+
+	GltfPart part;
+	part.model = &mannequin;
+	part.name = "mannequin";
+	auto loaded = reload(encodeGLTF({part}, GltfOptions{}), "bind.glb");
+	auto *imported = dynamic_cast<skeletal::SkeletalModel *>(loaded.get());
+	ASSERT_TRUE(imported);
+	ASSERT_TRUE(imported->hasBindPose);
+
+	PoseOptions bind;
+	bind.bindPose = true;
+	const auto before = poseModel(mannequin, bind);
+	const auto after = poseModel(*imported, bind);
+	for (size_t m = 0; m < before.meshes.size(); m++)
+	{
+		for (size_t v = 0; v < before.meshes[m].positions.size(); v += 13)
+		{
+			ASSERT_LT(glm::distance(before.meshes[m].positions[v], after.meshes[m].positions[v] / METERS_PER_UNIT), 0.005f);
+		}
+	}
+	// The bones too: the bind pose is what an animation starts from
+	for (const auto &bone : before.bonePoints)
+	{
+		auto found = std::find_if(after.bonePoints.begin(), after.bonePoints.end(),
+								  [&](const PosedTag &other) { return other.name == bone.name; });
+		ASSERT_NE(found, after.bonePoints.end()) << bone.name;
+		EXPECT_LT(glm::distance(bone.point.location, found->point.location / METERS_PER_UNIT), 0.005f) << bone.name;
+		EXPECT_GT(std::abs(glm::dot(bone.point.rotation, found->point.rotation)), 0.9999f) << bone.name;
 	}
 }
 
