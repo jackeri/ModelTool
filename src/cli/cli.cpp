@@ -9,6 +9,8 @@
 #include "normals.h"
 #include "weld.h"
 #include "mesh_tools.h"
+#include "model_gltf_write.h"
+#include "shader_script.h"
 #include "player.h"
 #include "et_character.h"
 #include "skin.h"
@@ -652,7 +654,22 @@ namespace mt::cli {
 				const std::string ext = model::io::normalizeExtension(output);
 				const auto modelWriters = model::io::modelWriterExtensions();
 				const auto animationWriters = model::io::animationWriterExtensions();
-				if (std::find(modelWriters.begin(), modelWriters.end(), ext) != modelWriters.end())
+				if (ext == ".glb" || ext == ".gltf")
+				{
+					// In meters, with the textures (through the shaders) of the base folders embedded
+					model::ShaderLibrary shaders;
+					shaders.load(files.system);
+					model::GltfPart part;
+					part.model = &model;
+					part.name = std::filesystem::path(options.arguments[0]).stem().string();
+					part.path = options.arguments[0];
+					model::GltfOptions gltf;
+					gltf.files = &files.system;
+					gltf.shaders = &shaders;
+					gltf.warn = [&](const std::string &message) { err << "Warning: " << message << "\n"; };
+					model::writeGLTF({part}, output, gltf);
+				}
+				else if (std::find(modelWriters.begin(), modelWriters.end(), ext) != modelWriters.end())
 				{
 					model::io::writeModel(model, output);
 				}

@@ -203,6 +203,13 @@ namespace mt {
 		[[nodiscard]] bool hasSkins() const;
 
 		/**
+		 * Export the main model and every attached model (on their tags or bones, with their skins) as glTF: .glb or
+		 * .gltf by the extension, in meters, with the textures of the base folders embedded
+		 * @param path output file
+		 */
+		void exportGltf(const std::string &path);
+
+		/**
 		 * Play a sequence on the main model (-1) or an attachment
 		 * @param target -1 for the main model, else the attachment index
 		 * @param animation sequence

@@ -2,8 +2,7 @@
 
 #include <utility>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "image.h"
 
 mt::Texture::Texture(std::string name) : name(std::move(name)) {}
 
@@ -18,16 +17,7 @@ mt::Texture::~Texture()
 
 bool mt::Texture::decode(const byte *data, size_t length, io::Image &image)
 {
-	int comp = 0;
-	byte *pixels = stbi_load_from_memory(data, int(length), &image.width, &image.height, &comp, STBI_rgb_alpha);
-	if (!pixels)
-	{
-		return false;
-	}
-
-	image.pixels.assign(pixels, pixels + size_t(image.width) * size_t(image.height) * 4);
-	stbi_image_free(pixels);
-	return true;
+	return io::decodeImage(data, length, image);
 }
 
 bool mt::Texture::upload(const io::Image &image, TextureFilter filter)

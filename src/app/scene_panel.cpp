@@ -10,7 +10,6 @@
 #include "icons_font_awesome.h"
 #include <ImGuizmo.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 namespace mt {

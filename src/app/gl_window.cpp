@@ -309,7 +309,12 @@ void mt::GLWindow::applyOptions()
 			// Animation only formats (.md5anim, .aninc) use the animation writers, the rest the model writers
 			auto ext = model::io::normalizeExtension(path);
 			auto modelFormats = model::io::modelWriterExtensions();
-			if (std::find(modelFormats.begin(), modelFormats.end(), ext) == modelFormats.end())
+			if (ext == ".glb" || ext == ".gltf")
+			{
+				// With the attached models and the textures
+				state.exportGltf(path);
+			}
+			else if (std::find(modelFormats.begin(), modelFormats.end(), ext) == modelFormats.end())
 			{
 				model::io::writeAnimation(*state.model, path);
 			}

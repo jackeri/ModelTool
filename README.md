@@ -26,7 +26,7 @@ It comes as a desktop application (`ModelTool`) and a command line tool (`mt`) b
 | IQM                          | yes  |       |                                                                                            |
 | MS3D (MilkShape 3D)          | yes  | yes   | Mesh and animation, tags as tag bones, up to 4 weights per vertex                                                                         |
 | FBX, OBJ                     | yes  |       | Through ufbx                                                                               |
-| glTF, GLB                    | yes  |       | Through tinygltf                                                                           |
+| glTF, GLB                    | yes  | yes   | Read through tinygltf; written in meters with the attached models, skins, animations, textures |
 | STL                          |      | yes   | Binary or text                                                                             |
 | `.aninc`                     | yes  | yes   | Animation sequences (ET animation scripts)                                                 |
 | `.tag`                       | yes  | yes   | Tags file                                                                                  |
@@ -92,6 +92,13 @@ Every binary loader checks the file against its size, so broken files give an er
 - **Hitboxes**: boxes, spheres, cylinders and capsules on bones, with a list and an editor (name, bone, head
   modifier, shape, location, rotation, size), add / duplicate / delete
 - Export to every writable format, one format at a time or "Export all" into a folder
+- **glTF export** (`.glb` or `.gltf`): the model with every attached model on its tag or bone (player parts, an ET
+  character's head and accessories), in meters (1 game unit = 1 inch) and glTF's Y-up. Skeletal models get a skin
+  and one animation per sequence; MD3 / MDC frames become morph targets; tags become nodes. Materials take the skin's
+  shaders, the textures are embedded (TGA converted to PNG) and follow the shader: two sided, alpha mask, blend.
+  Models without a bind pose (MDM) use the frame where the weights agree best as the rest pose, and at most 4 weights
+  per vertex are kept, so other frames can be a little off (the ET soldier: 1.5 cm at worst, 0.15 mm on average).
+  `mt convert model out.glb` writes one model with its textures from the base folders
 
 ### Player models and attachments
 

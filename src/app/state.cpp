@@ -1,4 +1,5 @@
 #include "state.h"
+#include "model_gltf_write.h"
 #include "skeletal_model.h"
 
 namespace mt {
@@ -264,6 +265,45 @@ namespace mt {
 			}
 		}
 		return changed;
+	}
+
+	void State::exportGltf(const std::string &path)
+	{
+		if (!model)
+		{
+			throw mt_ex("No model to export");
+		}
+
+		std::vector<model::GltfPart> parts;
+		model::GltfPart main;
+		main.model = model.get();
+		main.name = std::filesystem::path(modelPath).stem().string();
+		main.path = modelPath;
+		main.skin = &skin;
+		parts.push_back(main);
+		for (const auto &attachment : attachments)
+		{
+			model::GltfPart part;
+			part.model = attachment.model.get();
+			part.name = attachment.name.empty() ? std::filesystem::path(attachment.path).stem().string() : attachment.name;
+			part.path = attachment.path;
+			part.parent = attachment.parent + 1; // the main model is part 0
+			part.attachPoint = attachment.tag;
+			part.skin = &attachment.skin;
+			parts.push_back(part);
+		}
+
+		model::GltfOptions options;
+		options.files = &filesystem;
+		options.shaders = &textures.shaderLibrary();
+		auto logger = spdlog::get(MT_LOGGER);
+		options.warn = [&](const std::string &message) {
+			if (logger)
+			{
+				logger->warn("glTF export: {}", message);
+			}
+		};
+		model::writeGLTF(parts, path, options);
 	}
 
 	bool State::hasSkins() const

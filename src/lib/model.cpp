@@ -1,5 +1,6 @@
 #include "model.h"
 #include "model_gltf.h"
+#include "model_gltf_write.h"
 #include "model_iqm.h"
 #include "model_md3.h"
 #include "model_md5.h"
@@ -55,6 +56,8 @@ namespace mt::model::io {
 	static Registry<ModelWriter> &modelWriters()
 	{
 		static Registry<ModelWriter> writers{
+			{".glb", [](const Model &model, const std::string &path) { model::writeGLTF(model, path); }},
+			{".gltf", [](const Model &model, const std::string &path) { model::writeGLTF(model, path); }},
 			{".md3", model::writeMD3},
 			{".md5mesh", model::writeMD5Mesh},
 			{".mdc", [](const Model &model, const std::string &path) { model::writeMDC(model, path); }},
