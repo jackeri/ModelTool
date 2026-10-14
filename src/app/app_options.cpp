@@ -80,6 +80,14 @@ namespace mt {
 				options.width = std::stoi(size.substr(0, x));
 				options.height = std::stoi(size.substr(x + 1));
 			}
+			else if (arg == "--sky")
+			{
+				options.sky = value();
+			}
+			else if (arg == "--gradient")
+			{
+				options.gradient = value();
+			}
 			else if (arg == "--view")
 			{
 				std::stringstream list(value());
@@ -101,7 +109,9 @@ namespace mt {
 	{
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]\n"
 			   "                 [--skin name] [--attach tag=file]... [--sequence name]...\n"
-			   "                 [--view wireframe,notextures,alpha,noshaders,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
+			   "                 [--view "
+			   "wireframe,notextures,alpha,noshaders,twosided,flat,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
+			   "                 [--sky name | --gradient r,g,b]\n"
 			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}
 }

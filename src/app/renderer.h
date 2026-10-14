@@ -2,6 +2,8 @@
 
 #include "mt.h"
 #include "model.h"
+
+#include <array>
 #include "../lib/shader_script.h"
 
 namespace mt {
@@ -26,7 +28,11 @@ namespace mt {
 		bool blend = false;										///< blend with blendSrc / blendDst (overrides alpha)
 		model::BlendFactor blendSrc = model::BlendFactor::One;	///< blend source factor
 		model::BlendFactor blendDst = model::BlendFactor::Zero; ///< blend destination factor
-		bool depthWrite = true;									///< write the depth
+		bool depthWrite = true;
+		bool flat = false;		///< light each triangle with its own normal (flat shading)
+		float gamma = 1.0f;		///< like the game's r_gamma, 1 = unchanged
+		float intensity = 1.0f; ///< like the game's r_intensity: texture colors are multiplied, 1 = unchanged
+								///< ///< write the depth
 	};
 
 	/*! Mesh data to draw, the vectors are not copied */
@@ -96,6 +102,22 @@ namespace mt {
 		 * @return grid color
 		 */
 		static glm::vec4 gridColor(const glm::vec4 &background);
+
+		/**
+		 * Fill the view with a vertical gradient, before anything else is drawn
+		 * @param top color at the top of the view
+		 * @param bottom color at the bottom
+		 */
+		virtual void background(const glm::vec4 &top, const glm::vec4 &bottom) = 0;
+
+		/**
+		 * Draw a sky box around the camera like the game (the sides in the game's order rt, bk, lf, ft, up, dn), before
+		 * anything else is drawn
+		 * @param sides textures of the sides, nullptr draws a white side
+		 * @param gamma like the game's r_gamma
+		 * @param intensity like the game's r_intensity
+		 */
+		virtual void skyBox(const std::array<const Texture *, 6> &sides, float gamma, float intensity) = 0;
 
 		/**
 		 * Draw the edges of bounds with the current model matrix

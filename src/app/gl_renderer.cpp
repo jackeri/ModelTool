@@ -30,15 +30,18 @@ layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoord;
 
 uniform mat4 uMvp;
+uniform mat4 uModel;
 uniform mat3 uNormalMatrix;
 
 out vec3 vNormal;
 out vec2 vTexCoord;
+out vec3 vWorld;
 
 void main()
 {
 	vNormal = uNormalMatrix * aNormal;
 	vTexCoord = aTexCoord;
+	vWorld = (uModel * vec4(aPosition, 1.0)).xyz;
 	gl_Position = uMvp * vec4(aPosition, 1.0);
 }
 )";
@@ -46,6 +49,7 @@ void main()
 		const char *MESH_FRAGMENT_SHADER = R"(#version 410 core
 in vec3 vNormal;
 in vec2 vTexCoord;
+in vec3 vWorld;
 
 uniform sampler2D uTexture;
 uniform bool uUseTexture;
@@ -53,6 +57,9 @@ uniform bool uLighting;
 uniform bool uAlpha;
 uniform int uAlphaFunc;
 uniform vec4 uColor;
+uniform bool uFlat;
+uniform float uGamma;
+uniform float uIntensity;
 
 out vec4 fragColor;
 
@@ -61,13 +68,21 @@ void main()
 	vec4 color = uColor;
 	if (uUseTexture)
 	{
-		color *= texture(uTexture, vTexCoord);
+		// Like the game's r_intensity: brighter textures
+		vec4 image = texture(uTexture, vTexCoord);
+		color *= vec4(min(image.rgb * uIntensity, vec3(1.0)), image.a);
 	}
 
 	if (uLighting)
 	{
 		// Two fixed lights in world space, like the old fixed function setup
 		vec3 normal = length(vNormal) > 0.0 ? normalize(vNormal) : vec3(0.0, 0.0, 1.0);
+		if (uFlat)
+		{
+			// The triangle's own normal, turned to the side of the vertex normals
+			vec3 face = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+			normal = dot(face, normal) < 0.0 ? -face : face;
+		}
 		float key = max(dot(normal, normalize(vec3(0.55, -0.5, 0.65))), 0.0);
 		float fill = max(dot(normal, normalize(vec3(-0.5, 0.45, 0.15))), 0.0);
 		color.rgb *= min(0.35 + 0.75 * key + 0.3 * fill, 1.25);
@@ -83,9 +98,100 @@ void main()
 	{
 		color.a = 1.0;
 	}
+	// Like the game's r_gamma
+	color.rgb = pow(max(color.rgb, vec3(0.0)), vec3(1.0 / uGamma));
 	fragColor = color;
 }
 )";
+
+		const char *SKY_VERTEX_SHADER = R"(#version 410 core
+layout (location = 0) in vec3 aPosition;
+layout (location = 1) in vec2 aTexCoord;
+
+uniform mat4 uMvp;
+
+out vec2 vTexCoord;
+
+void main()
+{
+	vTexCoord = aTexCoord;
+	// At the far plane, behind everything
+	gl_Position = (uMvp * vec4(aPosition, 1.0)).xyww;
+}
+)";
+
+		const char *SKY_FRAGMENT_SHADER = R"(#version 410 core
+in vec2 vTexCoord;
+
+uniform sampler2D uTexture;
+uniform float uGamma;
+uniform float uIntensity;
+
+out vec4 fragColor;
+
+void main()
+{
+	vec3 color = min(texture(uTexture, vTexCoord).rgb * uIntensity, vec3(1.0));
+	fragColor = vec4(pow(color, vec3(1.0 / uGamma)), 1.0);
+}
+)";
+
+		// A triangle over the whole view, without vertex data
+		const char *BACKGROUND_VERTEX_SHADER = R"(#version 410 core
+out float vHeight;
+
+void main()
+{
+	vec2 corners[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+	vec2 corner = corners[gl_VertexID];
+	vHeight = corner.y * 0.5 + 0.5;
+	gl_Position = vec4(corner, 0.0, 1.0);
+}
+)";
+
+		const char *BACKGROUND_FRAGMENT_SHADER = R"(#version 410 core
+in float vHeight;
+
+uniform vec4 uTop;
+uniform vec4 uBottom;
+
+out vec4 fragColor;
+
+void main()
+{
+	fragColor = mix(uBottom, uTop, clamp(vHeight, 0.0, 1.0));
+}
+)";
+
+		/**
+		 * The sky box like the game draws it (tr_sky.c): sides rt, bk, lf, ft, up, dn, each a square at distance 1 whose
+		 * corners come from the side's st_to_vec row; t runs down the image
+		 */
+		std::vector<float> skyVertices()
+		{
+			static const int stToVec[6][3] = {{3, -1, 2}, {-3, 1, 2}, {1, 3, 2}, {-1, -3, 2}, {-2, -1, 3}, {2, -1, -3}};
+			std::vector<float> out;
+			for (int side = 0; side < 6; side++)
+			{
+				auto corner = [&](float s, float t) {
+					const float b[3] = {s, t, 1.0f};
+					for (int j = 0; j < 3; j++)
+					{
+						const int k = stToVec[side][j];
+						out.push_back(k < 0 ? -b[-k - 1] : b[k - 1]);
+					}
+					out.push_back((s + 1.0f) * 0.5f);
+					out.push_back(1.0f - (t + 1.0f) * 0.5f);
+				};
+				corner(-1, -1);
+				corner(1, -1);
+				corner(1, 1);
+				corner(-1, -1);
+				corner(1, 1);
+				corner(-1, 1);
+			}
+			return out;
+		}
 
 		const char *LINE_VERTEX_SHADER = R"(#version 410 core
 layout (location = 0) in vec3 aPosition;
@@ -182,8 +288,10 @@ void main()
 		meshShader.init(MESH_VERTEX_SHADER, MESH_FRAGMENT_SHADER);
 		lineShader.init(LINE_VERTEX_SHADER, LINE_FRAGMENT_SHADER);
 		gridShader.init(GRID_VERTEX_SHADER, GRID_FRAGMENT_SHADER);
+		skyShader.init(SKY_VERTEX_SHADER, SKY_FRAGMENT_SHADER);
+		backgroundShader.init(BACKGROUND_VERTEX_SHADER, BACKGROUND_FRAGMENT_SHADER);
 
-		if (!meshShader.valid() || !lineShader.valid() || !gridShader.valid())
+		if (!meshShader.valid() || !lineShader.valid() || !gridShader.valid() || !skyShader.valid() || !backgroundShader.valid())
 		{
 			throw mt_ex("Failed to build the shaders");
 		}
@@ -218,6 +326,21 @@ void main()
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), reinterpret_cast<void *>(0));
 
+		// The sky box never changes: its six sides go into the buffer once
+		const std::vector<float> sky = skyVertices();
+		glGenVertexArrays(1, &skyVao);
+		glGenBuffers(1, &skyVbo);
+		glBindVertexArray(skyVao);
+		glBindBuffer(GL_ARRAY_BUFFER, skyVbo);
+		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(sky.size() * sizeof(float)), sky.data(), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void *>(0));
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void *>(3 * sizeof(float)));
+
+		// The background triangle has no vertex data, but the core profile needs a vertex array
+		glGenVertexArrays(1, &backgroundVao);
+
 		glBindVertexArray(0);
 
 		const byte white[4] = {255, 255, 255, 255};
@@ -237,6 +360,9 @@ void main()
 		glDeleteBuffers(1, &lineVbo);
 		glDeleteBuffers(1, &gridVbo);
 		glDeleteVertexArrays(1, &gridVao);
+		glDeleteBuffers(1, &skyVbo);
+		glDeleteVertexArrays(1, &skyVao);
+		glDeleteVertexArrays(1, &backgroundVao);
 		glDeleteVertexArrays(1, &meshVao);
 		glDeleteVertexArrays(1, &lineVao);
 	}
@@ -252,11 +378,62 @@ void main()
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_PROGRAM_POINT_SIZE);
 
-		viewProj = camera.projection(height > 0 ? float(width) / float(height) : 1.0f) * camera.view();
+		const float aspect = height > 0 ? float(width) / float(height) : 1.0f;
+		viewProj = camera.projection(aspect) * camera.view();
+		// The sky turns with the camera but does not move: the view rotation only, with its own near and far planes
+		skyViewProj
+			= glm::perspective(glm::radians(camera.fov), std::max(aspect, 0.01f), 0.1f, 10.0f) * glm::mat4(glm::mat3(camera.view()));
 		cameraTarget = camera.target;
 		cameraDistance = camera.distance;
 		cameraFar = camera.farPlane();
 		stack.assign(1, glm::mat4{1.0f});
+	}
+
+	void GLRenderer::background(const glm::vec4 &top, const glm::vec4 &bottom)
+	{
+		backgroundShader.use();
+		backgroundShader.setUniform("uTop", top);
+		backgroundShader.setUniform("uBottom", bottom);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glBindVertexArray(backgroundVao);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindVertexArray(0);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	void GLRenderer::skyBox(const std::array<const Texture *, 6> &sides, float gamma, float intensity)
+	{
+		skyShader.use();
+		skyShader.setUniform("uMvp", skyViewProj);
+		skyShader.setUniform("uTexture", 0);
+		skyShader.setUniform("uGamma", std::max(gamma, 0.1f));
+		skyShader.setUniform("uIntensity", intensity);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glDisable(GL_BLEND);
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glActiveTexture(GL_TEXTURE0);
+		glBindVertexArray(skyVao);
+		for (int side = 0; side < 6; side++)
+		{
+			if (sides[size_t(side)])
+			{
+				sides[size_t(side)]->bind();
+			}
+			else
+			{
+				glBindTexture(GL_TEXTURE_2D, whiteTexture);
+			}
+			glDrawArrays(GL_TRIANGLES, side * 6, 6);
+		}
+		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	void GLRenderer::grid(float size, const glm::vec4 &color)
@@ -345,7 +522,11 @@ void main()
 
 		meshShader.use();
 		meshShader.setUniform("uMvp", viewProj * modelMatrix());
+		meshShader.setUniform("uModel", modelMatrix());
 		meshShader.setUniform("uNormalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix()))));
+		meshShader.setUniform("uFlat", style.flat);
+		meshShader.setUniform("uGamma", std::max(style.gamma, 0.1f));
+		meshShader.setUniform("uIntensity", style.intensity);
 		meshShader.setUniform("uColor", style.color);
 		meshShader.setUniform("uLighting", style.lighting && !style.wireframe);
 		meshShader.setUniform("uAlpha", style.alpha || style.blend);

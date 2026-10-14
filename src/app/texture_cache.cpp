@@ -37,6 +37,10 @@ namespace mt {
 				texture = std::make_unique<Texture>(path);
 				// nopicmip shaders keep their full size, like in the game
 				texture->upload(io::applyPicmip(image, materialShader && materialShader->noPicmip ? 0 : picmip), filter);
+				if (materialShader && materialShader->clamp)
+				{
+					texture->setClamp(true);
+				}
 				if (logger)
 				{
 					logger->info("Loaded texture {} for {}", path, material);

@@ -20,6 +20,8 @@ namespace mt {
 		int width = 1280;						///< --size WxH: screenshot size
 		int height = 720;
 		std::vector<std::string> view{};	///< --view: comma separated view toggles, like wireframe,skeleton,tags
+		std::string sky{};					///< --sky: sky box of the shaders (skyParms name) as the background
+		std::string gradient{};				///< --gradient: gradient background, the bottom color as r,g,b (0..1)
 		std::vector<std::string> exports{}; ///< --export: write the loaded model to these files (format by extension)
 		int frames = 0;						///< --frames: close the window after this many frames (for automated runs), 0 runs until closed
 

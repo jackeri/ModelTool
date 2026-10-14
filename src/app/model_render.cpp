@@ -77,10 +77,13 @@ namespace mt {
 				}
 
 				// Like the game: front faces only unless the shader says otherwise, its alpha test and blending
-				if (view.shaders)
+				if (view.shaders && !view.twoSided)
 				{
 					style.cull = shader ? shader->cull : model::ShaderCull::Front;
 				}
+				style.flat = view.flatShading;
+				style.gamma = view.gamma;
+				style.intensity = view.intensity;
 				if (shader && style.texture)
 				{
 					style.alphaFunc = shader->alphaFunc;

@@ -34,12 +34,24 @@ namespace mt {
 		Scale ///< hitboxes only
 	};
 
+	/*! What is behind the model in the scene */
+	enum class Background
+	{
+		Color,	  ///< one color
+		Gradient, ///< from the background color at the top to a second color at the bottom
+		SkyBox	  ///< a sky box of the game (a shader's skyParms)
+	};
+
 	/*! What is drawn in the scene and how */
 	struct ViewSettings {
 		bool wireframe = false;					  ///< draw triangle edges only
 		bool textures = true;					  ///< draw the textures
 		bool alpha = false;						  ///< blend with the texture alpha
 		bool shaders = true;					  ///< draw like the shader scripts say: cull, alpha test, blending
+		bool twoSided = false;					  ///< draw both sides of every triangle (no culling)
+		bool flatShading = false;				  ///< light each triangle with its own normal
+		float gamma = 1.0f;						  ///< like the game's r_gamma (1 = unchanged)
+		float intensity = 1.0f;					  ///< like the game's r_intensity (1 = unchanged)
 		bool drawGrid = true;					  ///< ground grid and origin axis
 		bool drawBounds = false;				  ///< frame bounding box
 		bool drawHitboxes = true;				  ///< hitboxes of skeletal models
@@ -85,32 +97,35 @@ namespace mt {
 		friend Ref<State> singleton_ref<State>();
 
 	  public:
-		Ref<Model> model = nullptr;					  ///< currently loaded model
-		ImColor clearColor{0.15f, 0.16f, 0.18f};	  ///< scene background color
-		ui::Theme theme = ui::Theme::Darker;		  ///< user interface colors
-		float fontSize = ui::DEFAULT_FONT_SIZE;		  ///< user interface font size
-		io::FileSystem filesystem{};				  ///< used filesystem, which will be initialized by the ImGuiView
-		std::string modelPath{};					  ///< path of the loaded model, textures are also looked up next to it
-		ViewSettings view{};						  ///< scene drawing settings
-		model::Playback playback{};					  ///< animation playback
-		TextureCache textures{};					  ///< loaded textures
-		bool frameCamera = false;					  ///< the scene panel should point the camera at the model
-		bool resetCamera = false;					  ///< the scene panel should reset the camera
-		AppSettings settings{};						  ///< settings kept between runs
-		bool persistSettings = false;				  ///< load and save the settings (off for screenshots)
-		std::vector<std::string> basePaths{};		  ///< base folders added by the user
-		bool showLog = true;						  ///< the log panel is open
-		model::Skin skin{};							  ///< skin of the main model
-		std::vector<Attachment> attachments{};		  ///< models drawn on tags, parents come before their children
-		bool isPlayer = false;						  ///< a three part player model is loaded (lower is the main model)
-		model::PlayerFiles player{};				  ///< files of the player model
-		model::PlayerConfig playerConfig{};			  ///< animation.cfg of the player model
-		std::optional<AttachRequest> attachRequest{}; ///< attach a model to this tag or bone (handled by the menu view)
-		std::string playerSkin{};					  ///< skin name of the player model
-		bool isCharacter = false;					  ///< an ET character (.char) is loaded (the body is the main model)
-		std::string characterPath{};				  ///< the .char file
-		model::CharacterDef character{};			  ///< the parsed .char file
-		bool characterUndressed = false;			  ///< the undressed corpse model and skin are shown
+		Ref<Model> model = nullptr;					   ///< currently loaded model
+		ImColor clearColor{0.15f, 0.16f, 0.18f};	   ///< scene background color (the top of the gradient)
+		Background background = Background::Color;	   ///< what is behind the model
+		ImColor backgroundBottom{0.55f, 0.58f, 0.62f}; ///< bottom color of the gradient background
+		std::string skyBox{};						   ///< sky box of the shaders (skyParms) for Background::SkyBox
+		ui::Theme theme = ui::Theme::Darker;		   ///< user interface colors
+		float fontSize = ui::DEFAULT_FONT_SIZE;		   ///< user interface font size
+		io::FileSystem filesystem{};				   ///< used filesystem, which will be initialized by the ImGuiView
+		std::string modelPath{};					   ///< path of the loaded model, textures are also looked up next to it
+		ViewSettings view{};						   ///< scene drawing settings
+		model::Playback playback{};					   ///< animation playback
+		TextureCache textures{};					   ///< loaded textures
+		bool frameCamera = false;					   ///< the scene panel should point the camera at the model
+		bool resetCamera = false;					   ///< the scene panel should reset the camera
+		AppSettings settings{};						   ///< settings kept between runs
+		bool persistSettings = false;				   ///< load and save the settings (off for screenshots)
+		std::vector<std::string> basePaths{};		   ///< base folders added by the user
+		bool showLog = true;						   ///< the log panel is open
+		model::Skin skin{};							   ///< skin of the main model
+		std::vector<Attachment> attachments{};		   ///< models drawn on tags, parents come before their children
+		bool isPlayer = false;						   ///< a three part player model is loaded (lower is the main model)
+		model::PlayerFiles player{};				   ///< files of the player model
+		model::PlayerConfig playerConfig{};			   ///< animation.cfg of the player model
+		std::optional<AttachRequest> attachRequest{};  ///< attach a model to this tag or bone (handled by the menu view)
+		std::string playerSkin{};					   ///< skin name of the player model
+		bool isCharacter = false;					   ///< an ET character (.char) is loaded (the body is the main model)
+		std::string characterPath{};				   ///< the .char file
+		model::CharacterDef character{};			   ///< the parsed .char file
+		bool characterUndressed = false;			   ///< the undressed corpse model and skin are shown
 
 		/**
 		 * no copy for singletons

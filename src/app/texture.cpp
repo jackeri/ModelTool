@@ -86,6 +86,15 @@ void mt::Texture::bind() const
 	glBindTexture(GL_TEXTURE_2D, textId);
 }
 
+void mt::Texture::setClamp(bool clamp) const
+{
+	glBindTexture(GL_TEXTURE_2D, textId);
+	const GLint wrap = clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void mt::Texture::unbind()
 {
 	glBindTexture(GL_TEXTURE_2D, 0);

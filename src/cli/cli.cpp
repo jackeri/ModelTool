@@ -8,6 +8,7 @@
 #include "morph_model.h"
 #include "normals.h"
 #include "weld.h"
+#include "mesh_tools.h"
 #include "player.h"
 #include "et_character.h"
 #include "skin.h"
@@ -31,23 +32,26 @@ namespace mt::cli {
 		/*! Parsed command line */
 		struct Options {
 			std::string command{};
-			std::vector<std::string> arguments{};  ///< arguments of the command (files)
-			std::vector<std::string> basePaths{};  ///< --base
-			std::vector<std::string> animations{}; ///< --animation
-			std::string hitboxes{};				   ///< --hitboxes
-			std::string skin{};					   ///< --skin: write this skin's shaders into the model
-			std::string saveHitboxes{};			   ///< --save-hitboxes
-			bool hasFrames = false;				   ///< --frames was given
-			int firstFrame = 0, lastFrame = -1;	   ///< --frames first:last
-			float scale = 1.0f;					   ///< --scale
-			std::string normals{};				   ///< --normals smooth|seams|flat
-			float weld = -1.0f;					   ///< --weld distance, negative for no welding
-			bool weldMeshes = false;			   ///< --weld-meshes: weld across meshes too
-			bool optimize = false;				   ///< --optimize
-			bool caseSensitive = false;			   ///< --case-sensitive
-			bool lod = false;					   ///< --lod
-			bool help = false;					   ///< --help
-			bool version = false;				   ///< --version
+			std::vector<std::string> arguments{};	 ///< arguments of the command (files)
+			std::vector<std::string> basePaths{};	 ///< --base
+			std::vector<std::string> animations{};	 ///< --animation
+			std::string hitboxes{};					 ///< --hitboxes
+			std::string skin{};						 ///< --skin: write this skin's shaders into the model
+			std::vector<std::string> removeMeshes{}; ///< --remove-mesh name (repeatable)
+			bool mergeMeshes = false;				 ///< --merge-meshes
+			int mirror = -1;						 ///< --mirror x|y|z
+			std::string saveHitboxes{};				 ///< --save-hitboxes
+			bool hasFrames = false;					 ///< --frames was given
+			int firstFrame = 0, lastFrame = -1;		 ///< --frames first:last
+			float scale = 1.0f;						 ///< --scale
+			std::string normals{};					 ///< --normals smooth|seams|flat
+			float weld = -1.0f;						 ///< --weld distance, negative for no welding
+			bool weldMeshes = false;				 ///< --weld-meshes: weld across meshes too
+			bool optimize = false;					 ///< --optimize
+			bool caseSensitive = false;				 ///< --case-sensitive
+			bool lod = false;						 ///< --lod
+			bool help = false;						 ///< --help
+			bool version = false;					 ///< --version
 		};
 
 		int parseInt(const std::string &text, const std::string &option)
@@ -111,6 +115,23 @@ namespace mt::cli {
 				else if (arg == "--animation")
 				{
 					options.animations.push_back(value());
+				}
+				else if (arg == "--remove-mesh")
+				{
+					options.removeMeshes.push_back(value());
+				}
+				else if (arg == "--merge-meshes")
+				{
+					options.mergeMeshes = true;
+				}
+				else if (arg == "--mirror")
+				{
+					const std::string axis = tools::lowercase(value());
+					if (axis != "x" && axis != "y" && axis != "z")
+					{
+						throw UsageError("Invalid mirror axis, expected x, y or z: " + axis);
+					}
+					options.mirror = axis[0] - 'x';
 				}
 				else if (arg == "--skin")
 				{
@@ -514,6 +535,19 @@ namespace mt::cli {
 			return EXIT_OK;
 		}
 
+		std::string meshNameAt(const Model &model, size_t index)
+		{
+			if (const auto *skeletal = dynamic_cast<const model::skeletal::SkeletalModel *>(&model))
+			{
+				return skeletal->meshes.at(index).name;
+			}
+			if (const auto *morph = dynamic_cast<const model::morph::MorphModel *>(&model))
+			{
+				return morph->meshes.at(index).name;
+			}
+			return {};
+		}
+
 		int convertCommand(const Options &options, std::ostream &out, std::ostream &err)
 		{
 			if (options.arguments.size() < 2 && options.saveHitboxes.empty())
@@ -541,6 +575,36 @@ namespace mt::cli {
 			{
 				const size_t baked = model::bakeSkin(model, model::loadSkin(files.load(options.skin)));
 				out << "Baked the skin " << options.skin << " into " << baked << " meshes\n";
+			}
+
+			for (const auto &name : options.removeMeshes)
+			{
+				bool found = false;
+				for (size_t i = 0; i < model::meshCount(model) && !found; i++)
+				{
+					const std::string meshName = meshNameAt(model, i);
+					if (tools::lowercase(meshName) == tools::lowercase(name))
+					{
+						model::removeMesh(model, i);
+						found = true;
+					}
+				}
+				if (!found)
+				{
+					throw mt_ex("No mesh named " + name);
+				}
+				out << "Removed the mesh " << name << "\n";
+			}
+
+			if (options.mergeMeshes)
+			{
+				out << "Merged " << model::mergeMeshesByMaterial(model) << " meshes into others\n";
+			}
+
+			if (options.mirror >= 0)
+			{
+				model::mirrorModel(model, options.mirror);
+				out << "Mirrored on " << char('X' + options.mirror) << "\n";
 			}
 
 			if (options.weld >= 0.0f || options.weldMeshes)
@@ -673,9 +737,12 @@ namespace mt::cli {
 			   "  --hitboxes file       load hitboxes into the model (.hitboxes or .htx)\n"
 			   "  --frames first:last   convert: frames to write\n"
 			   "  --scale s             convert: scale the model\n"
-			   "  --skin file         convert: write the skin's shaders into the materials of the meshes it names\n"
-			   "  --weld d            convert: move vertices closer than d to one place (closes cracks and gaps)\n"
-			   "  --weld-meshes       convert: weld vertices of different meshes too (distance 0.15 without --weld)\n"
+			   "  --remove-mesh name    convert: remove a mesh (repeatable)\n"
+			   "  --merge-meshes        convert: merge the meshes that use the same material\n"
+			   "  --mirror x|y|z        convert: mirror the model (bones and tags too) on an axis\n"
+			   "  --skin file           convert: write the skin's shaders into the materials of the meshes it names\n"
+			   "  --weld d              convert: move vertices closer than d to one place (closes cracks and gaps)\n"
+			   "  --weld-meshes         convert: weld vertices of different meshes too (distance 0.15 without --weld)\n"
 			   "  --normals smooth|seams|flat convert: recalculate the normals (seams: smooth across texture seams too)\n"
 			   "  --optimize            convert: merge duplicate vertices (skeletal models)\n"
 			   "  --lod                 convert: calculate the level of detail collapse maps\n"

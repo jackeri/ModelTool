@@ -121,6 +121,27 @@ namespace mt {
 		const auto &color = state.clearColor.Value;
 		renderer->startFrame(camera, size.x, size.y, {color.x, color.y, color.z, color.w});
 
+		if (state.background == Background::Gradient)
+		{
+			const auto &bottom = state.backgroundBottom.Value;
+			renderer->background({color.x, color.y, color.z, 1}, {bottom.x, bottom.y, bottom.z, 1});
+		}
+		else if (state.background == Background::SkyBox && !state.skyBox.empty())
+		{
+			// The game's side names, in its order
+			static const char *suffixes[6] = {"_rt", "_bk", "_lf", "_ft", "_up", "_dn"};
+			std::array<const Texture *, 6> sides{};
+			for (size_t side = 0; side < 6; side++)
+			{
+				if (Texture *texture = state.textures.get(state.filesystem, state.skyBox + suffixes[side], ""))
+				{
+					texture->setClamp(true);
+					sides[side] = texture;
+				}
+			}
+			renderer->skyBox(sides, state.view.gamma, state.view.intensity);
+		}
+
 		if (state.view.drawGrid)
 		{
 			renderer->grid(gridSize, Renderer::gridColor({color.x, color.y, color.z, 1}));

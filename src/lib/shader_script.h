@@ -65,6 +65,7 @@ namespace mt::model {
 		bool depthWrite = true;					  ///< writes the depth (blended stages do not unless depthWrite is set)
 		bool noPicmip = false;					  ///< nopicmip
 		std::vector<std::string> surfaceParms{};  ///< surfaceparm values
+		std::string skyBox{};					  ///< skyParms far box: images <skyBox>_rt, _bk, _lf, _ft, _up, _dn
 		int stages = 0;							  ///< number of stages
 
 		/**
@@ -123,6 +124,11 @@ namespace mt::model {
 		{
 			return shaders.size();
 		}
+
+		/**
+		 * @return the sky boxes of the shaders (skyParms far boxes), sorted, each once
+		 */
+		[[nodiscard]] std::vector<std::string> skyBoxes() const;
 
 		void clear()
 		{

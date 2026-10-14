@@ -43,6 +43,17 @@ models/players/mannequin/decal
 	}
 }
 
+textures/mannequin/sky
+{
+	surfaceparm sky
+	skyParms models/players/mannequin/sky 512 -
+}
+
+textures/mannequin/sky_no_box
+{
+	skyParms - 512 -
+}
+
 models/players/mannequin/editor_only
 {
 	qer_editorimage models/players/mannequin/naked.tga

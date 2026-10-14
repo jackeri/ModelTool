@@ -327,11 +327,31 @@ void mt::GLWindow::applyOptions()
 
 	auto &view = state.view;
 	const std::map<std::string, std::pair<bool *, bool>> toggles{
-		{"wireframe", {&view.wireframe, true}},		 {"notextures", {&view.textures, false}},  {"alpha", {&view.alpha, true}},
-		{"noshaders", {&view.shaders, false}},		 {"nogrid", {&view.drawGrid, false}},	   {"bounds", {&view.drawBounds, true}},
-		{"nohitboxes", {&view.drawHitboxes, false}}, {"tags", {&view.drawTags, true}},		   {"skeleton", {&view.drawSkeleton, true}},
-		{"normals", {&view.drawNormals, true}},		 {"dynamiclod", {&view.dynamicLod, true}},
+		{"wireframe", {&view.wireframe, true}},	  {"notextures", {&view.textures, false}},	{"alpha", {&view.alpha, true}},
+		{"noshaders", {&view.shaders, false}},	  {"twosided", {&view.twoSided, true}},		{"flat", {&view.flatShading, true}},
+		{"nogrid", {&view.drawGrid, false}},	  {"bounds", {&view.drawBounds, true}},		{"nohitboxes", {&view.drawHitboxes, false}},
+		{"tags", {&view.drawTags, true}},		  {"skeleton", {&view.drawSkeleton, true}}, {"normals", {&view.drawNormals, true}},
+		{"dynamiclod", {&view.dynamicLod, true}},
 	};
+
+	if (!options.sky.empty())
+	{
+		state.background = Background::SkyBox;
+		state.skyBox = options.sky;
+	}
+	else if (!options.gradient.empty())
+	{
+		float r = 0, g = 0, b = 0;
+		if (std::sscanf(options.gradient.c_str(), "%f,%f,%f", &r, &g, &b) == 3)
+		{
+			state.background = Background::Gradient;
+			state.backgroundBottom = ImColor(r, g, b);
+		}
+		else
+		{
+			logger->warn("Invalid gradient color, expected r,g,b: {}", options.gradient);
+		}
+	}
 
 	for (const auto &item : options.view)
 	{

@@ -232,6 +232,10 @@ namespace mt::model {
 					{
 						shader.surfaceParms.push_back(tools::lowercase(first));
 					}
+					else if (keyword == "skyparms")
+					{
+						shader.skyBox = first == "-" ? std::string() : first;
+					}
 					else if (keyword == "nopicmip")
 					{
 						shader.noPicmip = true;
@@ -446,5 +450,19 @@ namespace mt::model {
 			}
 		}
 		return mt::io::findTexture(source, material, modelPath);
+	}
+
+	std::vector<std::string> ShaderLibrary::skyBoxes() const
+	{
+		std::vector<std::string> boxes;
+		for (const auto &[key, shader] : shaders)
+		{
+			if (!shader.skyBox.empty() && std::find(boxes.begin(), boxes.end(), shader.skyBox) == boxes.end())
+			{
+				boxes.push_back(shader.skyBox);
+			}
+		}
+		std::sort(boxes.begin(), boxes.end());
+		return boxes;
 	}
 }

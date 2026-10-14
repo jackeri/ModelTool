@@ -51,6 +51,7 @@ TEST(CliTest, Usage)
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--scale", "-1"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--normals", "round"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--weld", "near"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--mirror", "w"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--weld", "-1"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"list"}).code, cli::EXIT_USAGE);
 }
@@ -146,6 +147,15 @@ TEST(CliTest, Convert)
 	EXPECT_TRUE(contains(run({"info", "tmp/cli/lower.md3"}).out, "material models/players/robot/red.tga"));
 	EXPECT_EQ(run({"convert", "data/models/players/robot/lower.md3", "tmp/cli/lower.md3", "--skin", "missing.skin"}).code,
 			  cli::EXIT_FAILED);
+
+	// Mesh operations
+	auto meshes = run({"convert", "data/models/mdm/mannequin.mdm", "tmp/cli/mirrored.mdm", "--animation", "data/models/mdm/mannequin.mdx",
+					   "--remove-mesh", "U_LFTHAND", "--merge-meshes", "--mirror", "y"});
+	ASSERT_EQ(meshes.code, cli::EXIT_OK) << meshes.err;
+	EXPECT_TRUE(contains(meshes.out, "Removed the mesh U_LFTHAND"));
+	EXPECT_TRUE(contains(meshes.out, "Mirrored on Y"));
+	EXPECT_TRUE(contains(run({"info", "tmp/cli/mirrored.mdm"}).out, "Meshes: 3"));
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--remove-mesh", "nothing"}).code, cli::EXIT_FAILED);
 
 	// Welding, then the normals across the seams
 	auto welded = run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--weld", "0.2", "--weld-meshes", "--normals", "seams"});

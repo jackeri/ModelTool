@@ -53,6 +53,12 @@ namespace mt {
 		void bind() const;
 
 		/**
+		 * Repeat the texture or clamp it to its edges (shader clampMap, sky box sides)
+		 * @param clamp clamp to the edges
+		 */
+		void setClamp(bool clamp) const;
+
+		/**
 		 * unbind texture (binds 0 as the current texture)
 		 */
 		static void unbind();

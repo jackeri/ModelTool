@@ -59,6 +59,10 @@ Every binary loader checks the file against its size, so broken files give an er
 
 - Textured, lit model with wireframe, alpha and texture toggles; shader effects (back faces hidden unless the shader
   is two sided, alpha test, blending)
+- Two sided (no culling) and flat shading toggles; gamma and intensity sliders like the game's `r_gamma` and
+  `r_intensity`
+- Background: a color, a gradient (top and bottom colors) or a sky box of the game (the shaders' `skyParms`, sides
+  `_rt` `_bk` `_lf` `_ft` `_up` `_dn` placed like the game's renderer), picked in the settings
 - Ground grid that reaches the edges of the view and fades out, with the X / Y / Z axes
 - Overlays: bounding box, hitboxes, tags (with names), skeleton, vertex normals
 - Orientation gizmo in the corner (+X forward, +Y left, +Z up); clicking an axis looks from that side
@@ -71,9 +75,12 @@ Every binary loader checks the file against its size, so broken files give an er
 ### Editing
 
 - Model: name, transform (location, rotation, scale), export frame range
-- Meshes, tags (add, remove, rename, move to another bone), bones (rename, use as tag, torso weight), animation
+- Meshes (rename, material, remove, flip normals, reverse winding, flip texture U / V), tags (add, remove, rename,
+  move to another bone), bones (rename, use as tag, torso weight), animation
   sequences (add, edit, remove)
-- Edit menu: recalculate normals (smooth, smooth across texture seams, flat), bake the skin into the model (the skin's shaders become the
+- Edit menu: recalculate normals (smooth, smooth across texture seams, flat), Meshes submenu (merge meshes with the same material within the MD3
+  limits, mirror X / Y / Z with the bones, tags and hitboxes, flip all normals, reverse all windings, flip texture V),
+  bake the skin into the model (the skin's shaders become the
   mesh materials, also of the attached models, so an export keeps them), weld vertices (close cracks and gaps:
   vertices closer than a distance move to one place in every frame, optionally across meshes), calculate the level of detail collapse maps, optimize vertices, scale the bounding
   boxes, apply the transform, bake a pose into the bind pose, bake bone tags into tags, reorganize the armature to the
@@ -108,6 +115,7 @@ Every binary loader checks the file against its size, so broken files give an er
   `models/players/robot/head.md3`)
 - Recent models, the last used folder, the window, the layout, the view options and the settings are kept between runs
 - Settings: theme (Darker, Dark, Light), font size, vertical sync, case insensitive file names, scene background
+  (color, gradient or sky box)
 - Log panel with level filter and search
 - The Hack font and Font Awesome icons are built into the program
 
@@ -139,7 +147,8 @@ Mouse in the 3D view: left drag orbits, right or middle drag pans, the wheel zoo
 ```
 ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]
           [--skin name] [--attach tag=file]... [--sequence name]...
-          [--view wireframe,notextures,alpha,noshaders,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]
+          [--sky name | --gradient r,g,b]
+          [--view wireframe,notextures,alpha,noshaders,twosided,flat,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]
           [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]
 ```
 
@@ -162,7 +171,8 @@ mt [--base folder]... <command> [options]
   convert <model> <output>...    write the model, the format comes from the output extension
   list [folder]                  list the model files in the base folders and pk3 files
 
-  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|seams|flat, --skin file, --weld d, --weld-meshes,
+  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|seams|flat, --remove-mesh name, --merge-meshes, --mirror x|y|z,
+  --skin file, --weld d, --weld-meshes,
   --optimize, --lod, --save-hitboxes file, --case-sensitive, --help, --version
 ```
 

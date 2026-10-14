@@ -2,9 +2,12 @@
 #include "state.h"
 #include "skeletal_model.h"
 #include "skeletal_tools.h"
+#include "mesh_tools.h"
 #include "morph_model.h"
 #include "ui_widgets.h"
 #include "icons_font_awesome.h"
+
+#include <functional>
 
 using namespace mt::model;
 using namespace mt::model::skeletal;
@@ -142,6 +145,8 @@ namespace mt {
 			ImGui::TextDisabled("%s", details.c_str());
 		};
 
+		// Mesh operations change the mesh list, so they run after the list is drawn
+		std::function<void()> action;
 		auto meshRow = [&](int index, std::string &name, std::string &material, int &minLod, size_t vertices, size_t tris) {
 			ImGui::PushID(index);
 			if (ImGui::TreeNode("mesh", "%s", name.empty() ? "(unnamed)" : name.c_str()))
@@ -151,6 +156,33 @@ namespace mt {
 				shaderInfo(name, material);
 				ImGui::Text("%zu vertices, %zu triangles", vertices, tris);
 				ImGui::SliderInt("Minimum LOD", &minLod, 0, int(vertices));
+
+				Model &model = *state.model;
+				if (ImGui::SmallButton("Flip normals"))
+				{
+					action = [&model, index] { model::flipNormals(model, index); };
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Reverse winding"))
+				{
+					action = [&model, index] { model::reverseWinding(model, index); };
+				}
+				ImGui::SetItemTooltip("Turn the triangles around (which side is the front)");
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Flip U"))
+				{
+					action = [&model, index] { model::flipTexCoords(model, index, true, false); };
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Flip V"))
+				{
+					action = [&model, index] { model::flipTexCoords(model, index, false, true); };
+				}
+				ImGui::SetItemTooltip("v = 1 - v, for textures that are upside down");
+				if (ImGui::SmallButton(ICON_FA_TRASH " Remove mesh"))
+				{
+					action = [&model, index] { model::removeMesh(model, size_t(index)); };
+				}
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -172,6 +204,18 @@ namespace mt {
 			{
 				auto &mesh = morph->meshes[i];
 				meshRow(int(i), mesh.name, mesh.materialName, mesh.minLod, mesh.numVertices(), mesh.tris.size());
+			}
+		}
+
+		if (action)
+		{
+			try
+			{
+				action();
+			}
+			catch (const std::exception &ex)
+			{
+				spdlog::get(MT_LOGGER)->error("Mesh change failed: {}", ex.what());
 			}
 		}
 	}

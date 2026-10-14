@@ -100,7 +100,11 @@ TEST(ShaderScriptTest, Library)
 
 	ShaderLibrary shaders;
 	EXPECT_EQ(shaders.load(files), 1);
-	EXPECT_EQ(shaders.size(), 5);
+	EXPECT_EQ(shaders.size(), 7);
+
+	// Sky boxes of the skyParms lines, "-" is no box
+	EXPECT_EQ(shaders.skyBoxes(), std::vector<std::string>{"models/players/mannequin/sky"});
+	EXPECT_EQ(shaders.find("textures/mannequin/sky_no_box")->skyBox, "");
 
 	// The first definition in a file counts
 	const ShaderDef *gear = shaders.find("Models/Players/Mannequin/Gear.tga");
@@ -135,7 +139,7 @@ TEST(ShaderScriptTest, Library)
 	// A later script replaces the shaders of an earlier one
 	shaders.add(parseShaderScript("models/players/mannequin/strap\n{\n\timplicitMap models/players/mannequin/naked.tga\n}\n"));
 	EXPECT_EQ(shaders.find("models/players/mannequin/strap")->alphaFunc, AlphaFunc::None);
-	EXPECT_EQ(shaders.size(), 5);
+	EXPECT_EQ(shaders.size(), 7);
 	EXPECT_EQ(shaders.find("models/players/mannequin/missing"), nullptr);
 }
 

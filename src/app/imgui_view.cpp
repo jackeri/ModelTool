@@ -20,6 +20,7 @@
 #include "model_stl.h"
 #include "settings.h"
 #include "weld.h"
+#include "mesh_tools.h"
 
 #include <filesystem>
 #include "model_scripts.h"
@@ -416,6 +417,16 @@ namespace mt {
 				ImGui::MenuItem("Alpha", nullptr, &view.alpha);
 				ImGui::MenuItem("Shader effects", nullptr, &view.shaders);
 				ImGui::SetItemTooltip("Draw like the game's shader scripts: hidden back faces, two sided shaders, alpha test and blending");
+				ImGui::MenuItem("Two sided", nullptr, &view.twoSided);
+				ImGui::SetItemTooltip("Draw both sides of every triangle, also where the game hides the back");
+				ImGui::MenuItem("Flat shading", nullptr, &view.flatShading);
+				ImGui::SetItemTooltip("Light each triangle with its own normal, so the triangles show");
+				ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8);
+				ImGui::SliderFloat("Gamma", &view.gamma, 0.5f, 3.0f, "%.2f");
+				ImGui::SetItemTooltip("Like the game's r_gamma: brighter dark colors (1 = unchanged, ET's default is 1.3)");
+				ImGui::SetNextItemWidth(ImGui::GetFontSize() * 8);
+				ImGui::SliderFloat("Intensity", &view.intensity, 1.0f, 4.0f, "%.2f");
+				ImGui::SetItemTooltip("Like the game's r_intensity: brighter textures (1 = unchanged)");
 				ImGui::MenuItem("Interpolation", "N", &state.playback.interpolate);
 				ImGui::MenuItem("Dynamic LOD", "L", &view.dynamicLod);
 				ImGui::Separator();
@@ -538,6 +549,50 @@ namespace mt {
 		ImGui::SetItemTooltip("Write the skin's shaders into the mesh materials (also of the attached models), so an "
 							  "export keeps them");
 
+		if (ImGui::BeginMenu("Meshes", model != nullptr))
+		{
+			auto run = [&](const std::function<void()> &change) {
+				try
+				{
+					change();
+				}
+				catch (const std::exception &ex)
+				{
+					logger->error("Mesh change failed: {}", ex.what());
+				}
+			};
+			if (ImGui::MenuItem("Merge meshes with the same material"))
+			{
+				run([&] {
+					logger->info("Merged {} meshes into others; calculate the LOD again if the model uses it",
+								 model::mergeMeshesByMaterial(*model));
+				});
+			}
+			ImGui::SetItemTooltip("Fewer meshes: meshes with the same material become one, within the MD3 limits");
+			for (int axis = 0; axis < 3; axis++)
+			{
+				const std::string label = std::string("Mirror ") + "XYZ"[axis];
+				if (ImGui::MenuItem(label.c_str()))
+				{
+					run([&] { model::mirrorModel(*model, axis); });
+				}
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Flip all normals"))
+			{
+				run([&] { model::flipNormals(*model); });
+			}
+			if (ImGui::MenuItem("Reverse the winding of all meshes"))
+			{
+				run([&] { model::reverseWinding(*model); });
+			}
+			if (ImGui::MenuItem("Flip texture V of all meshes"))
+			{
+				run([&] { model::flipTexCoords(*model, -1, false, true); });
+			}
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::MenuItem("Weld vertices...", nullptr, false, model != nullptr))
 		{
 			showWeld = true;
@@ -645,13 +700,44 @@ namespace mt {
 		ImGui::SetItemTooltip("Find Models/Head.MD3 when models/head.md3 is asked for, like the game does");
 
 		ImGui::SeparatorText("Scene");
+		int backgroundMode = int(state.background);
 		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
-		ImGui::ColorEdit3("Background", (float *)&state.clearColor);
+		if (ImGui::Combo("Background", &backgroundMode, "Color\0Gradient\0Sky box\0"))
+		{
+			state.background = Background(backgroundMode);
+		}
+		ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+		ImGui::ColorEdit3(state.background == Background::Gradient ? "Top" : "Color", (float *)&state.clearColor);
 		ImGui::SameLine();
 		if (ImGui::Button(ICON_FA_UNDO " Theme default"))
 		{
 			glm::vec3 background = ui::sceneBackground(state.theme);
 			state.clearColor = ImColor(background.r, background.g, background.b);
+		}
+		if (state.background == Background::Gradient)
+		{
+			ImGui::SetNextItemWidth(ImGui::GetFontSize() * 14);
+			ImGui::ColorEdit3("Bottom", (float *)&state.backgroundBottom);
+		}
+		else if (state.background == Background::SkyBox)
+		{
+			const auto boxes = state.textures.shaderLibrary().skyBoxes();
+			ImGui::SetNextItemWidth(ImGui::GetFontSize() * 22);
+			if (ImGui::BeginCombo("Sky box", state.skyBox.empty() ? "(none)" : state.skyBox.c_str()))
+			{
+				for (const auto &box : boxes)
+				{
+					if (ImGui::Selectable(box.c_str(), box == state.skyBox))
+					{
+						state.skyBox = box;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			if (boxes.empty())
+			{
+				ImGui::TextDisabled("No shader of the base folders has a sky box (skyParms)");
+			}
 		}
 
 		ImGui::Separator();
