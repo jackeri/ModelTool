@@ -260,6 +260,10 @@ target_link_libraries(ModelToolCLI ModelToolLib)
 add_executable(generate_fixtures EXCLUDE_FROM_ALL "tools/fixtures/generate_fixtures.cpp")
 target_link_libraries(generate_fixtures ModelToolLib)
 
+# Hitbox fitter for ET characters (tools/hitboxes): cmake --build build --target fit_hitboxes
+add_executable(fit_hitboxes EXCLUDE_FROM_ALL "tools/hitboxes/fit_hitboxes.cpp")
+target_link_libraries(fit_hitboxes ModelToolLib)
+
 set(MTLINK_LIBRARIES ModelToolLib glm glad ${OPENGL_LIBRARIES} glfw bundled_minizip bundled_zlib bundled_nfd spdlog)
 if (APPLE)
     list(APPEND MTLINK_LIBRARIES "-framework Cocoa")
