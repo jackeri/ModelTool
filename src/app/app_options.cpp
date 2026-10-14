@@ -101,7 +101,7 @@ namespace mt {
 	{
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]\n"
 			   "                 [--skin name] [--attach tag=file]... [--sequence name]...\n"
-			   "                 [--view wireframe,notextures,alpha,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
+			   "                 [--view wireframe,notextures,alpha,noshaders,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
 			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}
 }

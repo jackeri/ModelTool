@@ -47,29 +47,56 @@ namespace mt {
 	void drawModel(Renderer &renderer, const model::PosedModel &posed, const ViewSettings &view, TextureCache &textures,
 				   io::FileSource &source, const std::string &modelPath, float size)
 	{
-		for (const auto &mesh : posed.meshes)
+		// Opaque meshes first, then the blended ones over them
+		for (const bool blendedPass : {false, true})
 		{
-			MeshData data{mesh.positions, mesh.normals, mesh.texCoords, mesh.tris};
-
-			MeshStyle style;
-			style.wireframe = view.wireframe;
-			style.alpha = view.alpha;
-			if (view.wireframe)
+			for (const auto &mesh : posed.meshes)
 			{
-				style.color = {1, 1, 1, 1};
-			}
-			else if (view.textures)
-			{
-				style.texture = textures.get(source, mesh.material, modelPath);
-			}
-			if (!view.wireframe && !style.texture)
-			{
-				style.color = {0.8f, 0.8f, 0.8f, 1};
-			}
+				const model::ShaderDef *shader = view.shaders && view.textures ? textures.shader(mesh.material) : nullptr;
+				if ((shader && shader->blend) != blendedPass)
+				{
+					continue;
+				}
 
-			renderer.drawMesh(data, style);
+				MeshData data{mesh.positions, mesh.normals, mesh.texCoords, mesh.tris};
 
-			if (view.drawNormals)
+				MeshStyle style;
+				style.wireframe = view.wireframe;
+				style.alpha = view.alpha;
+				if (view.wireframe)
+				{
+					style.color = {1, 1, 1, 1};
+				}
+				else if (view.textures)
+				{
+					style.texture = textures.get(source, mesh.material, modelPath);
+				}
+				if (!view.wireframe && !style.texture)
+				{
+					style.color = {0.8f, 0.8f, 0.8f, 1};
+				}
+
+				// Like the game: front faces only unless the shader says otherwise, its alpha test and blending
+				if (view.shaders)
+				{
+					style.cull = shader ? shader->cull : model::ShaderCull::Front;
+				}
+				if (shader && style.texture)
+				{
+					style.alphaFunc = shader->alphaFunc;
+					style.blend = shader->blend;
+					style.blendSrc = shader->blendSrc;
+					style.blendDst = shader->blendDst;
+					style.depthWrite = shader->depthWrite;
+				}
+
+				renderer.drawMesh(data, style);
+			}
+		}
+
+		if (view.drawNormals)
+		{
+			for (const auto &mesh : posed.meshes)
 			{
 				std::vector<LineVertex> lines;
 				for (size_t v = 0; v < mesh.positions.size() && v < mesh.normals.size(); v++)

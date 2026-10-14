@@ -17,7 +17,8 @@ namespace mt {
 		}
 
 		std::unique_ptr<Texture> texture;
-		const std::string path = io::findTexture(source, material, modelPath);
+		const std::string path = model::findMaterialTexture(source, shaders, material, modelPath);
+		const model::ShaderDef *materialShader = shaders.find(material);
 		auto logger = spdlog::get(MT_LOGGER);
 
 		if (path.empty())
@@ -34,7 +35,8 @@ namespace mt {
 			if (Texture::decode(file->data->data(), length, image))
 			{
 				texture = std::make_unique<Texture>(path);
-				texture->upload(io::applyPicmip(image, picmip), filter);
+				// nopicmip shaders keep their full size, like in the game
+				texture->upload(io::applyPicmip(image, materialShader && materialShader->noPicmip ? 0 : picmip), filter);
 				if (logger)
 				{
 					logger->info("Loaded texture {} for {}", path, material);
@@ -66,5 +68,15 @@ namespace mt {
 	void TextureCache::clear()
 	{
 		textures.clear();
+	}
+
+	void TextureCache::loadShaders(io::FileSystem &files)
+	{
+		clear();
+		const size_t scripts = shaders.load(files);
+		if (auto logger = spdlog::get(MT_LOGGER); logger && scripts > 0)
+		{
+			logger->info("Loaded {} shaders from {} shader scripts", shaders.size(), scripts);
+		}
 	}
 }

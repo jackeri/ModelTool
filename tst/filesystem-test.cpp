@@ -15,8 +15,8 @@ TEST(FileSystemTest, test1)
 
 	io::FileList list = sys.getFiles("");
 
-	// animations, characters, inner, models, pk3inner, test, test2, unpacked.dir.cfg
-	ASSERT_EQ(list->size(), 8);
+	// animations, characters, inner, models, pk3inner, scripts, test, test2, unpacked.dir.cfg
+	ASSERT_EQ(list->size(), 9);
 	ASSERT_EQ(list->at(2).name, "inner");
 	ASSERT_TRUE(list->at(2).isDirectory);
 	ASSERT_EQ(list->at(4).name, "pk3inner");

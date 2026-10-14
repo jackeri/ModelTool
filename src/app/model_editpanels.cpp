@@ -103,12 +103,52 @@ namespace mt {
 	{
 		auto &state = singleton<State>();
 
-		auto meshRow = [](int index, std::string &name, std::string &material, int &minLod, size_t vertices, size_t tris) {
+		// The shader of a mesh (the skin's one when the skin names the mesh), as the game reads it
+		auto shaderInfo = [&](const std::string &name, const std::string &material) {
+			const std::string skinned = state.skin.shader(name);
+			const std::string used = skinned.empty() ? material : skinned;
+			if (!skinned.empty())
+			{
+				ImGui::TextDisabled("Skin: %s", skinned.c_str());
+			}
+			const model::ShaderDef *shader = state.textures.shader(used);
+			if (!shader)
+			{
+				ImGui::TextDisabled("No shader, the image is named like the material");
+				return;
+			}
+
+			static const char *cullNames[] = {"front", "back", "none (two sided)"};
+			static const char *alphaNames[] = {"", "GT0", "LT128", "GE128"};
+			ImGui::TextDisabled("Shader in %s", shader->file.c_str());
+			ImGui::TextDisabled("Image: %s", shader->image().empty() ? "-" : shader->image().c_str());
+			std::string details = std::string("Cull ") + cullNames[int(shader->cull)];
+			if (shader->alphaFunc != model::AlphaFunc::None)
+			{
+				details += ", alphaFunc " + std::string(alphaNames[int(shader->alphaFunc)]);
+			}
+			if (shader->blend)
+			{
+				details += ", blended";
+			}
+			if (!shader->animFrames.empty())
+			{
+				details += ", animMap " + std::to_string(shader->animFrames.size()) + " frames";
+			}
+			if (shader->environment)
+			{
+				details += ", environment map";
+			}
+			ImGui::TextDisabled("%s", details.c_str());
+		};
+
+		auto meshRow = [&](int index, std::string &name, std::string &material, int &minLod, size_t vertices, size_t tris) {
 			ImGui::PushID(index);
 			if (ImGui::TreeNode("mesh", "%s", name.empty() ? "(unnamed)" : name.c_str()))
 			{
 				ImGui::InputText("Name", &name);
 				ImGui::InputText("Material", &material);
+				shaderInfo(name, material);
 				ImGui::Text("%zu vertices, %zu triangles", vertices, tris);
 				ImGui::SliderInt("Minimum LOD", &minLod, 0, int(vertices));
 				ImGui::TreePop();

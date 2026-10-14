@@ -2,6 +2,7 @@
 
 #include "mt.h"
 #include "model.h"
+#include "../lib/shader_script.h"
 
 namespace mt {
 	class Camera;
@@ -15,11 +16,17 @@ namespace mt {
 
 	/*! How a mesh is drawn */
 	struct MeshStyle {
-		glm::vec4 color{1, 1, 1, 1};	  ///< color multiplied with the texture
-		const Texture *texture = nullptr; ///< texture, nullptr for no texture
-		bool wireframe = false;			  ///< draw the triangle edges only
-		bool lighting = true;			  ///< shade with the normals
-		bool alpha = false;				  ///< blend with the texture alpha
+		glm::vec4 color{1, 1, 1, 1};							///< color multiplied with the texture
+		const Texture *texture = nullptr;						///< texture, nullptr for no texture
+		bool wireframe = false;									///< draw the triangle edges only
+		bool lighting = true;									///< shade with the normals
+		bool alpha = false;										///< blend with the texture alpha
+		model::ShaderCull cull = model::ShaderCull::None;		///< sides that are drawn (idTech front faces are clockwise)
+		model::AlphaFunc alphaFunc = model::AlphaFunc::None;	///< drop pixels by their alpha, like the shader's alphaFunc
+		bool blend = false;										///< blend with blendSrc / blendDst (overrides alpha)
+		model::BlendFactor blendSrc = model::BlendFactor::One;	///< blend source factor
+		model::BlendFactor blendDst = model::BlendFactor::Zero; ///< blend destination factor
+		bool depthWrite = true;									///< write the depth
 	};
 
 	/*! Mesh data to draw, the vectors are not copied */

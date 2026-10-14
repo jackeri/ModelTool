@@ -5,6 +5,25 @@
 namespace mt {
 
 	namespace {
+		GLenum blendFactor(model::BlendFactor factor)
+		{
+			switch (factor)
+			{
+			case model::BlendFactor::Zero: return GL_ZERO;
+			case model::BlendFactor::One: return GL_ONE;
+			case model::BlendFactor::SrcColor: return GL_SRC_COLOR;
+			case model::BlendFactor::OneMinusSrcColor: return GL_ONE_MINUS_SRC_COLOR;
+			case model::BlendFactor::DstColor: return GL_DST_COLOR;
+			case model::BlendFactor::OneMinusDstColor: return GL_ONE_MINUS_DST_COLOR;
+			case model::BlendFactor::SrcAlpha: return GL_SRC_ALPHA;
+			case model::BlendFactor::OneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+			case model::BlendFactor::DstAlpha: return GL_DST_ALPHA;
+			case model::BlendFactor::OneMinusDstAlpha: return GL_ONE_MINUS_DST_ALPHA;
+			case model::BlendFactor::SrcAlphaSaturate: return GL_SRC_ALPHA_SATURATE;
+			}
+			return GL_ONE;
+		}
+
 		const char *MESH_VERTEX_SHADER = R"(#version 410 core
 layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec3 aNormal;
@@ -32,6 +51,7 @@ uniform sampler2D uTexture;
 uniform bool uUseTexture;
 uniform bool uLighting;
 uniform bool uAlpha;
+uniform int uAlphaFunc;
 uniform vec4 uColor;
 
 out vec4 fragColor;
@@ -51,6 +71,12 @@ void main()
 		float key = max(dot(normal, normalize(vec3(0.55, -0.5, 0.65))), 0.0);
 		float fill = max(dot(normal, normalize(vec3(-0.5, 0.45, 0.15))), 0.0);
 		color.rgb *= min(0.35 + 0.75 * key + 0.3 * fill, 1.25);
+	}
+
+	// Shader alphaFunc: 1 = GT0, 2 = LT128, 3 = GE128
+	if ((uAlphaFunc == 1 && color.a <= 0.0) || (uAlphaFunc == 2 && color.a >= 0.5) || (uAlphaFunc == 3 && color.a < 0.5))
+	{
+		discard;
 	}
 
 	if (!uAlpha)
@@ -322,7 +348,8 @@ void main()
 		meshShader.setUniform("uNormalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix()))));
 		meshShader.setUniform("uColor", style.color);
 		meshShader.setUniform("uLighting", style.lighting && !style.wireframe);
-		meshShader.setUniform("uAlpha", style.alpha);
+		meshShader.setUniform("uAlpha", style.alpha || style.blend);
+		meshShader.setUniform("uAlphaFunc", int(style.alphaFunc));
 		meshShader.setUniform("uUseTexture", style.texture != nullptr && !style.wireframe);
 		meshShader.setUniform("uTexture", 0);
 
@@ -336,7 +363,12 @@ void main()
 			glBindTexture(GL_TEXTURE_2D, whiteTexture);
 		}
 
-		if (style.alpha || style.color.a < 1.0f)
+		if (style.blend && !style.wireframe)
+		{
+			glEnable(GL_BLEND);
+			glBlendFunc(blendFactor(style.blendSrc), blendFactor(style.blendDst));
+		}
+		else if (style.alpha || style.color.a < 1.0f)
 		{
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -344,6 +376,19 @@ void main()
 		else
 		{
 			glDisable(GL_BLEND);
+		}
+		glDepthMask(style.depthWrite || style.wireframe ? GL_TRUE : GL_FALSE);
+
+		// idTech triangles are clockwise seen from the front
+		if (style.cull != model::ShaderCull::None && !style.wireframe)
+		{
+			glEnable(GL_CULL_FACE);
+			glFrontFace(GL_CW);
+			glCullFace(style.cull == model::ShaderCull::Front ? GL_BACK : GL_FRONT);
+		}
+		else
+		{
+			glDisable(GL_CULL_FACE);
 		}
 
 		if (style.wireframe)
@@ -355,6 +400,8 @@ void main()
 		}
 
 		glDrawElements(GL_TRIANGLES, GLsizei(meshIndices.size()), GL_UNSIGNED_INT, nullptr);
+		glDisable(GL_CULL_FACE);
+		glDepthMask(GL_TRUE);
 
 		if (style.wireframe)
 		{

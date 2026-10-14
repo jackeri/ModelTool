@@ -39,6 +39,7 @@ namespace mt {
 		bool wireframe = false;					  ///< draw triangle edges only
 		bool textures = true;					  ///< draw the textures
 		bool alpha = false;						  ///< blend with the texture alpha
+		bool shaders = true;					  ///< draw like the shader scripts say: cull, alpha test, blending
 		bool drawGrid = true;					  ///< ground grid and origin axis
 		bool drawBounds = false;				  ///< frame bounding box
 		bool drawHitboxes = true;				  ///< hitboxes of skeletal models
@@ -251,7 +252,7 @@ namespace mt {
 			{
 				basePaths.push_back(absolute);
 			}
-			textures.clear();
+			textures.loadShaders(filesystem);
 			return true;
 		}
 
@@ -262,7 +263,7 @@ namespace mt {
 		{
 			filesystem.clear();
 			basePaths.clear();
-			textures.clear();
+			textures.loadShaders(filesystem);
 		}
 
 		/**

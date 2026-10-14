@@ -10,11 +10,12 @@ namespace mt {
 		{
 			return {
 				{"view.wireframe", &ViewSettings::wireframe},	{"view.textures", &ViewSettings::textures},
-				{"view.alpha", &ViewSettings::alpha},			{"view.grid", &ViewSettings::drawGrid},
-				{"view.bounds", &ViewSettings::drawBounds},		{"view.hitboxes", &ViewSettings::drawHitboxes},
-				{"view.tags", &ViewSettings::drawTags},			{"view.tagNames", &ViewSettings::drawTagNames},
-				{"view.skeleton", &ViewSettings::drawSkeleton}, {"view.normals", &ViewSettings::drawNormals},
-				{"view.dynamicLod", &ViewSettings::dynamicLod}, {"view.gizmo", &ViewSettings::drawGizmo},
+				{"view.alpha", &ViewSettings::alpha},			{"view.shaders", &ViewSettings::shaders},
+				{"view.grid", &ViewSettings::drawGrid},			{"view.bounds", &ViewSettings::drawBounds},
+				{"view.hitboxes", &ViewSettings::drawHitboxes}, {"view.tags", &ViewSettings::drawTags},
+				{"view.tagNames", &ViewSettings::drawTagNames}, {"view.skeleton", &ViewSettings::drawSkeleton},
+				{"view.normals", &ViewSettings::drawNormals},	{"view.dynamicLod", &ViewSettings::dynamicLod},
+				{"view.gizmo", &ViewSettings::drawGizmo},
 			};
 		}
 	}

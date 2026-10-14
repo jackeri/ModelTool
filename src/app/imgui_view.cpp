@@ -379,6 +379,8 @@ namespace mt {
 				ImGui::MenuItem("Wireframe", "W", &view.wireframe);
 				ImGui::MenuItem("Textures", "T", &view.textures);
 				ImGui::MenuItem("Alpha", nullptr, &view.alpha);
+				ImGui::MenuItem("Shader effects", nullptr, &view.shaders);
+				ImGui::SetItemTooltip("Draw like the game's shader scripts: hidden back faces, two sided shaders, alpha test and blending");
 				ImGui::MenuItem("Interpolation", "N", &state.playback.interpolate);
 				ImGui::MenuItem("Dynamic LOD", "L", &view.dynamicLod);
 				ImGui::Separator();
@@ -570,8 +572,8 @@ namespace mt {
 		if (ImGui::Checkbox("Ignore the case of file names", &caseInsensitive))
 		{
 			state.filesystem.setCaseInsensitive(caseInsensitive);
-			// Textures that were not found before can be found now (and the other way around)
-			state.textures.clear();
+			// Shader scripts and textures that were not found before can be found now (and the other way around)
+			state.textures.loadShaders(state.filesystem);
 		}
 		ImGui::SetItemTooltip("Find Models/Head.MD3 when models/head.md3 is asked for, like the game does");
 

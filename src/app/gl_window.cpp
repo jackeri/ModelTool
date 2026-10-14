@@ -327,10 +327,10 @@ void mt::GLWindow::applyOptions()
 
 	auto &view = state.view;
 	const std::map<std::string, std::pair<bool *, bool>> toggles{
-		{"wireframe", {&view.wireframe, true}},	  {"notextures", {&view.textures, false}},	{"alpha", {&view.alpha, true}},
-		{"nogrid", {&view.drawGrid, false}},	  {"bounds", {&view.drawBounds, true}},		{"nohitboxes", {&view.drawHitboxes, false}},
-		{"tags", {&view.drawTags, true}},		  {"skeleton", {&view.drawSkeleton, true}}, {"normals", {&view.drawNormals, true}},
-		{"dynamiclod", {&view.dynamicLod, true}},
+		{"wireframe", {&view.wireframe, true}},		 {"notextures", {&view.textures, false}},  {"alpha", {&view.alpha, true}},
+		{"noshaders", {&view.shaders, false}},		 {"nogrid", {&view.drawGrid, false}},	   {"bounds", {&view.drawBounds, true}},
+		{"nohitboxes", {&view.drawHitboxes, false}}, {"tags", {&view.drawTags, true}},		   {"skeleton", {&view.drawSkeleton, true}},
+		{"normals", {&view.drawNormals, true}},		 {"dynamiclod", {&view.dynamicLod, true}},
 	};
 
 	for (const auto &item : options.view)
