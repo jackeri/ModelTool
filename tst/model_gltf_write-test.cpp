@@ -238,8 +238,12 @@ TEST(GltfWriteTest, TextFile)
 	std::filesystem::create_directories("tmp/gltf");
 	writeGLTF(*tube, "tmp/gltf/tube.gltf");
 
-	std::ifstream in("tmp/gltf/tube.gltf");
-	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+	std::string text;
+	{
+		// Closed before the folder is removed: Windows does not remove open files
+		std::ifstream in("tmp/gltf/tube.gltf");
+		text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+	}
 	EXPECT_EQ(text.rfind("{\"asset\"", 0), 0);
 	EXPECT_NE(text.find("data:application/octet-stream;base64,"), std::string::npos);
 
