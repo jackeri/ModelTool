@@ -436,6 +436,22 @@ namespace mt {
 				ImGui::MenuItem("Tags", "Alt+T", &view.drawTags);
 				ImGui::MenuItem("Tag names", nullptr, &view.drawTagNames, view.drawTags);
 				ImGui::MenuItem("Skeleton", "Alt+S", &view.drawSkeleton);
+				ImGui::MenuItem("Measurements", "Alt+M", &view.drawMeasurements);
+				ImGui::SetItemTooltip("Width, depth and height of the whole model with its attachments");
+				if (ImGui::BeginMenu("Measurement units"))
+				{
+					const char *names[3] = {"Game units", "Metric", "Imperial"};
+					for (int unit = 0; unit < 3; unit++)
+					{
+						if (ImGui::MenuItem(names[unit], nullptr, int(view.lengthUnit) == unit))
+						{
+							view.lengthUnit = model::LengthUnit(unit);
+						}
+					}
+					ImGui::Separator();
+					ImGui::TextDisabled("1 game unit = 1 inch (2.54 cm), the usual Quake 3 / ET scale");
+					ImGui::EndMenu();
+				}
 				ImGui::MenuItem("Normals", "Alt+N", &view.drawNormals);
 				ImGui::MenuItem("Orientation gizmo", nullptr, &view.drawGizmo);
 				if (view.drawNormals)
@@ -1253,6 +1269,10 @@ namespace mt {
 		if (pressed(ImGuiMod_Alt | ImGuiKey_S))
 		{
 			view.drawSkeleton = !view.drawSkeleton;
+		}
+		if (pressed(ImGuiMod_Alt | ImGuiKey_M))
+		{
+			view.drawMeasurements = !view.drawMeasurements;
 		}
 		if (pressed(ImGuiMod_Alt | ImGuiKey_N))
 		{

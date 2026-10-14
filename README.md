@@ -59,6 +59,8 @@ Every binary loader checks the file against its size, so broken files give an er
 
 - Textured, lit model with wireframe, alpha and texture toggles; shader effects (back faces hidden unless the shader
   is two sided, alpha test, blending)
+- Measurements (Alt+M): width, depth and height lines of the whole model with its attached models, with the
+  values next to the lines in game units, metric or imperial (1 game unit = 1 inch, the usual Quake 3 / ET scale)
 - Two sided (no culling) and flat shading toggles; gamma and intensity sliders like the game's `r_gamma` and
   `r_intensity`
 - Background: a color, a gradient (top and bottom colors) or a sky box of the game (the shaders' `skyParms`, sides
@@ -131,6 +133,7 @@ Every binary loader checks the file against its size, so broken files give an er
 | W / T / N / L                 | Wireframe / textures / interpolation / dynamic level of detail |
 | Ctrl+B                        | Bounding box                                                   |
 | Alt+O / Alt+T / Alt+S / Alt+N | Grid / tags / skeleton / normals                               |
+| Alt+M                         | Measurements                                                   |
 | G / R / S                     | Move / rotate / scale gizmo                                    |
 | Escape                        | Deselect the tag or hitbox                                     |
 | Shift+Escape                  | Show / hide the log                                            |
@@ -148,7 +151,7 @@ Mouse in the 3D view: left drag orbits, right or middle drag pans, the wheel zoo
 ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]
           [--skin name] [--attach tag=file]... [--sequence name]...
           [--sky name | --gradient r,g,b]
-          [--view wireframe,notextures,alpha,noshaders,twosided,flat,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]
+          [--view wireframe,notextures,alpha,noshaders,twosided,flat,measure,metric,imperial,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]
           [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]
 ```
 

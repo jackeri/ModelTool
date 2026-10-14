@@ -162,6 +162,52 @@ namespace mt {
 			}
 		}
 
+		// Width, depth and height of everything shown: the model and its attachments, the meshes only
+		measurements.clear();
+		if (state.model && state.view.drawMeasurements)
+		{
+			Bounds box{};
+			bool any = false;
+			auto add = [&](const model::PosedModel &posedModel, const glm::mat4 &matrix) {
+				for (const auto &mesh : posedModel.meshes)
+				{
+					for (const auto &position : mesh.positions)
+					{
+						const glm::vec3 point = glm::vec3(matrix * glm::vec4(position, 1.0f));
+						box.min = any ? glm::min(box.min, point) : point;
+						box.max = any ? glm::max(box.max, point) : point;
+						any = true;
+					}
+				}
+			};
+			add(posed, modelMatrix);
+			for (size_t i = 0; i < posedAttachments.size(); i++)
+			{
+				add(posedAttachments[i], attachmentMatrices[i]);
+			}
+
+			if (any)
+			{
+				const glm::vec3 size = box.max - box.min;
+				const float offset = std::max(std::max(size.x, std::max(size.y, size.z)) * 0.04f, 0.25f);
+				const glm::vec4 colors[3] = {{1.0f, 0.45f, 0.45f, 1}, {0.45f, 1.0f, 0.45f, 1}, {0.5f, 0.6f, 1.0f, 1}};
+				std::vector<LineVertex> lines;
+				for (const auto &line : model::dimensionLines(box, offset))
+				{
+					const glm::vec4 &lineColor = colors[line.axis];
+					lines.push_back({line.from, lineColor});
+					lines.push_back({line.to, lineColor});
+					for (const auto &[from, to] : line.extensions)
+					{
+						lines.push_back({from, lineColor * glm::vec4(1, 1, 1, 0.6f)});
+						lines.push_back({to, lineColor * glm::vec4(1, 1, 1, 0.6f)});
+					}
+					measurements.push_back(line);
+				}
+				renderer->drawLines(lines, false);
+			}
+		}
+
 		renderer->endFrame();
 		fbo->unbind();
 	}
@@ -296,6 +342,7 @@ namespace mt {
 	void ScenePanel::drawLabels(const ImVec2 &origin)
 	{
 		auto &view = singleton<State>().view;
+		drawMeasurementLabels(origin);
 		if (!view.drawTags || !view.drawTagNames || posed.tags.empty())
 		{
 			return;
@@ -315,6 +362,38 @@ namespace mt {
 			glm::vec3 ndc = glm::vec3(clip) / clip.w;
 			ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y - 6.0f};
 			drawList->AddText(screen, IM_COL32(255, 0, 255, 255), tag.name.c_str());
+		}
+	}
+
+	void ScenePanel::drawMeasurementLabels(const ImVec2 &origin)
+	{
+		if (measurements.empty())
+		{
+			return;
+		}
+
+		const auto unit = singleton<State>().view.lengthUnit;
+		const glm::mat4 &matrix = renderer->viewProjection();
+		ImDrawList *drawList = ImGui::GetWindowDrawList();
+		const ImU32 colors[3] = {IM_COL32(255, 120, 120, 255), IM_COL32(120, 255, 120, 255), IM_COL32(140, 160, 255, 255)};
+
+		for (const auto &line : measurements)
+		{
+			const glm::vec4 clip = matrix * glm::vec4(line.label, 1.0f);
+			if (clip.w <= 0.0f)
+			{
+				continue;
+			}
+			const glm::vec3 ndc = glm::vec3(clip) / clip.w;
+			const ImVec2 at{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y};
+
+			// The value on a dark box next to the middle of the line, readable on any background
+			const std::string text = std::string(model::dimensionName(line.axis)) + " " + model::formatLength(line.length, unit);
+			const ImVec2 size = ImGui::CalcTextSize(text.c_str());
+			const ImVec2 corner{at.x + 6.0f, at.y - size.y * 0.5f};
+			drawList->AddRectFilled({corner.x - 3.0f, corner.y - 1.0f}, {corner.x + size.x + 3.0f, corner.y + size.y + 1.0f},
+									IM_COL32(0, 0, 0, 170), 3.0f);
+			drawList->AddText(corner, colors[line.axis], text.c_str());
 		}
 	}
 

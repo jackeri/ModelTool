@@ -327,11 +327,11 @@ void mt::GLWindow::applyOptions()
 
 	auto &view = state.view;
 	const std::map<std::string, std::pair<bool *, bool>> toggles{
-		{"wireframe", {&view.wireframe, true}},	  {"notextures", {&view.textures, false}},	{"alpha", {&view.alpha, true}},
-		{"noshaders", {&view.shaders, false}},	  {"twosided", {&view.twoSided, true}},		{"flat", {&view.flatShading, true}},
-		{"nogrid", {&view.drawGrid, false}},	  {"bounds", {&view.drawBounds, true}},		{"nohitboxes", {&view.drawHitboxes, false}},
-		{"tags", {&view.drawTags, true}},		  {"skeleton", {&view.drawSkeleton, true}}, {"normals", {&view.drawNormals, true}},
-		{"dynamiclod", {&view.dynamicLod, true}},
+		{"wireframe", {&view.wireframe, true}},		 {"notextures", {&view.textures, false}},  {"alpha", {&view.alpha, true}},
+		{"noshaders", {&view.shaders, false}},		 {"twosided", {&view.twoSided, true}},	   {"measure", {&view.drawMeasurements, true}},
+		{"flat", {&view.flatShading, true}},		 {"nogrid", {&view.drawGrid, false}},	   {"bounds", {&view.drawBounds, true}},
+		{"nohitboxes", {&view.drawHitboxes, false}}, {"tags", {&view.drawTags, true}},		   {"skeleton", {&view.drawSkeleton, true}},
+		{"normals", {&view.drawNormals, true}},		 {"dynamiclod", {&view.dynamicLod, true}},
 	};
 
 	if (!options.sky.empty())
@@ -355,6 +355,12 @@ void mt::GLWindow::applyOptions()
 
 	for (const auto &item : options.view)
 	{
+		// Units of the measurements
+		if (item == "metric" || item == "imperial")
+		{
+			view.lengthUnit = item == "metric" ? model::LengthUnit::Metric : model::LengthUnit::Imperial;
+			continue;
+		}
 		auto toggle = toggles.find(item);
 		if (toggle == toggles.end())
 		{

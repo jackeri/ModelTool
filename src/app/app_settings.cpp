@@ -24,6 +24,7 @@ namespace mt {
 				{"view.gizmo", &ViewSettings::drawGizmo},
 				{"view.twoSided", &ViewSettings::twoSided},
 				{"view.flatShading", &ViewSettings::flatShading},
+				{"view.measurements", &ViewSettings::drawMeasurements},
 			};
 		}
 	}
@@ -38,6 +39,7 @@ namespace mt {
 			view.*member = settings.getBool(key, view.*member);
 		}
 		view.normalLength = settings.getFloat("view.normalLength", view.normalLength);
+		view.lengthUnit = model::LengthUnit(std::clamp(settings.getInt("view.lengthUnit", int(view.lengthUnit)), 0, 2));
 		view.gamma = std::clamp(settings.getFloat("view.gamma", view.gamma), 0.5f, 3.0f);
 		view.intensity = std::clamp(settings.getFloat("view.intensity", view.intensity), 1.0f, 4.0f);
 		view.lodRatio = std::clamp(settings.getFloat("view.lodRatio", view.lodRatio), 0.0f, 1.0f);
@@ -82,6 +84,7 @@ namespace mt {
 		}
 		settings.set("view.normalLength", view.normalLength);
 		settings.set("view.gamma", view.gamma);
+		settings.set("view.lengthUnit", int(view.lengthUnit));
 		settings.set("view.intensity", view.intensity);
 		settings.set("view.lodRatio", view.lodRatio);
 		settings.set("view.picmip", view.picmip);

@@ -5,6 +5,7 @@
 #include "model_md3.h"
 #include "morph_model.h"
 #include "filesystem.h"
+#include "measure.h"
 #include "playback.h"
 #include "texture_cache.h"
 #include "settings.h"
@@ -44,33 +45,35 @@ namespace mt {
 
 	/*! What is drawn in the scene and how */
 	struct ViewSettings {
-		bool wireframe = false;					  ///< draw triangle edges only
-		bool textures = true;					  ///< draw the textures
-		bool alpha = false;						  ///< blend with the texture alpha
-		bool shaders = true;					  ///< draw like the shader scripts say: cull, alpha test, blending
-		bool twoSided = false;					  ///< draw both sides of every triangle (no culling)
-		bool flatShading = false;				  ///< light each triangle with its own normal
-		float gamma = 1.0f;						  ///< like the game's r_gamma (1 = unchanged)
-		float intensity = 1.0f;					  ///< like the game's r_intensity (1 = unchanged)
-		bool drawGrid = true;					  ///< ground grid and origin axis
-		bool drawBounds = false;				  ///< frame bounding box
-		bool drawHitboxes = true;				  ///< hitboxes of skeletal models
-		bool drawGizmo = true;					  ///< orientation gizmo in the corner of the scene
-		int selectedHitbox = -1;				  ///< hitbox drawn highlighted (open in the hitbox panel)
-		int selectedTag = -1;					  ///< tag selected for the gizmo
-		EditTarget editTarget = EditTarget::None; ///< what the gizmo moves
-		GizmoMode gizmoMode = GizmoMode::Move;	  ///< what the edit gizmo does
-		bool gizmoLocal = true;					  ///< the gizmo axes follow the edited object instead of the world
-		bool gizmoAllFrames = true;				  ///< moving a morph model tag moves it in every frame
-		bool drawTags = false;					  ///< tag axis
-		bool drawTagNames = true;				  ///< names next to the tags
-		bool drawSkeleton = false;				  ///< bones and joints
-		bool drawNormals = false;				  ///< vertex normals
-		float normalLength = 0.03f;				  ///< length of the drawn normals, relative to the model size
-		int lodLevel = 0;						  ///< level of detail of morph models with extra levels
-		bool dynamicLod = false;				  ///< reduce triangles with the collapse maps
-		float lodRatio = 0.0f;					  ///< dynamic level of detail: 0 = minimum LOD, 1 = full mesh
-		int picmip = 0;							  ///< texture picmip (halvings)
+		bool wireframe = false;									///< draw triangle edges only
+		bool textures = true;									///< draw the textures
+		bool alpha = false;										///< blend with the texture alpha
+		bool shaders = true;									///< draw like the shader scripts say: cull, alpha test, blending
+		bool twoSided = false;									///< draw both sides of every triangle (no culling)
+		bool flatShading = false;								///< light each triangle with its own normal
+		bool drawMeasurements = false;							///< width, depth and height lines of the whole model (attachments too)
+		model::LengthUnit lengthUnit = model::LengthUnit::Game; ///< units of the measurements
+		float gamma = 1.0f;										///< like the game's r_gamma (1 = unchanged)
+		float intensity = 1.0f;									///< like the game's r_intensity (1 = unchanged)
+		bool drawGrid = true;									///< ground grid and origin axis
+		bool drawBounds = false;								///< frame bounding box
+		bool drawHitboxes = true;								///< hitboxes of skeletal models
+		bool drawGizmo = true;									///< orientation gizmo in the corner of the scene
+		int selectedHitbox = -1;								///< hitbox drawn highlighted (open in the hitbox panel)
+		int selectedTag = -1;									///< tag selected for the gizmo
+		EditTarget editTarget = EditTarget::None;				///< what the gizmo moves
+		GizmoMode gizmoMode = GizmoMode::Move;					///< what the edit gizmo does
+		bool gizmoLocal = true;									///< the gizmo axes follow the edited object instead of the world
+		bool gizmoAllFrames = true;								///< moving a morph model tag moves it in every frame
+		bool drawTags = false;									///< tag axis
+		bool drawTagNames = true;								///< names next to the tags
+		bool drawSkeleton = false;								///< bones and joints
+		bool drawNormals = false;								///< vertex normals
+		float normalLength = 0.03f;								///< length of the drawn normals, relative to the model size
+		int lodLevel = 0;										///< level of detail of morph models with extra levels
+		bool dynamicLod = false;								///< reduce triangles with the collapse maps
+		float lodRatio = 0.0f;									///< dynamic level of detail: 0 = minimum LOD, 1 = full mesh
+		int picmip = 0;											///< texture picmip (halvings)
 		TextureFilter textureFilter = TextureFilter::Trilinear;
 	};
 

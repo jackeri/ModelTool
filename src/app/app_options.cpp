@@ -110,7 +110,8 @@ namespace mt {
 		return "Usage: ModelTool [--base folder]... [--model path] [--animation path]... [--hitboxes file] [--frame n]\n"
 			   "                 [--skin name] [--attach tag=file]... [--sequence name]...\n"
 			   "                 [--view "
-			   "wireframe,notextures,alpha,noshaders,twosided,flat,nogrid,bounds,nohitboxes,tags,skeleton,normals,dynamiclod]\n"
+			   "wireframe,notextures,alpha,noshaders,twosided,flat,measure,metric,imperial,nogrid,bounds,nohitboxes,tags,skeleton,normals,"
+			   "dynamiclod]\n"
 			   "                 [--sky name | --gradient r,g,b]\n"
 			   "                 [--export out.ext]... [--screenshot out.png [--ui]] [--size WxH] [--frames n]";
 	}

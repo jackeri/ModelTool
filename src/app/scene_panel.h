@@ -1,5 +1,7 @@
 #pragma once
 
+#include "measure.h"
+
 #include "mt.h"
 #include "camera.h"
 #include "renderer.h"
@@ -68,6 +70,12 @@ namespace mt {
 		void drawLabels(const ImVec2 &origin);
 
 		/**
+		 * Width, depth and height values next to their measurement lines
+		 * @param origin top left corner of the scene image on the screen
+		 */
+		void drawMeasurementLabels(const ImVec2 &origin);
+
+		/**
 		 * Draw the orientation gizmo in the top right corner of the scene: the world axes as the camera sees them
 		 * (idTech: +X forward, +Y left, +Z up). Clicking an axis looks from that side
 		 * @param origin screen position of the scene image
@@ -98,6 +106,7 @@ namespace mt {
 		glm::mat4 modelMatrix{1.0f};					   ///< model transform of the last frame
 		std::vector<model::PosedModel> posedAttachments{}; ///< attached models of the last frame
 		std::vector<glm::mat4> attachmentMatrices{};	   ///< scene matrices of the attached models
+		std::vector<model::DimensionLine> measurements{};  ///< width, depth and height of the whole model of the last frame
 		model::Hitbox scaleStart{};						   ///< the edited hitbox when the scale drag started
 		float gridSize = 120.0f;						   ///< size the grid steps follow, kept while the model animates
 		float overlaySize = 1.0f;						   ///< model size the overlays follow (tag axes, normals)
