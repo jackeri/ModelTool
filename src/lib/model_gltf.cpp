@@ -1,5 +1,6 @@
 #include "model_gltf.h"
 #include "image.h"
+#include "measure.h"
 #include "scene_import.h"
 
 #include <tiny_gltf_v3.h>
@@ -937,8 +938,10 @@ namespace mt::model {
 
 		import::Scene scene;
 		scene.name = std::filesystem::path(file->name).stem().string();
-		// glTF is Y-up. The coordinates are kept as they are, like the other formats (one meter is one game unit).
+		// glTF is Y-up and in meters: converted to Z-up and game units (1 unit = 1 inch, METERS_PER_UNIT), the reverse of
+		// the glTF export, so a model comes back in its size
 		scene.axisConversion = glm::mat3_cast(glm::angleAxis(glm::radians(90.0f), glm::vec3{1, 0, 0}));
+		scene.unitScale = 1.0f / METERS_PER_UNIT;
 
 		Converter(gltf, scene).convert();
 

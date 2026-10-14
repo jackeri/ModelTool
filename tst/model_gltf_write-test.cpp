@@ -123,7 +123,7 @@ TEST(GltfWriteTest, SkeletalRoundTrip)
 				for (size_t v = 0; v < a0.meshes[m].positions.size(); v += 11)
 				{
 					const glm::vec3 p = a0.meshes[m].positions[v];
-					const glm::vec3 q = b0.meshes[m].positions[v] / METERS_PER_UNIT;
+					const glm::vec3 q = b0.meshes[m].positions[v];
 					ASSERT_LT(glm::distance(p, q), 0.005f) << source.name << " frame " << k << " mesh " << m << " vertex " << v;
 				}
 			}
@@ -157,7 +157,7 @@ TEST(GltfWriteTest, BindPoseKeepsItsPlace)
 	{
 		for (size_t v = 0; v < before.meshes[m].positions.size(); v += 13)
 		{
-			ASSERT_LT(glm::distance(before.meshes[m].positions[v], after.meshes[m].positions[v] / METERS_PER_UNIT), 0.005f);
+			ASSERT_LT(glm::distance(before.meshes[m].positions[v], after.meshes[m].positions[v]), 0.005f);
 		}
 	}
 	// The bones too: the bind pose is what an animation starts from
@@ -166,7 +166,7 @@ TEST(GltfWriteTest, BindPoseKeepsItsPlace)
 		auto found = std::find_if(after.bonePoints.begin(), after.bonePoints.end(),
 								  [&](const PosedTag &other) { return other.name == bone.name; });
 		ASSERT_NE(found, after.bonePoints.end()) << bone.name;
-		EXPECT_LT(glm::distance(bone.point.location, found->point.location / METERS_PER_UNIT), 0.005f) << bone.name;
+		EXPECT_LT(glm::distance(bone.point.location, found->point.location), 0.005f) << bone.name;
 		EXPECT_GT(std::abs(glm::dot(bone.point.rotation, found->point.rotation)), 0.9999f) << bone.name;
 	}
 }
@@ -190,7 +190,7 @@ TEST(GltfWriteTest, MetersAndMorphTargets)
 	EXPECT_EQ(count(json, "\"name\":\"frames\""), 1);
 	EXPECT_EQ(count(json, "\"name\":\"" + morph.tags[0].name + "\""), 1);
 
-	// The importer reads the first frame, in meters
+	// The importer reads the first frame and turns the meters back into game units
 	auto loaded = reload(data, "tube.glb");
 	ASSERT_TRUE(loaded);
 	PoseOptions first;
@@ -198,8 +198,8 @@ TEST(GltfWriteTest, MetersAndMorphTargets)
 	const Bounds imported = meshBounds(poseModel(*loaded, first));
 	for (int axis = 0; axis < 3; axis++)
 	{
-		EXPECT_NEAR(imported.min[axis], original.min[axis] * METERS_PER_UNIT, 1e-4f);
-		EXPECT_NEAR(imported.max[axis], original.max[axis] * METERS_PER_UNIT, 1e-4f);
+		EXPECT_NEAR(imported.min[axis], original.min[axis], 1e-3f);
+		EXPECT_NEAR(imported.max[axis], original.max[axis], 1e-3f);
 	}
 
 	// Without morph targets only the first frame
@@ -223,8 +223,7 @@ TEST(GltfWriteTest, PlayerWithAttachmentsAndTextures)
 	parts[1] = {upper.get(), "upper", "models/players/robot/upper.md3", 0, "tag_torso", &upperSkin};
 	parts[2] = {head.get(), "head", "models/players/robot/head.md3", 1, "TAG_HEAD", &headSkin};
 
-	GltfOptions options;
-	options.scale = 1.0f;
+	GltfOptions options; // meters, the import turns them back into game units
 	options.files = &fixtures.files;
 	std::vector<std::string> warnings;
 	options.warn = [&](const std::string &text) { warnings.push_back(text); };

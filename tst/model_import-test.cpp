@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "model_ufbx.h"
 #include "model_gltf.h"
+#include "measure.h"
 #include "scene_import.h"
 #include "skeletal_model.h"
 #include "posed_model.h"
@@ -16,6 +17,9 @@
 
 using namespace mt;
 using namespace mt::model;
+
+// glTF is in meters, the import gives game units (1 unit = 1 inch)
+constexpr float UNITS_PER_METER = 1.0f / METERS_PER_UNIT;
 
 namespace {
 	Ref<mt::io::MTFile> memoryFile(const std::string &name, const std::vector<byte> &data)
@@ -444,8 +448,8 @@ TEST(ImportGLTFTest, staticAnimated)
 	ASSERT_EQ(mesh.name, "tri");
 	ASSERT_EQ(mesh.materialName, "metal");
 
-	// Y-up to Z-up: glTF (0, 1, 0) is (0, 0, 1), and the winding is turned to clockwise
-	expectVec(mesh.frames[0][2].pos, {0, 0, 1});
+	// Y-up to Z-up and meters to game units: glTF (0, 1, 0) is (0, 0, 1 m), and the winding is turned to clockwise
+	expectVec(mesh.frames[0][2].pos, glm::vec3{0, 0, 1} * UNITS_PER_METER);
 	ASSERT_EQ(mesh.tris[0], glm::ivec3(0, 2, 1));
 	expectVec(mesh.frames[0][0].normal, {0, -1, 0});
 	auto copy = *model;
@@ -456,13 +460,13 @@ TEST(ImportGLTFTest, staticAnimated)
 	ASSERT_EQ(mesh.texCoords[2], glm::vec2(0, 1));
 
 	// The node moves along x
-	expectVec(mesh.frames[12][1].pos, {2, 0, 0});
-	expectVec(mesh.frames[24][1].pos, {3, 0, 0});
+	expectVec(mesh.frames[12][1].pos, glm::vec3{2, 0, 0} * UNITS_PER_METER, 1e-3f);
+	expectVec(mesh.frames[24][1].pos, glm::vec3{3, 0, 0} * UNITS_PER_METER, 1e-3f);
 
 	ASSERT_EQ(model->tags.size(), 1);
 	ASSERT_EQ(model->tags[0].name, "tag_flash");
-	expectVec(model->tags[0].frames[0].location, {0, 0, 1});
-	expectVec(model->tags[0].frames[24].location, {2, 0, 1});
+	expectVec(model->tags[0].frames[0].location, glm::vec3{0, 0, 1} * UNITS_PER_METER, 1e-3f);
+	expectVec(model->tags[0].frames[24].location, glm::vec3{2, 0, 1} * UNITS_PER_METER, 1e-3f);
 }
 
 TEST(ImportGLTFTest, skinned)
@@ -482,12 +486,12 @@ TEST(ImportGLTFTest, skinned)
 	ASSERT_EQ(mesh.vertices[2].weightCount, 2);
 
 	// Bind pose: the arm bone is at x = 1
-	expectVec(model->joints[1].location, {1, 0, 0});
-	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], FRAME_BIND_POSE), {2, 0, 0});
-	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], 0), {2, 0, 0});
+	expectVec(model->joints[1].location, glm::vec3{1, 0, 0} * UNITS_PER_METER, 1e-3f);
+	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], FRAME_BIND_POSE), glm::vec3{2, 0, 0} * UNITS_PER_METER, 1e-3f);
+	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], 0), glm::vec3{2, 0, 0} * UNITS_PER_METER, 1e-3f);
 
 	// After turning 90 degrees around the glTF y axis the vertex is at glTF (1, 0, -1), which is (1, 1, 0) in Z-up
-	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], 24), {1, 1, 0});
+	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[1], 24), glm::vec3{1, 1, 0} * UNITS_PER_METER, 1e-3f);
 	// The root bound vertex does not move
 	expectVec(skeletal::posedVertex(*model, mesh, mesh.vertices[0], 24), {0, 0, 0});
 }
@@ -499,7 +503,7 @@ TEST(ImportGLTFTest, binary)
 	auto model = load<morph::MorphModel>(memoryFile("triangle.glb", glb(json, buffers.bin)));
 	ASSERT_TRUE(model);
 	ASSERT_EQ(model->numFrames(), 25);
-	expectVec(model->meshes[0].frames[24][1].pos, {3, 0, 0});
+	expectVec(model->meshes[0].frames[24][1].pos, glm::vec3{3, 0, 0} * UNITS_PER_METER, 1e-3f);
 
 	// From the disk, the terminating null byte of the read file is not part of the GLB
 	std::filesystem::create_directories("tmp/gltf");

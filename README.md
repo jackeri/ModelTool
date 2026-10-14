@@ -26,7 +26,7 @@ It comes as a desktop application (`ModelTool`) and a command line tool (`mt`) b
 | IQM                          | yes  |       |                                                                                            |
 | MS3D (MilkShape 3D)          | yes  | yes   | Mesh and animation, tags as tag bones, up to 4 weights per vertex                                                                         |
 | FBX, OBJ                     | yes  |       | Through ufbx                                                                               |
-| glTF, GLB                    | yes  | yes   | Read through tinygltf, with embedded images and colors; written in meters with the attached models, skins, animations, textures |
+| glTF, GLB                    | yes  | yes   | Read through tinygltf (meters to game units), with embedded images and colors; written in meters with the attached models, skins, animations, textures |
 | STL                          |      | yes   | Binary or text                                                                             |
 | `.aninc`                     | yes  | yes   | Animation sequences (ET animation scripts)                                                 |
 | `.tag`                       | yes  | yes   | Tags file                                                                                  |
