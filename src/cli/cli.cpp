@@ -7,6 +7,7 @@
 #include "model_md3.h"
 #include "morph_model.h"
 #include "normals.h"
+#include "weld.h"
 #include "player.h"
 #include "et_character.h"
 #include "skin.h"
@@ -39,6 +40,8 @@ namespace mt::cli {
 			int firstFrame = 0, lastFrame = -1;	   ///< --frames first:last
 			float scale = 1.0f;					   ///< --scale
 			std::string normals{};				   ///< --normals smooth|seams|flat
+			float weld = -1.0f;					   ///< --weld distance, negative for no welding
+			bool weldMeshes = false;			   ///< --weld-meshes: weld across meshes too
 			bool optimize = false;				   ///< --optimize
 			bool caseSensitive = false;			   ///< --case-sensitive
 			bool lod = false;					   ///< --lod
@@ -139,6 +142,20 @@ namespace mt::cli {
 					{
 						throw UsageError("The scale must be larger than 0");
 					}
+				}
+				else if (arg == "--weld")
+				{
+					const std::string text = value();
+					char *end = nullptr;
+					options.weld = std::strtof(text.c_str(), &end);
+					if (end == text.c_str() || *end != '\0' || options.weld < 0.0f)
+					{
+						throw UsageError("Invalid weld distance: " + text);
+					}
+				}
+				else if (arg == "--weld-meshes")
+				{
+					options.weldMeshes = true;
 				}
 				else if (arg == "--normals")
 				{
@@ -515,6 +532,18 @@ namespace mt::cli {
 
 			model.scale *= options.scale;
 
+			if (options.weld >= 0.0f || options.weldMeshes)
+			{
+				const auto welded
+					= model::weldVertices(model, options.weld >= 0.0f ? options.weld : model::WELD_DISTANCE, options.weldMeshes);
+				out << "Welded " << welded.groups << " vertex groups, moved " << welded.moved << " vertices";
+				if (welded.reweighted > 0)
+				{
+					out << ", " << welded.reweighted << " took the weights of their group";
+				}
+				out << "\n";
+			}
+
 			if (!options.normals.empty())
 			{
 				auto mode = options.normals == "flat"	 ? model::NormalMode::Flat
@@ -633,6 +662,8 @@ namespace mt::cli {
 			   "  --hitboxes file       load hitboxes into the model (.hitboxes or .htx)\n"
 			   "  --frames first:last   convert: frames to write\n"
 			   "  --scale s             convert: scale the model\n"
+			   "  --weld d            convert: move vertices closer than d to one place (closes cracks and gaps)\n"
+			   "  --weld-meshes       convert: weld vertices of different meshes too (distance 0.15 without --weld)\n"
 			   "  --normals smooth|seams|flat convert: recalculate the normals (seams: smooth across texture seams too)\n"
 			   "  --optimize            convert: merge duplicate vertices (skeletal models)\n"
 			   "  --lod                 convert: calculate the level of detail collapse maps\n"

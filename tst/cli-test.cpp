@@ -50,6 +50,8 @@ TEST(CliTest, Usage)
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "--frames", "3"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--scale", "-1"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--normals", "round"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--weld", "near"}).code, cli::EXIT_USAGE);
+	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "out.md3", "--weld", "-1"}).code, cli::EXIT_USAGE);
 	EXPECT_EQ(run({"list"}).code, cli::EXIT_USAGE);
 }
 
@@ -135,6 +137,11 @@ TEST(CliTest, Convert)
 	EXPECT_TRUE(std::filesystem::exists("tmp/cli/mannequin.hitboxes"));
 	auto info = run({"info", "data/models/mdm/mannequin.mdm", "--hitboxes", "tmp/cli/mannequin.hitboxes"});
 	EXPECT_TRUE(contains(info.out, "Hitboxes: 3"));
+
+	// Welding, then the normals across the seams
+	auto welded = run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--weld", "0.2", "--weld-meshes", "--normals", "seams"});
+	ASSERT_EQ(welded.code, cli::EXIT_OK) << welded.err;
+	EXPECT_TRUE(contains(welded.out, "Welded "));
 
 	// Errors
 	EXPECT_EQ(run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.xyz"}).code, cli::EXIT_FAILED);

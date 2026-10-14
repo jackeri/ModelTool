@@ -19,6 +19,7 @@
 #include "model_scripts.h"
 #include "model_stl.h"
 #include "settings.h"
+#include "weld.h"
 
 #include <filesystem>
 #include "model_scripts.h"
@@ -154,6 +155,7 @@ namespace mt {
 		drawMenu();
 		handleAttachRequest();
 		drawScaleBoundsWindow();
+		drawWeldWindow();
 		drawSettingsWindow();
 		drawExportAllWindow();
 
@@ -496,6 +498,12 @@ namespace mt {
 			showScaleBounds = true;
 		}
 
+		if (ImGui::MenuItem("Weld vertices...", nullptr, false, model != nullptr))
+		{
+			showWeld = true;
+		}
+		ImGui::SetItemTooltip("Close cracks and gaps: move vertices that are almost at the same place to one place");
+
 		ImGui::Separator();
 
 		if (ImGui::MenuItem("Apply transform", nullptr, false, model != nullptr))
@@ -649,6 +657,57 @@ namespace mt {
 			{
 				showScaleBounds = false;
 				scale = 1.0f;
+			}
+		}
+		ImGui::End();
+	}
+
+	void ImGuiView::drawWeldWindow()
+	{
+		auto &state = singleton<State>();
+		if (!showWeld || !state.model)
+		{
+			showWeld = false;
+			return;
+		}
+
+		static float distance = model::WELD_DISTANCE;
+		static bool acrossMeshes = false;
+		static bool smoothSeams = true;
+
+		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		if (ImGui::Begin("Weld vertices", &showWeld, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::TextDisabled("Vertices closer than the distance move to one place in every frame.\n"
+								"They keep their texture coordinates, so texture seams stay.");
+			ImGui::DragFloat("Distance", &distance, 0.005f, 0.0f, 10.0f, "%.3f");
+			ImGui::Checkbox("Across meshes", &acrossMeshes);
+			ImGui::SetItemTooltip("Also weld vertices of different meshes, like the seam between two body parts");
+			ImGui::Checkbox("Recalculate the normals (smooth across seams)", &smoothSeams);
+
+			if (ImGui::Button("Apply"))
+			{
+				auto logger = spdlog::get(MT_LOGGER);
+				try
+				{
+					const auto result = model::weldVertices(*state.model, distance, acrossMeshes);
+					logger->info("Welded {} vertex groups, moved {} vertices, {} took the weights of their group", result.groups,
+								 result.moved, result.reweighted);
+					if (smoothSeams && result.groups > 0 && !model::calculateNormals(*state.model, model::NormalMode::SmoothSeams))
+					{
+						logger->warn("The model has no bind pose or frames to calculate the normals from");
+					}
+				}
+				catch (const std::exception &ex)
+				{
+					logger->error("Weld failed: {}", ex.what());
+				}
+				showWeld = false;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				showWeld = false;
 			}
 		}
 		ImGui::End();

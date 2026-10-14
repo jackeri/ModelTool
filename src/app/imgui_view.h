@@ -71,6 +71,11 @@ namespace mt {
 		void drawScaleBoundsWindow();
 
 		/**
+		 * Window of Edit > Weld vertices: distance, across meshes
+		 */
+		void drawWeldWindow();
+
+		/**
 		 * Draw the File > Export submenu
 		 */
 		void drawExportMenu();
@@ -148,6 +153,7 @@ namespace mt {
 
 		ScenePanel *scene = nullptr;  ///< scene panel for the camera settings
 		bool showScaleBounds = false; ///< the bounding box scaling window is open
+		bool showWeld = false;		  ///< the weld vertices window is open
 		BaseBrowser baseBrowser{};	  ///< browser for the base folders and pk3 files
 		LogPanel logPanel{};		  ///< log window
 		GLFWwindow *glfwWindow = nullptr;
