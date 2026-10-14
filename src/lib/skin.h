@@ -2,6 +2,7 @@
 
 #include "library.h"
 #include "files.h"
+#include "model.h"
 
 #include <map>
 
@@ -46,4 +47,13 @@ namespace mt::model {
 	 * @return file data as text, empty for a missing file
 	 */
 	std::string fileText(const Ref<mt::io::MTFile> &file);
+
+	/**
+	 * Write a skin into a model: the meshes the skin names get its shader as their material, in every level of detail
+	 * (like the old Pascal Q3 Model Tool's "Embed skin into model"). Meshes the skin does not name keep their material.
+	 * @param model model to change
+	 * @param skin skin to write
+	 * @return number of meshes whose material changed
+	 */
+	size_t bakeSkin(Model &model, const Skin &skin);
 }

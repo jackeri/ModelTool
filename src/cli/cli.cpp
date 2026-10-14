@@ -35,6 +35,7 @@ namespace mt::cli {
 			std::vector<std::string> basePaths{};  ///< --base
 			std::vector<std::string> animations{}; ///< --animation
 			std::string hitboxes{};				   ///< --hitboxes
+			std::string skin{};					   ///< --skin: write this skin's shaders into the model
 			std::string saveHitboxes{};			   ///< --save-hitboxes
 			bool hasFrames = false;				   ///< --frames was given
 			int firstFrame = 0, lastFrame = -1;	   ///< --frames first:last
@@ -110,6 +111,10 @@ namespace mt::cli {
 				else if (arg == "--animation")
 				{
 					options.animations.push_back(value());
+				}
+				else if (arg == "--skin")
+				{
+					options.skin = value();
 				}
 				else if (arg == "--hitboxes")
 				{
@@ -532,6 +537,12 @@ namespace mt::cli {
 
 			model.scale *= options.scale;
 
+			if (!options.skin.empty())
+			{
+				const size_t baked = model::bakeSkin(model, model::loadSkin(files.load(options.skin)));
+				out << "Baked the skin " << options.skin << " into " << baked << " meshes\n";
+			}
+
 			if (options.weld >= 0.0f || options.weldMeshes)
 			{
 				const auto welded
@@ -662,6 +673,7 @@ namespace mt::cli {
 			   "  --hitboxes file       load hitboxes into the model (.hitboxes or .htx)\n"
 			   "  --frames first:last   convert: frames to write\n"
 			   "  --scale s             convert: scale the model\n"
+			   "  --skin file         convert: write the skin's shaders into the materials of the meshes it names\n"
 			   "  --weld d            convert: move vertices closer than d to one place (closes cracks and gaps)\n"
 			   "  --weld-meshes       convert: weld vertices of different meshes too (distance 0.15 without --weld)\n"
 			   "  --normals smooth|seams|flat convert: recalculate the normals (seams: smooth across texture seams too)\n"

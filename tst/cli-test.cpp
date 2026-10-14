@@ -138,6 +138,15 @@ TEST(CliTest, Convert)
 	auto info = run({"info", "data/models/mdm/mannequin.mdm", "--hitboxes", "tmp/cli/mannequin.hitboxes"});
 	EXPECT_TRUE(contains(info.out, "Hitboxes: 3"));
 
+	// A skin written into the model
+	auto skinned = run({"convert", "data/models/players/robot/lower.md3", "tmp/cli/lower.md3", "--skin",
+						"models/players/robot/lower_red.skin", "--base", "data"});
+	ASSERT_EQ(skinned.code, cli::EXIT_OK) << skinned.err;
+	EXPECT_TRUE(contains(skinned.out, "into 1 meshes"));
+	EXPECT_TRUE(contains(run({"info", "tmp/cli/lower.md3"}).out, "material models/players/robot/red.tga"));
+	EXPECT_EQ(run({"convert", "data/models/players/robot/lower.md3", "tmp/cli/lower.md3", "--skin", "missing.skin"}).code,
+			  cli::EXIT_FAILED);
+
 	// Welding, then the normals across the seams
 	auto welded = run({"convert", "data/models/md3/tube.md3", "tmp/cli/tube.md3", "--weld", "0.2", "--weld-meshes", "--normals", "seams"});
 	ASSERT_EQ(welded.code, cli::EXIT_OK) << welded.err;

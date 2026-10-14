@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "filesystem.h"
 #include "model.h"
+#include "model_md3.h"
 #include "morph_model.h"
 #include "player.h"
 #include "posed_model.h"
@@ -242,6 +243,54 @@ TEST(PlayerTest, AttachToBone)
 	EXPECT_EQ(state.attachPoints(0), std::vector<std::string>({"tag_head"}));
 	state.attachModel("models/md3/tube.md3", 0, "tag_head");
 	EXPECT_EQ(state.attachments[1].parent, 0);
+
+	state.clear();
+	state.filesystem.clear();
+}
+
+TEST(PlayerTest, BakeSkin)
+{
+	io::FileSystem files;
+	ASSERT_TRUE(files.addPath("data"));
+	std::unique_ptr<Model> loaded(model::io::loadModel(files.loadFile("models/players/robot/head.md3")));
+	auto &head = dynamic_cast<model::morph::MorphModel &>(*loaded);
+	model::loadMorphLods(head, files, "models/players/robot/head.md3");
+	ASSERT_EQ(head.lods.size(), 2);
+
+	// The skin's shader goes into the base mesh and every level of detail
+	const auto skin = model::loadSkin(files.loadFile("models/players/robot/head_red.skin"));
+	EXPECT_EQ(model::bakeSkin(head, skin), 3);
+	EXPECT_EQ(head.meshes[0].materialName, "models/players/robot/red_h.tga");
+	EXPECT_EQ(head.lods[1][0].materialName, "models/players/robot/red_h.tga");
+	// Already baked, and a skin that names no mesh changes nothing
+	EXPECT_EQ(model::bakeSkin(head, skin), 0);
+	EXPECT_EQ(model::bakeSkin(head, model::parseSkin("other,x.tga\n")), 0);
+	EXPECT_EQ(head.meshes[0].materialName, "models/players/robot/red_h.tga");
+}
+
+TEST(PlayerTest, StateBakesSkins)
+{
+	auto &state = singleton<State>();
+	state.clear();
+	state.filesystem.clear();
+	ASSERT_TRUE(state.filesystem.addPath("data"));
+
+	// A player model: lower with its skin, upper and head attached with theirs
+	state.loadModel("models/players/robot/animation.cfg");
+	state.setPlayerSkin("blue");
+	ASSERT_TRUE(state.hasSkins());
+	EXPECT_EQ(state.bakeSkins(), 7); // the meshes of the three parts and of their levels of detail
+	EXPECT_FALSE(state.hasSkins());
+	EXPECT_EQ(state.model->skeletalModel(), false);
+	auto &lower = dynamic_cast<model::morph::MorphModel &>(*state.model);
+	EXPECT_EQ(lower.meshes[0].materialName, "models/players/robot/blue.tga");
+
+	// Any model can get a skin
+	state.loadModel("models/players/robot/head.md3");
+	EXPECT_FALSE(state.hasSkins());
+	state.loadModelSkin("models/players/robot/head_stripe.skin");
+	EXPECT_TRUE(state.hasSkins());
+	EXPECT_THROW(state.loadModelSkin("models/players/robot/missing.skin"), mt_exception);
 
 	state.clear();
 	state.filesystem.clear();

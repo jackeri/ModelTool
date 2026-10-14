@@ -1,4 +1,6 @@
 #include "skin.h"
+#include "morph_model.h"
+#include "skeletal_model.h"
 
 namespace mt::model {
 
@@ -94,5 +96,41 @@ namespace mt::model {
 			throw mt_ex("Skin file not found");
 		}
 		return parseSkin(fileText(file));
+	}
+
+	size_t bakeSkin(Model &model, const Skin &skin)
+	{
+		size_t changed = 0;
+		auto bake = [&](const std::string &name, std::string &material) {
+			const std::string shader = skin.shader(name);
+			if (!shader.empty() && shader != material)
+			{
+				material = shader;
+				changed++;
+			}
+		};
+
+		if (auto *skeletal = dynamic_cast<skeletal::SkeletalModel *>(&model))
+		{
+			for (auto &mesh : skeletal->meshes)
+			{
+				bake(mesh.name, mesh.materialName);
+			}
+		}
+		else if (auto *morph = dynamic_cast<morph::MorphModel *>(&model))
+		{
+			for (auto &mesh : morph->meshes)
+			{
+				bake(mesh.name, mesh.materialName);
+			}
+			for (auto &level : morph->lods)
+			{
+				for (auto &mesh : level)
+				{
+					bake(mesh.name, mesh.materialName);
+				}
+			}
+		}
+		return changed;
 	}
 }

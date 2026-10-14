@@ -431,7 +431,7 @@ namespace mt::model {
 	}
 
 	std::string
-	findMaterialTexture(io::FileSource &source, const ShaderLibrary &shaders, const std::string &material, const std::string &modelPath)
+	findMaterialTexture(mt::io::FileSource &source, const ShaderLibrary &shaders, const std::string &material, const std::string &modelPath)
 	{
 		if (const ShaderDef *shader = shaders.find(material))
 		{

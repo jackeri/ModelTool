@@ -166,6 +166,25 @@ namespace mt {
 		void setPlayerSkin(const std::string &name);
 
 		/**
+		 * Use a skin file for the main model
+		 * @param path skin file in the base folders or on the disk
+		 * @throws mt::mt_exception if the file is missing
+		 */
+		void loadModelSkin(const std::string &path);
+
+		/**
+		 * Write the skins into the models (the main model and every attachment with its own skin), so they are
+		 * exported with the skin's shaders; the skins' surface lines are cleared afterwards
+		 * @return number of meshes whose material changed
+		 */
+		size_t bakeSkins();
+
+		/**
+		 * @return the main model or an attachment has a skin with surface shaders
+		 */
+		[[nodiscard]] bool hasSkins() const;
+
+		/**
 		 * Play a sequence on the main model (-1) or an attachment
 		 * @param target -1 for the main model, else the attachment index
 		 * @param animation sequence

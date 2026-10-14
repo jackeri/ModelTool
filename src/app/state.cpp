@@ -237,6 +237,42 @@ namespace mt {
 		playback.pause();
 	}
 
+	void State::loadModelSkin(const std::string &path)
+	{
+		auto file = filesystem.loadFile(path);
+		if (!file)
+		{
+			throw mt_ex("Skin not found: " + path);
+		}
+		skin = model::loadSkin(file);
+	}
+
+	size_t State::bakeSkins()
+	{
+		size_t changed = 0;
+		if (model)
+		{
+			changed += model::bakeSkin(*model, skin);
+			skin.surfaces.clear();
+		}
+		for (auto &attachment : attachments)
+		{
+			if (attachment.model)
+			{
+				changed += model::bakeSkin(*attachment.model, attachment.skin);
+				attachment.skin.surfaces.clear();
+			}
+		}
+		return changed;
+	}
+
+	bool State::hasSkins() const
+	{
+		return !skin.surfaces.empty() || std::any_of(attachments.begin(), attachments.end(), [](const auto &attachment) {
+			return !attachment.skin.surfaces.empty();
+		});
+	}
+
 	void State::setPlayerSkin(const std::string &name)
 	{
 		playerSkin = name;

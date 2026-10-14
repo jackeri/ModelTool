@@ -31,7 +31,7 @@ It comes as a desktop application (`ModelTool`) and a command line tool (`mt`) b
 | `.aninc`                     | yes  | yes   | Animation sequences (ET animation scripts)                                                 |
 | `.tag`                       | yes  | yes   | Tags file                                                                                  |
 | `.hitboxes`                  | yes  | yes   | Hitboxes; old LegacyModelView `.htx` files are read too                                    |
-| `.skin`                      | yes  |       | Shaders per mesh, Quake 3 and ET style                                                     |
+| `.skin`                      | yes  |       | Shaders per mesh, Quake 3 and ET style; File > Load skin for any model, Edit > Bake skin   |
 | `.shader`                    | yes  |       | Quake 3 / ET shader scripts in `scripts/`: image, cull, alphaFunc, blendFunc               |
 | `animation.cfg`              | yes  |       | Quake 3 style player models                                                                |
 | `.char`                      | yes  |       | ET characters, with their animation group (`.anim`) and head animations                    |
@@ -73,7 +73,8 @@ Every binary loader checks the file against its size, so broken files give an er
 - Model: name, transform (location, rotation, scale), export frame range
 - Meshes, tags (add, remove, rename, move to another bone), bones (rename, use as tag, torso weight), animation
   sequences (add, edit, remove)
-- Edit menu: recalculate normals (smooth, smooth across texture seams, flat), weld vertices (close cracks and gaps:
+- Edit menu: recalculate normals (smooth, smooth across texture seams, flat), bake the skin into the model (the skin's shaders become the
+  mesh materials, also of the attached models, so an export keeps them), weld vertices (close cracks and gaps:
   vertices closer than a distance move to one place in every frame, optionally across meshes), calculate the level of detail collapse maps, optimize vertices, scale the bounding
   boxes, apply the transform, bake a pose into the bind pose, bake bone tags into tags, reorganize the armature to the
   ET player bones, check the armature
@@ -161,7 +162,7 @@ mt [--base folder]... <command> [options]
   convert <model> <output>...    write the model, the format comes from the output extension
   list [folder]                  list the model files in the base folders and pk3 files
 
-  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|seams|flat, --weld d, --weld-meshes,
+  --animation file, --hitboxes file, --frames first:last, --scale s, --normals smooth|seams|flat, --skin file, --weld d, --weld-meshes,
   --optimize, --lod, --save-hitboxes file, --case-sensitive, --help, --version
 ```
 

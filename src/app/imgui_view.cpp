@@ -293,6 +293,39 @@ namespace mt {
 					browser.setDirectory(startFolder());
 				}
 
+				if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH " Load skin from base folders...", nullptr, false, !!state.model))
+				{
+					baseBrowser.show("Load skin", {".skin"}, [this](const std::string &path) {
+						try
+						{
+							singleton<State>().loadModelSkin(path);
+							logger->info("Loaded skin {}", path);
+						}
+						catch (const std::exception &ex)
+						{
+							logger->error("Failed to load skin: {}", ex.what());
+						}
+					});
+				}
+
+				if (ImGui::MenuItem(ICON_FA_PAINT_BRUSH " Load skin...", nullptr, false, !!state.model))
+				{
+					browser.show("Load skin", [this](const std::string &file) {
+						rememberFolder(file);
+						try
+						{
+							singleton<State>().loadModelSkin(file);
+							logger->info("Loaded skin {}", file);
+						}
+						catch (const std::exception &ex)
+						{
+							logger->error("Failed to load skin: {}", ex.what());
+						}
+					});
+					browser.setTypeFilters({".skin"});
+					browser.setDirectory(startFolder());
+				}
+
 				if (ImGui::MenuItem(ICON_FA_CUBE " Load hitboxes", nullptr, false, (!!state.model && state.model->skeletalModel())))
 				{
 					browser.show("Load hitboxes", [&](const std::string &file) {
@@ -497,6 +530,13 @@ namespace mt {
 		{
 			showScaleBounds = true;
 		}
+
+		if (ImGui::MenuItem("Bake skin into the model", nullptr, false, model != nullptr && state.hasSkins()))
+		{
+			logger->info("The skin shaders are now the materials of {} meshes", state.bakeSkins());
+		}
+		ImGui::SetItemTooltip("Write the skin's shaders into the mesh materials (also of the attached models), so an "
+							  "export keeps them");
 
 		if (ImGui::MenuItem("Weld vertices...", nullptr, false, model != nullptr))
 		{
