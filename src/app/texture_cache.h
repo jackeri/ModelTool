@@ -32,7 +32,16 @@ namespace mt {
 		void setOptions(int picmip, TextureFilter filter);
 
 		/**
-		 * Forget every texture (for example when a new model is loaded), the shaders are kept
+		 * A side of a sky box: kept apart from the model textures, so loading or closing a model does not reload it
+		 * (only new base folders or another texture filter do); full size and clamped to the edges like in the game
+		 * @param source file source to find the image from
+		 * @param image image name (sky box name + _rt, _bk, ...)
+		 * @return texture or nullptr if the image was not found
+		 */
+		Texture *skySide(io::FileSource &source, const std::string &image);
+
+		/**
+		 * Forget every model texture (for example when a new model is loaded), the shaders and the sky box are kept
 		 */
 		void clear();
 
@@ -61,6 +70,10 @@ namespace mt {
 
 	  private:
 		std::map<std::string, std::unique_ptr<Texture>> textures{}; ///< key is the model path + material
+		/*! Load a texture through the shaders and the files */
+		std::unique_ptr<Texture> loadFile(io::FileSource &source, const std::string &material, const std::string &modelPath, bool sky);
+
+		std::map<std::string, std::unique_ptr<Texture>> skyTextures{}; ///< sky box sides by image name
 		model::ShaderLibrary shaders{};
 		int picmip = 0;
 		TextureFilter filter = TextureFilter::Trilinear;

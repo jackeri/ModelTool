@@ -132,11 +132,7 @@ namespace mt {
 			std::array<const Texture *, 6> sides{};
 			for (size_t side = 0; side < 6; side++)
 			{
-				if (Texture *texture = state.textures.get(state.filesystem, state.skyBox + suffixes[side], ""))
-				{
-					texture->setClamp(true);
-					sides[side] = texture;
-				}
+				sides[side] = state.textures.skySide(state.filesystem, state.skyBox + suffixes[side]);
 			}
 			renderer->skyBox(sides, state.view.gamma, state.view.intensity);
 		}
