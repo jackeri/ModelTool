@@ -338,25 +338,32 @@ namespace mt {
 	{
 		auto &view = singleton<State>().view;
 		drawMeasurementLabels(origin);
-		if (!view.drawTags || !view.drawTagNames || posed.tags.empty())
+		if (!view.drawTags || !view.drawTagNames)
 		{
 			return;
 		}
 
-		const glm::mat4 matrix = renderer->viewProjection() * modelMatrix;
 		ImDrawList *drawList = ImGui::GetWindowDrawList();
-
-		for (const auto &tag : posed.tags)
-		{
-			glm::vec4 clip = matrix * glm::vec4(tag.point.location, 1.0f);
-			if (clip.w <= 0.0f)
+		// The tags (and bones used as tags) of the model and of every attached model, each with its own place
+		auto label = [&](const model::PosedModel &posedModel, const glm::mat4 &placement) {
+			const glm::mat4 matrix = renderer->viewProjection() * placement;
+			for (const auto &tag : posedModel.tags)
 			{
-				continue;
-			}
+				glm::vec4 clip = matrix * glm::vec4(tag.point.location, 1.0f);
+				if (clip.w <= 0.0f)
+				{
+					continue;
+				}
 
-			glm::vec3 ndc = glm::vec3(clip) / clip.w;
-			ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y - 6.0f};
-			drawList->AddText(screen, IM_COL32(255, 0, 255, 255), tag.name.c_str());
+				glm::vec3 ndc = glm::vec3(clip) / clip.w;
+				ImVec2 screen{origin.x + (ndc.x * 0.5f + 0.5f) * viewSize.x + 6.0f, origin.y + (0.5f - ndc.y * 0.5f) * viewSize.y - 6.0f};
+				drawList->AddText(screen, IM_COL32(255, 0, 255, 255), tag.name.c_str());
+			}
+		};
+		label(posed, modelMatrix);
+		for (size_t i = 0; i < posedAttachments.size() && i < attachmentMatrices.size(); i++)
+		{
+			label(posedAttachments[i], attachmentMatrices[i]);
 		}
 	}
 
