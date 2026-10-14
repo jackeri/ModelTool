@@ -1,5 +1,6 @@
 /*
- * Fits a small hitbox set to an ET character (.char): the body mesh and the hud head, without the accessories.
+ * Fits a small hitbox set to ET characters (.char): the body mesh and the hud head, without the accessories. With
+ * several characters (same bones, like every class of both teams) one hitbox set is fitted to all of them.
  *
  * Every body vertex goes to the hitbox of its strongest bone (head, torso, upper arms, forearms with the hands,
  * thighs, calves, feet). The head model is placed on the body's tag_head; the part of it below the head bone (the neck,
@@ -13,7 +14,7 @@
  * farthest points dropped, and it is fitted again to the rest), --margin is the space left around the held vertices.
  *
  * Build: cmake --build build --target fit_hitboxes
- * Run:   ./build/fit_hitboxes <base folder> <character.char> <output.hitboxes> [--single-pose [--sequence name | --frame n]]
+ * Run:   ./build/fit_hitboxes <base folder> <character.char>... <output.hitboxes> [--single-pose [--sequence name | --frame n]]
  *        --single-pose fits one pose only (alert_idle_2h by default): tighter, but parts of the mesh leave the
  *        hitboxes in other poses
  *        --coverage percent (default 100) and --margin units (default 0.05, negative fits inside the mesh)
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -501,28 +503,38 @@ namespace {
 
 	int usage()
 	{
-		std::cerr << "Usage: fit_hitboxes <base folder> <character.char> <output.hitboxes> [--single-pose [--sequence name | --frame n]]\n"
-					 "                    [--coverage percent] [--margin units]\n"
-					 "  --coverage  percent of each part's vertex positions its hitbox must hold (default 100), the farthest ones\n"
-					 "              are left out, so a lower value gives smaller hitboxes that let some of the mesh out\n"
-					 "  --margin    space between the hitboxes and the vertices they hold (default 0.05), negative values fit\n"
-					 "              inside the mesh\n";
+		std::cerr
+			<< "Usage: fit_hitboxes <base folder> <character.char>... <output.hitboxes> [--single-pose [--sequence name | --frame n]]\n"
+			   "                    [--coverage percent] [--margin units] [--skip-coat]\n"
+			   "  Several characters (with the same bones) give one hitbox set that fits all of them\n"
+			   "  --coverage  percent of each part's vertex positions its hitbox must hold (default 100), the farthest ones\n"
+			   "              are left out, so a lower value gives smaller hitboxes that let some of the mesh out\n"
+			   "  --margin    space between the hitboxes and the vertices they hold (default 0.05), negative values fit\n"
+			   "              inside the mesh\n"
+			   "  --skip-coat leave out the coat: upper body mesh vertices on the leg bones or more than 2 units below the\n"
+			   "              hip joints in the fitting pose\n";
 		return 1;
 	}
+
+	/*! A character to fit: its body (with the animation group), head and the hitbox group of every body vertex */
+	struct Character {
+		std::string path;
+		std::unique_ptr<Model> loaded;
+		skeletal::SkeletalModel *body = nullptr;
+		std::unique_ptr<Model> head;
+		std::vector<std::vector<int>> vertexGroups;
+	};
 }
 
 int main(int argc, char **argv)
 {
-	if (argc < 4)
-	{
-		return usage();
-	}
-
 	std::string sequence = "alert_idle_2h";
 	int frame = -1;
 	bool allFrames = true;
+	bool skipCoat = false;
 	Fit fit;
-	for (int i = 4; i < argc; i++)
+	std::vector<std::string> positional;
+	for (int i = 1; i < argc; i++)
 	{
 		const std::string arg = argv[i];
 		if (arg == "--sequence" && i + 1 < argc)
@@ -546,22 +558,37 @@ int main(int argc, char **argv)
 		{
 			fit.margin = std::strtof(argv[++i], nullptr);
 		}
+		else if (arg == "--skip-coat")
+		{
+			skipCoat = true;
+		}
 		else if (arg == "--single-pose")
 		{
 			allFrames = false;
 		}
-		else
+		else if (arg.rfind("--", 0) == 0)
 		{
 			return usage();
 		}
+		else
+		{
+			positional.push_back(arg);
+		}
 	}
+	if (positional.size() < 3)
+	{
+		return usage();
+	}
+	const std::string basePath = positional.front();
+	const std::string output = positional.back();
+	const std::vector<std::string> characterPaths(positional.begin() + 1, positional.end() - 1);
 
 	try
 	{
 		mt::io::FileSystem files;
-		if (!files.addPath(argv[1]))
+		if (!files.addPath(basePath))
 		{
-			throw mt_ex(std::string("Base folder not found: ") + argv[1]);
+			throw mt_ex("Base folder not found: " + basePath);
 		}
 		auto text = [&](const std::string &path) {
 			auto file = files.loadFile(path);
@@ -572,38 +599,60 @@ int main(int argc, char **argv)
 			return fileText(file);
 		};
 
-		const auto character = parseCharacter(text(argv[2]));
-		std::unique_ptr<Model> loaded(mt::model::io::loadModel(files.loadFile(character.mesh)));
-		auto *body = dynamic_cast<skeletal::SkeletalModel *>(loaded.get());
-		if (!body)
+		std::vector<Character> characters;
+		for (const auto &path : characterPaths)
 		{
-			throw mt_ex("The body is not a skeletal model: " + character.mesh);
+			Character character;
+			character.path = path;
+			const auto def = parseCharacter(text(path));
+			character.loaded.reset(mt::model::io::loadModel(files.loadFile(def.mesh)));
+			character.body = dynamic_cast<skeletal::SkeletalModel *>(character.loaded.get());
+			if (!character.body)
+			{
+				throw mt_ex("The body is not a skeletal model: " + def.mesh);
+			}
+			loadAnimationGroup(*character.body, parseAnimationGroup(text(def.animationGroup), text),
+							   [&](const std::string &file) { return files.loadFile(file); });
+			if (!def.hudHead.empty())
+			{
+				character.head.reset(mt::model::io::loadModel(files.loadFile(def.hudHead)));
+			}
+
+			// One hitbox file for all: the bones (their order) and the frames must be the same
+			if (!characters.empty())
+			{
+				const auto *first = characters.front().body;
+				bool same = first->joints.size() == character.body->joints.size() && first->numFrames() == character.body->numFrames();
+				for (size_t j = 0; same && j < first->joints.size(); j++)
+				{
+					same = first->joints[j].name == character.body->joints[j].name;
+				}
+				if (!same)
+				{
+					throw mt_ex("The bones or frames of " + path + " differ from " + characters.front().path);
+				}
+			}
+			std::cout << "Loaded " << path << "\n";
+			characters.push_back(std::move(character));
 		}
-		loadAnimationGroup(*body, parseAnimationGroup(text(character.animationGroup), text),
-						   [&](const std::string &path) { return files.loadFile(path); });
-		std::unique_ptr<Model> head;
-		if (!character.hudHead.empty())
-		{
-			head.reset(mt::model::io::loadModel(files.loadFile(character.hudHead)));
-		}
+		const auto &reference = *characters.front().body;
 
 		if (frame < 0)
 		{
-			auto found
-				= std::find_if(body->animations.begin(), body->animations.end(), [&](const Animation &a) { return a.name == sequence; });
-			if (found == body->animations.end())
+			auto found = std::find_if(reference.animations.begin(), reference.animations.end(),
+									  [&](const Animation &a) { return a.name == sequence; });
+			if (found == reference.animations.end())
 			{
 				throw mt_ex("Sequence not found: " + sequence);
 			}
 			frame = found->startFrame;
 		}
-		std::cout << "Fitting " << argv[2] << "\n";
 
 		// The body parts, by the ET (Biped) bone names
 		auto joint = [&](const std::string &name) {
-			for (size_t i = 0; i < body->joints.size(); i++)
+			for (size_t i = 0; i < reference.joints.size(); i++)
 			{
-				if (body->joints[i].name == name)
+				if (reference.joints[i].name == name)
 				{
 					return int(i);
 				}
@@ -623,9 +672,9 @@ int main(int argc, char **argv)
 
 			// The forearm takes the hand and every finger bone under it
 			std::vector<int> forearm = {joint(bone + "Forearm"), joint(bone + "Hand")};
-			for (size_t i = 0; i < body->joints.size(); i++)
+			for (size_t i = 0; i < reference.joints.size(); i++)
 			{
-				if (body->joints[i].name.rfind(bone + "Finger", 0) == 0)
+				if (reference.joints[i].name.rfind(bone + "Finger", 0) == 0)
 				{
 					forearm.push_back(int(i));
 				}
@@ -647,46 +696,87 @@ int main(int argc, char **argv)
 			}
 		}
 
-		// The group of every body vertex, by its strongest bone
-		std::vector<std::vector<int>> vertexGroups;
-		for (const auto &mesh : body->meshes)
-		{
-			vertexGroups.emplace_back();
-			for (const auto &vertex : mesh.vertices)
+		// The group of every body vertex, by its strongest bone. -1 leaves the vertex out: with --skip-coat the vertices of
+		// the upper body meshes (not l_*) that are on the leg bones or hang more than 2 units below the hip joints in the
+		// fitting pose (the skirt of a long coat or jacket)
+		auto legBone = [&](int j) {
+			const std::string &name = reference.joints[size_t(j)].name;
+			for (const char *part : {"Thigh", "Calf", "Foot", "Toe"})
 			{
-				int strongest = -1;
-				float bias = -1.0f;
-				for (int i = 0; i < vertex.weightCount; i++)
+				if (name.find(part) != std::string::npos)
 				{
-					const auto &weight = mesh.weights.at(size_t(vertex.startWeight + i));
-					if (weight.bias > bias)
+					return true;
+				}
+			}
+			return false;
+		};
+		for (auto &character : characters)
+		{
+			PoseOptions options;
+			options.frame = frame;
+			options.nextFrame = frame;
+			const auto posed = poseModel(*character.body, options);
+			auto bonePosition = [&](const std::string &name) { return posed.bonePoints.at(size_t(joint(name))).point.location; };
+			const glm::vec3 up = glm::normalize(bonePosition("Bip01 Spine3") - bonePosition("Bip01 Pelvis"));
+			const float hip = (glm::dot(bonePosition("Bip01 L Thigh"), up) + glm::dot(bonePosition("Bip01 R Thigh"), up)) / 2;
+
+			size_t skipped = 0;
+			for (size_t m = 0; m < character.body->meshes.size(); m++)
+			{
+				const auto &mesh = character.body->meshes[m];
+				character.vertexGroups.emplace_back();
+				for (size_t v = 0; v < mesh.vertices.size(); v++)
+				{
+					const auto &vertex = mesh.vertices[v];
+					int strongest = -1;
+					float bias = -1.0f;
+					for (int i = 0; i < vertex.weightCount; i++)
 					{
-						bias = weight.bias;
-						strongest = weight.jointId;
+						const auto &weight = mesh.weights.at(size_t(vertex.startWeight + i));
+						if (weight.bias > bias)
+						{
+							bias = weight.bias;
+							strongest = weight.jointId;
+						}
 					}
+					auto found = groupOfJoint.find(strongest);
+					if (found == groupOfJoint.end())
+					{
+						throw mt_ex("No hitbox for the vertices of bone " + (strongest >= 0 ? reference.joints[strongest].name : "-"));
+					}
+					if (skipCoat && mesh.name.rfind("l_", 0) != 0
+						&& (legBone(strongest) || glm::dot(posed.meshes[m].positions[v], up) < hip - 2.0f))
+					{
+						character.vertexGroups.back().push_back(-1);
+						skipped++;
+						continue;
+					}
+					character.vertexGroups.back().push_back(found->second);
 				}
-				auto found = groupOfJoint.find(strongest);
-				if (found == groupOfJoint.end())
-				{
-					throw mt_ex("No hitbox for the vertices of bone " + (strongest >= 0 ? body->joints[strongest].name : "-"));
-				}
-				vertexGroups.back().push_back(found->second);
+			}
+			if (skipped > 0)
+			{
+				std::cout << "Left out " << skipped << " coat vertices of " << character.path << "\n";
 			}
 		}
 
 		// The points of every group in a pose, in the space of the group's bone
-		auto collect = [&](int poseFrame, std::vector<std::vector<glm::vec3>> &points) {
+		auto collect = [&](const Character &character, int poseFrame, std::vector<std::vector<glm::vec3>> &points) {
 			PoseOptions options;
 			options.frame = poseFrame;
 			options.nextFrame = poseFrame;
-			const auto posed = poseModel(*body, options);
+			const auto posed = poseModel(*character.body, options);
 			auto bone = [&](size_t g) { return posed.bonePoints.at(size_t(groups[g].parent)).point; };
 
 			for (size_t m = 0; m < posed.meshes.size(); m++)
 			{
 				for (size_t v = 0; v < posed.meshes[m].positions.size(); v++)
 				{
-					const size_t g = size_t(vertexGroups[m][v]);
+					if (character.vertexGroups[m][v] < 0)
+					{
+						continue;
+					}
+					const size_t g = size_t(character.vertexGroups[m][v]);
 					points[g].push_back(toLocal(bone(g), posed.meshes[m].positions[v]));
 				}
 			}
@@ -694,9 +784,9 @@ int main(int argc, char **argv)
 			// The head model on the body's tag_head, like the game draws it. Its neck (below the head bone: the bone
 			// points up along its X axis) is held by the torso like the body's neck
 			glm::mat4 tag{1.0f};
-			if (head && tagMatrix(posed, "tag_head", tag))
+			if (character.head && tagMatrix(posed, "tag_head", tag))
 			{
-				for (const auto &mesh : poseModel(*head, PoseOptions{}).meshes)
+				for (const auto &mesh : poseModel(*character.head, PoseOptions{}).meshes)
 				{
 					for (const auto &position : mesh.positions)
 					{
@@ -715,15 +805,18 @@ int main(int argc, char **argv)
 			}
 		};
 
+		std::cout << "Fitting to " << (allFrames ? "every 5th frame" : "frame " + std::to_string(frame)) << " of " << characters.size()
+				  << " character(s), coverage " << fit.coverage << "%, margin " << fit.margin << "\n";
 		std::vector<std::vector<glm::vec3>> points(groups.size());
-		collect(frame, points);
-		std::cout << "Fitting to " << (allFrames ? "every 5th frame" : "frame " + std::to_string(frame)) << ", coverage " << fit.coverage
-				  << "%, margin " << fit.margin << "\n";
-		if (allFrames)
+		for (const auto &character : characters)
 		{
-			for (int f = 0; f < body->numFrames(); f += 5)
+			collect(character, frame, points);
+			if (allFrames)
 			{
-				collect(f, points);
+				for (int f = 0; f < reference.numFrames(); f += 5)
+				{
+					collect(character, f, points);
+				}
 			}
 		}
 
@@ -746,52 +839,63 @@ int main(int argc, char **argv)
 			}
 			hitboxes.push_back(hitbox);
 		}
+		points.clear();
+		points.shrink_to_fit();
 
-		// How much of the mesh the hitboxes hold in the other poses (vertices blended between bones can move out)
-		size_t total = 0, missed = 0;
-		std::map<std::string, size_t> missedByGroup;
-		for (int f = 0; f < body->numFrames(); f += 5)
-		{
-			std::vector<std::vector<glm::vec3>> posePoints(groups.size());
-			collect(f, posePoints);
-			PoseOptions options;
-			options.frame = f;
-			options.nextFrame = f;
-			const auto posed = poseModel(*body, options);
-			for (size_t g = 0; g < groups.size(); g++)
-			{
-				for (const auto &point : posePoints[g])
-				{
-					const glm::vec3 position = fromLocal(posed.bonePoints[size_t(groups[g].parent)].point, point);
-					total++;
-					bool held = false;
-					for (const auto &hitbox : hitboxes)
-					{
-						held = held || inside(hitbox, toLocal(posed.bonePoints[size_t(hitbox.parentJoint)].point, position));
-					}
-					if (!held)
-					{
-						missed++;
-						missedByGroup[groups[g].name]++;
-					}
-				}
-			}
-		}
-
+		// How much of each mesh the hitboxes hold in every 5th frame (vertices blended between bones can move out)
 		float sum = 0.0f;
 		for (const auto &hitbox : hitboxes)
 		{
 			sum += volume(hitbox);
 		}
-		std::cout << hitboxes.size() << " hitboxes, volume " << int(sum) << "\n";
-		std::cout << "Vertex positions inside a hitbox over every 5th frame: " << 100.0 * double(total - missed) / double(total) << "%\n";
-		for (const auto &[name, count] : missedByGroup)
+		std::cout << "Volumes:\n";
+		for (const auto &hitbox : hitboxes)
 		{
-			std::cout << "  outside, from " << name << ": " << 100.0 * double(count) / double(total) << "%\n";
+			std::cout << "  " << hitbox.name << " (" << hitboxShapeName(hitbox.shape) << "): " << int(std::lround(volume(hitbox))) << "\n";
+		}
+		std::cout << "Total volume of the " << hitboxes.size() << " hitboxes: " << int(std::lround(sum)) << " cubic units\n";
+		std::cout << "Vertex positions inside a hitbox over every 5th frame" << (skipCoat ? " (coat vertices left out)" : "") << ":\n";
+		size_t allTotal = 0, allMissed = 0;
+		for (const auto &character : characters)
+		{
+			size_t total = 0, missed = 0;
+			for (int f = 0; f < reference.numFrames(); f += 5)
+			{
+				std::vector<std::vector<glm::vec3>> posePoints(groups.size());
+				collect(character, f, posePoints);
+				PoseOptions options;
+				options.frame = f;
+				options.nextFrame = f;
+				const auto posed = poseModel(*character.body, options);
+				for (size_t g = 0; g < groups.size(); g++)
+				{
+					for (const auto &point : posePoints[g])
+					{
+						const glm::vec3 position = fromLocal(posed.bonePoints[size_t(groups[g].parent)].point, point);
+						total++;
+						bool held = false;
+						for (const auto &hitbox : hitboxes)
+						{
+							held = held || inside(hitbox, toLocal(posed.bonePoints[size_t(hitbox.parentJoint)].point, position));
+						}
+						missed += held ? 0 : 1;
+					}
+				}
+			}
+			std::cout << "  " << character.path << ": " << 100.0 * double(total - missed) / double(total) << "%\n";
+			allTotal += total;
+			allMissed += missed;
+		}
+		if (characters.size() > 1)
+		{
+			std::cout << "  all: " << 100.0 * double(allTotal - allMissed) / double(allTotal) << "%\n";
 		}
 
-		Hitbox::saveHitboxes(argv[3], hitboxes);
-		std::cout << "Saved " << argv[3] << "\n";
+		Hitbox::saveHitboxes(output, hitboxes);
+		std::ofstream note(output, std::ios::app);
+		note << "// Total volume " << int(std::lround(sum)) << " cubic units, coverage " << fit.coverage << "%, margin " << fit.margin
+			 << (skipCoat ? ", coat left out" : "") << ", inside " << 100.0 * double(allTotal - allMissed) / double(allTotal) << "%\n";
+		std::cout << "Saved " << output << " (total volume " << int(std::lround(sum)) << ")\n";
 	}
 	catch (const std::exception &ex)
 	{
