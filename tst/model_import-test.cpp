@@ -3,6 +3,7 @@
 #include "model_gltf.h"
 #include "scene_import.h"
 #include "skeletal_model.h"
+#include "posed_model.h"
 #include "skeletal_tools.h"
 #include "morph_model.h"
 #include "normals.h"
@@ -276,6 +277,58 @@ TEST(ImportFBXTest, animationThatMovesNothing)
 	ASSERT_EQ(model->numFrames(), 1);
 	ASSERT_TRUE(model->animations.empty());
 	ASSERT_NO_THROW(model->validate());
+}
+
+TEST(ImportFBXTest, skinnedBindPoseLikeFrames)
+{
+	// The checks of the glTF bind pose fix for FBX: the Y-up file converted by ufbx keeps the bind pose, the bones and the
+	// animation in one space (vertices from the bones and weights = the stored bind vertices), and the bind pose is the
+	// IQM version of the model exactly (by nearest vertex, the vertex order differs)
+	mt::io::MTPath data("data");
+	auto fbx = load<skeletal::SkeletalModel>(data.loadFile("models/fbx/mrfixit.fbx"));
+	auto iqm = load<skeletal::SkeletalModel>(data.loadFile("models/iqm/mrfixit.iqm"));
+	ASSERT_TRUE(fbx && iqm);
+
+	for (const auto &mesh : fbx->meshes)
+	{
+		for (const auto &vert : mesh.vertices)
+		{
+			ASSERT_LT(glm::distance(vert.pos, skeletal::posedVertex(*fbx, mesh, vert, FRAME_BIND_POSE)), 1e-4f);
+		}
+	}
+
+	PoseOptions bind;
+	bind.bindPose = true;
+	const auto a = poseModel(*fbx, bind), b = poseModel(*iqm, bind);
+	for (const auto &meshB : b.meshes)
+	{
+		auto meshA = std::find_if(a.meshes.begin(), a.meshes.end(), [&](const PosedMesh &m) { return m.name == meshB.name; });
+		ASSERT_NE(meshA, a.meshes.end());
+		for (size_t v = 0; v < meshB.positions.size(); v += 7)
+		{
+			float nearest = std::numeric_limits<float>::max();
+			for (const auto &p : meshA->positions)
+			{
+				nearest = std::min(nearest, glm::distance(p, meshB.positions[v]));
+			}
+			ASSERT_LT(nearest, 1e-3f) << meshB.name << " vertex " << v;
+		}
+	}
+
+	// The bones are at the IQM bones' places (their axes differ by a constant 90 degrees around their own Z, a bone
+	// axis convention of the two exporters, not the Y-up conversion, which turns around X)
+	for (const auto &bone : fbx->joints)
+	{
+		for (const auto &other : iqm->joints)
+		{
+			if (bone.name == other.name)
+			{
+				EXPECT_LT(glm::distance(bone.location, other.location), 1e-3f) << bone.name;
+				const glm::quat offset = glm::inverse(glm::normalize(other.rotation)) * glm::normalize(bone.rotation);
+				EXPECT_NEAR(std::abs(glm::dot(glm::axis(offset), glm::vec3(0, 0, 1))), 1.0f, 1e-3f) << bone.name;
+			}
+		}
+	}
 }
 
 TEST(ImportFBXTest, skinnedMatchesIQM)
